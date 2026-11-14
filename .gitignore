@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Data, run outputs and pulled results never go in git (anchored: src/seqrec/data/ is code)
+/data/
+/outputs/
+/workspace/
+/pulled/
+/checkpoints/
+*.pt
+*.npz
+*.zip
+
+.DS_Store
