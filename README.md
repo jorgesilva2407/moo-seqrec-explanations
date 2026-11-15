@@ -95,7 +95,12 @@ just resume <run-name>    # after an interruption: continues from last.pt
 just upload_to=YOUR_USER/sasrec-ml20m train-bg      # uploads best.pt, metrics and a model card when done
 just upload_to=YOUR_USER/sasrec-ml20m resume <run>  # same, after an interruption
 just upload <run-name> YOUR_USER/sasrec-ml20m       # upload an existing run by hand
+just upload_folder=fp32 upload <run-name> YOUR_USER/sasrec-ml20m   # put it under fp32/ (root README untouched)
 ```
+
+The published model (`AbyssWanderer/sasrec-ml20m`, private) keeps one folder per run: `bf16/` (first run, bf16
+autocast, collapsed after its best epoch) and `fp32/` (stable run); each holds `best.pt`, `config.json`,
+`final_metrics.json`, `metrics.csv` and `train.log`. Load one with `hf_hub_download(repo, "fp32/best.pt")`.
 
 The repo is created private; add `upload_visibility=--upload-public` to make it public. The token is
 checked before training starts, so a missing token fails immediately. If the upload itself fails, the

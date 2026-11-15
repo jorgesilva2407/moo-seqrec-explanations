@@ -42,6 +42,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--compile", action="store_true", help="use torch.compile (off by default)")
     parser.add_argument("--upload-to", default=None, metavar="REPO_ID",
                         help="after training, upload the run to this Hugging Face repo (needs HF_TOKEN)")
+    parser.add_argument("--upload-folder", default="", help="repo folder for the run, e.g. fp32 (default: repo root)")
     parser.add_argument("--upload-public", action="store_true", help="create the Hub repo public (default: private)")
 
 
@@ -120,7 +121,7 @@ def run(args: argparse.Namespace) -> int:
     )
     if args.upload_to:
         try:
-            url = publish.upload_run(run_dir, args.upload_to, private=not args.upload_public)
+            url = publish.upload_run(run_dir, args.upload_to, private=not args.upload_public, folder=args.upload_folder)
             logger.info("uploaded run to %s", url)
         except (Exception, SystemExit):  # training result is safe on disk; report loudly
             logger.exception("UPLOAD FAILED (the run is intact in %s; retry with `just upload`)", run_dir)

@@ -31,7 +31,14 @@ def check_repo_id(repo_id: str) -> None:
         raise SystemExit(f"ERROR: repo id must look like 'user-or-org/name', got {repo_id!r}")
 
 
-def build_model_card(run_dir: Path, repo_id: str) -> str:
+def check_folder(folder: str) -> str:
+    folder = folder.strip("/")
+    if folder.startswith(".") or ".." in folder.split("/"):
+        raise SystemExit(f"ERROR: repo folder must be a plain relative path like 'fp32', got {folder!r}")
+    return folder
+
+
+def build_model_card(run_dir: Path, repo_id: str, folder: str = "") -> str:
     metrics = {}
     metrics_path = run_dir / "final_metrics.json"
     if metrics_path.is_file():
@@ -55,7 +62,7 @@ config, training arguments, seed and data hash, so it can be rebuilt with the `s
 from huggingface_hub import hf_hub_download
 from seqrec.models.loader import load
 
-path = hf_hub_download("{repo_id}", "best.pt")
+path = hf_hub_download("{repo_id}", "{(folder + "/" if folder else "") + "best.pt"}")
 scorer = load(path, device="cpu")
 ```
 
@@ -71,9 +78,15 @@ MovieLens-20M (Harper & Konstan, 2015). Max sequence length here is 128, not the
 """
 
 
-def upload_run(run_dir: Path, repo_id: str, private: bool = True) -> str:
-    """Upload the run's files and a model card in one commit; returns the repo URL."""
+def upload_run(run_dir: Path, repo_id: str, private: bool = True, folder: str = "") -> str:
+    """Upload the run's files in one commit; returns the repo URL.
+
+    With ``folder`` (e.g. ``fp32``) the files go under that folder of the repo and the root README is
+    left alone, so several runs can live side by side. Without it they go to the repo root with a model card.
+    """
     check_repo_id(repo_id)
+    folder = check_folder(folder)
+    prefix = f"{folder}/" if folder else ""
     token = require_token()
     run_dir = Path(run_dir)
     if not (run_dir / "best.pt").is_file():
@@ -86,13 +99,14 @@ def upload_run(run_dir: Path, repo_id: str, private: bool = True) -> str:
             "DEPENDENCY_GROUPS=upload (or run `uv sync --group upload` locally)."
         )
     operations = [
-        CommitOperationAdd(path_in_repo=name, path_or_fileobj=str(run_dir / name))
+        CommitOperationAdd(path_in_repo=prefix + name, path_or_fileobj=str(run_dir / name))
         for name in RUN_FILES
         if (run_dir / name).is_file()
     ]
-    operations.append(
-        CommitOperationAdd(path_in_repo="README.md", path_or_fileobj=build_model_card(run_dir, repo_id).encode("utf-8"))
-    )
+    if not folder:
+        operations.append(
+            CommitOperationAdd(path_in_repo="README.md", path_or_fileobj=build_model_card(run_dir, repo_id).encode("utf-8"))
+        )
     api = HfApi(token=token)
     # exist_ok: an existing repo keeps its current visibility.
     api.create_repo(repo_id, repo_type="model", private=private, exist_ok=True)

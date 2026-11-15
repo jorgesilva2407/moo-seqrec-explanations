@@ -17,6 +17,8 @@ session := "train"
 groups := "dev upload"
 # Hugging Face repo (user/name): when set, train/train-bg/resume upload the run at the end (needs HF_TOKEN)
 upload_to := ""
+# folder of the Hub repo for the uploaded run, e.g. fp32 or bf16 (empty = repo root)
+upload_folder := ""
 # set to "--upload-public" to create the Hub repo public (default: private)
 upload_visibility := ""
 smoke_users := "2000"
@@ -37,7 +39,8 @@ python := if inside == "1" { "python" } else { "uv run python" }
 pytest := if inside == "1" { "python -m pytest" } else { "uv run --group dev pytest" }
 run_flag := if run_name == "" { "" } else { "--run-name " + run_name }
 paths_flags := "--data-dir " + data_dir + " --out-dir " + out_dir
-upload_flag := if upload_to == "" { "" } else { "--upload-to " + upload_to + " " + upload_visibility }
+folder_flag := if upload_folder == "" { "" } else { "--folder " + upload_folder }
+upload_flag := if upload_to == "" { "" } else { "--upload-to " + upload_to + " " + upload_visibility + if upload_folder == "" { "" } else { " --upload-folder " + upload_folder } }
 
 # List all recipes
 default:
@@ -223,7 +226,7 @@ resume name:
 # Upload a finished run to the Hugging Face Hub (network; needs HF_TOKEN): just upload NAME user/repo
 [group('remote')]
 upload name repo:
-    {{seqrec}} upload {{paths_flags}} --run-name "{{name}}" --repo-id "{{repo}}" {{upload_visibility}}
+    {{seqrec}} upload {{paths_flags}} --run-name "{{name}}" --repo-id "{{repo}}" {{folder_flag}} {{upload_visibility}}
 
 # Evaluate a checkpoint on the processed data: just evaluate /workspace/outputs/runs/NAME/best.pt
 [group('remote')]
