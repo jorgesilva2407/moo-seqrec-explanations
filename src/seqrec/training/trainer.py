@@ -133,6 +133,7 @@ def fit(
     encoder = torch.compile(model) if train_args.get("compile") else model
     epochs, patience = int(train_args["epochs"]), int(train_args["patience"])
     batch_size = int(train_args["batch_size"])
+    grad_clip = float(train_args.get("grad_clip", 0.0))  # 0 = off (also for runs saved before the option)
     val_users = _val_subset(data.num_users, int(train_args.get("val_subset", 0)), seed)
     logits_fn = make_logits_fn(model, device, amp_dtype)
     n_train = data.train.shape[0]
@@ -169,6 +170,7 @@ def fit(
             gen.manual_seed(seed * 100003 + epoch)
             perm = torch.randperm(n_train, generator=gen)
             loss_sum = torch.zeros((), device=device)
+            grad_norm_max = torch.zeros((), device=device)
             token_count = 0
             for start in tqdm(range(0, n_train, batch_size), desc=f"epoch {epoch}", leave=False, disable=not sys.stderr.isatty()):
                 inputs, labels = data.train_batch(perm[start : start + batch_size])
@@ -182,6 +184,10 @@ def fit(
                 loss = F.cross_entropy(logits.float(), labels[valid] - 1)
                 optimizer.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
+                if grad_clip > 0:
+                    scaler.unscale_(optimizer)  # no-op without a scaler (bf16)
+                    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                    grad_norm_max = torch.maximum(grad_norm_max, norm.detach().float())
                 scaler.step(optimizer)
                 scaler.update()
                 loss_sum += loss.detach() * count
@@ -212,8 +218,9 @@ def fit(
             })
             csv_file.flush()
             logger.info(
-                "epoch %d | loss %.4f | val NDCG@10 %.4f HR@10 %.4f | %.1fs%s",
+                "epoch %d | loss %.4f | val NDCG@10 %.4f HR@10 %.4f | %.1fs%s%s",
                 epoch, train_loss, val_ndcg, val_hr, seconds, " *" if improved else "",
+                f" | max grad norm {float(grad_norm_max.item()):.2f}" if grad_clip > 0 else "",
             )
             if stop:
                 logger.info("early stopping: no improvement for %d epochs (best epoch %d)", patience, best_epoch)
