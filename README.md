@@ -157,7 +157,23 @@ added to `paths.py`. Add its dependencies as a separate uv group in `pyproject.t
 `--build-arg DEPENDENCY_GROUPS="dev explain"` (`just groups="dev explain" docker-build`; for CI add the
 arg under `build-args` in the workflow).
 
-## 11. References and credits
+## 11. Explanations (in progress)
+
+`src/seqrec/explain/` holds the counterfactual-explanation part: `instances.py` (sampling of
+(history, target) pairs), `backgrounds.py` (the fills, fixed per instance) and `verifier.py` (margins
+under necessity and sufficiency interventions, counted in SASRec passes). It needs the `explain`
+dependency group. Before any long run, on the GPU instance:
+
+```
+just explain-bench                      # downloads fp32/best.pt from the Hub (private repo: set HF_TOKEN)
+just explain-bench --checkpoint /workspace/outputs/runs/<run-name>/best.pt
+```
+
+It prints the SASRec passes per second for several chunk sizes and how well the estimates with
+M = 5, 10, 20, 40 backgrounds agree with a 200-background reference, and saves the numbers to
+`<out-dir>/explanations/bench/`. The search methods and the experiment runner are not written yet.
+
+## 12. References and credits
 
 The model, loss and hyperparameters follow A. Klenitskiy and A. Vasilev, "Turning Dross Into Gold Loss:
 is BERT4Rec really better than SASRec?" (RecSys 2023, arXiv 2309.07602), and the original SASRec by
@@ -189,7 +205,7 @@ evaluation details; no code was copied from it.
 }
 ```
 
-## 12. Results (to fill in)
+## 13. Results (to fill in)
 
 | run | seed | epochs (best) | val HR@10 | val NDCG@10 | test HR@10 | test NDCG@10 | s/epoch | checkpoint id |
 |-----|------|---------------|-----------|-------------|------------|--------------|---------|---------------|

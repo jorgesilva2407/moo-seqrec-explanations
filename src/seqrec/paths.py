@@ -10,6 +10,7 @@ Layout::
     <data-dir>/<processed-name>/          (default name: "processed")
     <out-dir>/runs/<run-name>/
     <out-dir>/evaluations/
+    <out-dir>/explanations/
 """
 
 from __future__ import annotations
@@ -60,6 +61,10 @@ def runs_dir(out_dir: Path) -> Path:
 
 def evaluations_dir(out_dir: Path) -> Path:
     return out_dir / "evaluations"
+
+
+def explanations_dir(out_dir: Path) -> Path:
+    return out_dir / "explanations"
 
 
 def default_run_name(seed: int) -> str:

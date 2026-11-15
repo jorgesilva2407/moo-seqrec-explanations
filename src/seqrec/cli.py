@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import argparse
 
-from seqrec.commands import evaluate, prepare_data, train, upload
+from seqrec.commands import evaluate, explain_bench, prepare_data, train, upload
 
 COMMANDS = (
     ("prepare-data", prepare_data),
     ("train", train),
     ("evaluate", evaluate),
     ("upload", upload),
+    ("explain-bench", explain_bench),
 )
 
 

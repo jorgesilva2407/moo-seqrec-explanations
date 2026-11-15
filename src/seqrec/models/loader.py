@@ -76,6 +76,10 @@ class SASRecScorer:
         """Hash of the processed data the model was trained on (None if not recorded)."""
         return self._info.get(KEY_DATA_HASH)
 
+    def item_embeddings(self) -> torch.Tensor:
+        """float32 [N + 1, H] copy of the item embedding matrix; row ``i`` is item ``i``, row 0 padding."""
+        return self._model.item_emb.weight.detach().float().clone()
+
     def logits(self, seqs: torch.Tensor, max_batch: int | None = None) -> torch.Tensor:
         """Next-item logits for the last position.
 
@@ -140,3 +144,16 @@ def load(checkpoint_path: str | Path, device: str | torch.device = "cuda", max_b
         KEY_VERSIONS: payload.get(KEY_VERSIONS),
     }
     return SASRecScorer(model, checkpoint_id(path), device, max_batch, info)
+
+
+def load_from_hub(
+    repo_id: str, filename: str = "fp32/best.pt", device: str | torch.device = "cuda", max_batch: int = 1024
+) -> SASRecScorer:
+    """Download a checkpoint from the Hugging Face Hub (cached) and ``load`` it.
+
+    Needs ``huggingface_hub`` (the ``explain`` or ``upload`` dependency group); a private repo
+    needs the ``HF_TOKEN`` environment variable.
+    """
+    from huggingface_hub import hf_hub_download
+
+    return load(hf_hub_download(repo_id, filename), device=device, max_batch=max_batch)

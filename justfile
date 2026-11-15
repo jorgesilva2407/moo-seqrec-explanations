@@ -13,8 +13,8 @@ grad_clip := "0"
 # "auto" (bf16 autocast) or "fp32" for train/train-bg
 precision := "auto"
 session := "train"
-# extra uv dependency groups for docker-build, space separated (the upload group is needed for Hub uploads)
-groups := "dev upload"
+# extra uv dependency groups for docker-build, space separated (upload: Hub uploads; explain: explanation commands)
+groups := "dev upload explain"
 # Hugging Face repo (user/name): when set, train/train-bg/resume upload the run at the end (needs HF_TOKEN)
 upload_to := ""
 # folder of the Hub repo for the uploaded run, e.g. fp32 or bf16 (empty = repo root)
@@ -232,6 +232,11 @@ upload name repo:
 [group('remote')]
 evaluate checkpoint:
     {{seqrec}} evaluate {{paths_flags}} --checkpoint "{{checkpoint}}"
+
+# Benchmark the explanation verifier (passes per second, choice of M); downloads fp32/best.pt from the Hub
+[group('remote')]
+explain-bench *args:
+    {{seqrec}} explain-bench {{paths_flags}} {{args}}
 
 # Delete only smoke-run outputs (runs/smoke-* and processed_smoke), after confirmation
 [group('remote')]

@@ -57,7 +57,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            DEPENDENCY_GROUPS=dev upload
+            DEPENDENCY_GROUPS=dev upload explain
             GIT_COMMIT=${{ github.sha }}
             SOURCE_URL=${{ github.server_url }}/${{ github.repository }}
           # No gha layer cache: exporting the multi-GB CUDA layers filled the runner disk.
