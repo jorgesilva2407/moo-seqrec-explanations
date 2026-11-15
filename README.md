@@ -179,8 +179,8 @@ from the dataset and uploads every 10 minutes, so an interrupted or sharded run 
 
 Unattended on vast.ai: `just vast-template sha-xxxxxxx` creates a template whose onstart command is
 `vast/onstart.sh`. It runs `prepare-data` and then the recipe in the `SASREC_JOB` environment variable
-(default: the benchmark), e.g. `--env '-e SASREC_JOB="explain-run --stage main --shard 0/4"'` on
-`vastai create instance`. The log is uploaded to `logs/` in the dataset when the job ends.
+(default: the benchmark), e.g. `--env '-e SASREC_JOB=explain-run+--stage+main+--shard+0/4'` on
+`vastai create instance` (`+` stands for a space and `,` separates jobs: vast.ai drops values with spaces). The log is uploaded to `logs/` in the dataset when the job ends.
 
 ## 12. References and credits
 

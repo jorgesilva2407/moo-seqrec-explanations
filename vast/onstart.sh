@@ -2,18 +2,19 @@
 # vast.ai onstart script: prepare the data and run one job, with no SSH session needed.
 # Installed as the template's onstart command by `just vast-template <image-tag>`.
 #
-# The jobs are `just` recipes with their arguments, separated by ";" and run in order, taken from
-# the instance environment (default: the verifier benchmark):
-#   SASREC_JOB="explain-run --stage main --shard 0/4"
-#   SASREC_JOB="explain-run --stage tune-a --pop-size 50;explain-run --stage tune-b --pop-size 100"
-# e.g.  vastai create instance <offer> --template_hash <hash> --env '-e SASREC_JOB="explain-run --stage main"'
+# The jobs are `just` recipes with their arguments, run in order, taken from the instance
+# environment (default: the verifier benchmark). vast.ai drops variables whose value has spaces,
+# so write "+" for a space and "," between jobs:
+#   --env '-e SASREC_LABEL=main-0 -e SASREC_JOB=explain-run+--stage+main+--shard+0/4'
+#   SASREC_JOB=explain-run+--stage+tune-a+--pop-size+50,explain-run+--stage+tune-b+--pop-size+100
 # HF_TOKEN (or SASREC_HF_TOKEN) must be in the environment: the checkpoint comes from the Hub and
 # results go to the dataset SASREC_RESULTS_REPO. Progress is in /workspace/outputs/onstart.log,
 # which ends with "[job] DONE" or "[job] FAILED ..." and is uploaded to logs/ in the dataset
 # (named after SASREC_LABEL).
 
 RESULTS_REPO="${SASREC_RESULTS_REPO:-AbyssWanderer/sasrec-ml20m-explanations}"
-JOB="${SASREC_JOB:-explain-bench --per-stratum 10}"
+JOB="${SASREC_JOB:-explain-bench+--per-stratum+10}"
+JOB="${JOB//+/ }"
 LOG=/workspace/outputs/onstart.log
 
 mkdir -p /workspace/data /workspace/outputs
@@ -36,7 +37,7 @@ job() {
     if [ ! -f /workspace/data/processed/data_meta.json ]; then
         just prepare-data || { echo "[job] FAILED prepare-data"; return 1; }
     fi
-    IFS=';' read -ra steps <<< "$JOB"
+    IFS=',' read -ra steps <<< "$JOB"
     for step in "${steps[@]}"; do
         echo "[job] step $(date -u +%FT%TZ): $step"
         # shellcheck disable=SC2086
