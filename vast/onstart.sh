@@ -2,12 +2,15 @@
 # vast.ai onstart script: prepare the data and run one job, with no SSH session needed.
 # Installed as the template's onstart command by `just vast-template <image-tag>`.
 #
-# The job is a `just` recipe with its arguments, taken from the instance environment:
-#   SASREC_JOB="explain-run --stage main --shard 0/4"     (default: the verifier benchmark)
+# The jobs are `just` recipes with their arguments, separated by ";" and run in order, taken from
+# the instance environment (default: the verifier benchmark):
+#   SASREC_JOB="explain-run --stage main --shard 0/4"
+#   SASREC_JOB="explain-run --stage tune-a --pop-size 50;explain-run --stage tune-b --pop-size 100"
 # e.g.  vastai create instance <offer> --template_hash <hash> --env '-e SASREC_JOB="explain-run --stage main"'
 # HF_TOKEN (or SASREC_HF_TOKEN) must be in the environment: the checkpoint comes from the Hub and
 # results go to the dataset SASREC_RESULTS_REPO. Progress is in /workspace/outputs/onstart.log,
-# which ends with "[job] DONE" or "[job] FAILED ..." and is uploaded to logs/ in the dataset.
+# which ends with "[job] DONE" or "[job] FAILED ..." and is uploaded to logs/ in the dataset
+# (named after SASREC_LABEL).
 
 RESULTS_REPO="${SASREC_RESULTS_REPO:-AbyssWanderer/sasrec-ml20m-explanations}"
 JOB="${SASREC_JOB:-explain-bench --per-stratum 10}"
@@ -33,13 +36,17 @@ job() {
     if [ ! -f /workspace/data/processed/data_meta.json ]; then
         just prepare-data || { echo "[job] FAILED prepare-data"; return 1; }
     fi
-    # shellcheck disable=SC2086
-    just $JOB --results-repo "$RESULTS_REPO" || { echo "[job] FAILED $JOB"; return 1; }
+    IFS=';' read -ra steps <<< "$JOB"
+    for step in "${steps[@]}"; do
+        echo "[job] step $(date -u +%FT%TZ): $step"
+        # shellcheck disable=SC2086
+        just $step --results-repo "$RESULTS_REPO" || { echo "[job] FAILED $step"; return 1; }
+    done
     echo "[job] DONE $(date -u +%FT%TZ)"
 }
 
 upload_log() {
-    name="$(date -u +%Y%m%d-%H%M%S)-$(echo "$JOB" | tr -c 'A-Za-z0-9._\n' '-' | cut -c1-80)-${CONTAINER_ID:-$(hostname)}.log"
+    name="$(date -u +%Y%m%d-%H%M%S)-${SASREC_LABEL:-job}-${CONTAINER_ID:-$(hostname)}.log"
     python -c "
 import sys
 from huggingface_hub import HfApi
