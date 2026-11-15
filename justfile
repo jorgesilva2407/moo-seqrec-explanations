@@ -252,6 +252,11 @@ explain-bench *args:
 explain-run *args:
     {{seqrec}} explain-run {{paths_flags}} {{args}}
 
+# Compare stages or methods by hypervolume: just explain-report --stages main [--by stage] [--results-repo user/dataset]
+[group('remote')]
+explain-report *args:
+    {{seqrec}} explain-report --out-dir {{out_dir}} {{args}}
+
 # Delete only smoke-run outputs (runs/smoke-* and processed_smoke), after confirmation
 [group('remote')]
 clean-smoke:
