@@ -148,6 +148,15 @@ push-image-info:
     echo "  password = a personal access token (classic) with the read:packages scope."
     echo "Check locally: docker pull {{image}}:{{tag}}"
 
+# Create a vast.ai template that runs prepare-data + explain-bench at start (vast/onstart-bench.sh): just vast-template-bench sha-xxxxxxx
+[group('local')]
+vast-template-bench image_tag name="sasrec-ml20m-explain":
+    vastai create template --name "{{name}}" --image "{{image}}" --image_tag "{{image_tag}}" \
+        --href "https://{{image}}" --repo "{{image}}" --ssh --direct --disk_space 40 \
+        --desc "SASRec ML-20M explanations: prepare-data + explain-bench at start (/workspace/outputs/onstart.log)" \
+        --search_params "verified=True external=False rentable=True gpu_ram>=16 cuda_max_good>=12.6 disk_space>=40 reliability>0.97 num_gpus=1 compute_cap>=800 direct_port_count>=1 cpu_cores_effective>=4 cpu_ram>=16 inet_down>=200" \
+        --onstart-cmd "$(cat vast/onstart-bench.sh)"
+
 # ------------------------------------------------------------------ remote (GPU machine, inside the container)
 
 # Show the GPU and check that torch sees CUDA

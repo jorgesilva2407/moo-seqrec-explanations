@@ -27,7 +27,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--masks", type=int, default=200, help="random masks per instance")
     parser.add_argument("--ms", type=int, nargs="+", default=[5, 10, 20, 40], help="values of M to compare")
     parser.add_argument("--m-ref", type=int, default=200, help="independent backgrounds of the reference estimate")
-    parser.add_argument("--chunks", type=int, nargs="+", default=[2048, 4096, 8192, 16384])
+    parser.add_argument("--chunks", type=int, nargs="+", default=[512, 1024, 2048, 4096, 8192])
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--seed", type=int, default=0)
 
@@ -57,16 +57,26 @@ def mean_spearman(a: torch.Tensor, b: torch.Tensor, index: torch.Tensor) -> floa
     return float(np.mean([spearman(a[index == i], b[index == i]) for i in np.unique(index)]))
 
 
-def throughput(verifier: Verifier, index: torch.Tensor, masks: torch.Tensor, chunk: int) -> float:
+def throughput(verifier: Verifier, index: torch.Tensor, masks: torch.Tensor, chunk: int) -> dict:
+    """Passes per second and peak GPU memory for one chunk size (``passes_per_second`` None on OOM)."""
+    cuda = verifier.scorer.device.type == "cuda"
     verifier.chunk = chunk
-    verifier.evaluate(index[:8], masks[:8])  # warm-up
-    if verifier.scorer.device.type == "cuda":
-        torch.cuda.synchronize()
-    before, start = verifier.passes, time.perf_counter()
-    verifier.evaluate(index, masks)
-    if verifier.scorer.device.type == "cuda":
-        torch.cuda.synchronize()
-    return (verifier.passes - before) / (time.perf_counter() - start)
+    try:
+        verifier.evaluate(index[:8], masks[:8])  # warm-up
+        if cuda:
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats()
+        before, start = verifier.passes, time.perf_counter()
+        verifier.evaluate(index, masks)
+        if cuda:
+            torch.cuda.synchronize()
+        speed = (verifier.passes - before) / (time.perf_counter() - start)
+    except torch.OutOfMemoryError:
+        speed = None
+    peak = torch.cuda.max_memory_allocated() / 1024**3 if cuda else None
+    if cuda:
+        torch.cuda.empty_cache()
+    return {"passes_per_second": speed, "peak_gpu_gib": peak}
 
 
 def run(args: argparse.Namespace) -> int:
@@ -101,8 +111,13 @@ def run(args: argparse.Namespace) -> int:
         "device": torch.cuda.get_device_name(device) if device.type == "cuda" else str(device),
         "instances": stats,
         "masks": int(masks.shape[0]),
-        "passes_per_second": {str(c): throughput(search, index, masks, c) for c in args.chunks},
+        "throughput": {str(c): throughput(search, index, masks, c) for c in args.chunks},
     }
+    speeds = {c: result["throughput"][str(c)]["passes_per_second"] for c in args.chunks}
+    best = max((c for c in args.chunks if speeds[c]), key=lambda c: speeds[c], default=None)
+    if best is None:
+        raise SystemExit("ERROR: every chunk size ran out of GPU memory.")
+    result["best_chunk"] = search.chunk = reference.chunk = best
 
     found, truth = search.evaluate(index, masks), reference.evaluate(index, masks)
     # spread of the margin over backgrounds: the standard error of N-hat / S-hat is std / sqrt(M)

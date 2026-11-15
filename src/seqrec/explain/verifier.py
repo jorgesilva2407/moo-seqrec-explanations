@@ -27,7 +27,8 @@ from seqrec.explain.instances import Instance
 from seqrec.models.loader import SASRecScorer
 
 DEFAULT_K = 10
-DEFAULT_CHUNK = 8192
+# sequences per forward pass; attention needs roughly 1.5 GiB of GPU memory per 1024 sequences
+DEFAULT_CHUNK = 2048
 
 
 @dataclass(frozen=True)
