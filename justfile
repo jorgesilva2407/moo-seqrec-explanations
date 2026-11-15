@@ -89,7 +89,7 @@ docker-run:
         -v "$(cd "{{host_workspace}}/outputs" && pwd):/workspace/outputs" \
         "{{image}}:{{tag}}" bash
 
-# Tag the current commit and push the tag, which triggers the CI image build (asks first)
+# Tag the current commit and push the tag (does NOT build; run `just ci-build v0.1.0` afterwards) (asks first)
 [group('local')]
 release version:
     #!/usr/bin/env bash
@@ -110,9 +110,16 @@ release version:
     [ "$answer" = "y" ] || { echo "aborted"; exit 1; }
     git tag "{{version}}"
     git push origin "{{version}}"
-    echo "CI will publish:"
+    echo "Tag pushed. Building is manual: just ci-build {{version}}"
+    echo "That build will publish:"
     echo "  {{image}}:${v#v}"
     echo "  {{image}}:sha-$short"
+
+# Start the manual CI image build for a branch or tag (network; needs gh): just ci-build main
+[group('local')]
+ci-build ref="main":
+    gh workflow run docker --ref "{{ref}}"
+    @echo "started; follow it with: gh run watch"
 
 # Copy a run directory and data_meta.json from the vast.ai instance (needs ssh access): just pull-run HOST PORT NAME
 [group('local')]

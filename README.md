@@ -40,7 +40,8 @@ git push -u origin main
 
 ## 3. Watch CI and publish the package
 
-Open the repository's Actions tab and watch the `docker` workflow. It builds the image and pushes
+The `docker` workflow runs **only manually** (no push, tag or pull-request triggers): start it with
+`just ci-build main` or from the Actions tab ("Run workflow"), then watch it with `gh run watch`. It builds the image and pushes
 `ghcr.io/OWNER/REPO` (tags `latest` and `sha-<short>`). The package appears under the repository's
 "Packages" sidebar. Either make it public (package page, Package settings, Change visibility) or
 keep it private and give vast.ai registry credentials (user, plus a personal access token with
@@ -52,7 +53,8 @@ keep it private and give vast.ai registry credentials (user, plus a personal acc
 just release v0.1.0       # checks a clean tree, asks to confirm, tags and pushes
 ```
 
-CI then publishes `ghcr.io/OWNER/REPO:0.1.0` and `:sha-<short>`. (`latest` follows `main`.)
+The tag push does not build anything. Run `just ci-build v0.1.0` to build it; that publishes
+`ghcr.io/OWNER/REPO:0.1.0` and `:sha-<short>`. (`latest` is only set when the build runs on `main`.)
 
 ## 5. Create the vast.ai instance
 
@@ -135,7 +137,7 @@ just pull-run <host> <ssh-port> <run-name>     # rsync to ./pulled/<run-name>/ (
 
 ## 9. Rebuilding after a code change
 
-Commit, `git push` (or `just release vX.Y.Z`), wait for the Actions run to finish, then on the instance
+Commit, `git push`, run `just ci-build main` and wait for the Actions run to finish, then on the instance
 pull the new tag (stop and recreate the instance from the new tag; keep the `/workspace` volume).
 
 ## 10. Extending the project
