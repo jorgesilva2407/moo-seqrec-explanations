@@ -12,7 +12,7 @@ import torch
 
 from seqrec import paths
 from seqrec.data import load_histories, load_meta, load_popularity
-from seqrec.explain.backgrounds import EVAL_STREAM, draw_backgrounds
+from seqrec.explain.backgrounds import EVAL_STREAM, FILLS, draw_backgrounds
 from seqrec.explain.instances import Instance, build_instances
 from seqrec.explain.methods import METHODS, Context, weight_lattice
 from seqrec.explain.scheduler import Job, JobSpec, job_specs, method_seed, run_jobs, save_job
@@ -40,6 +40,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--m", type=int, default=10, help="backgrounds per instance during the search")
     parser.add_argument("--m-eval", type=int, default=100,
                         help="independent backgrounds to re-score each front (0 = skip)")
+    parser.add_argument("--fill", choices=FILLS, default="popularity", help="backgrounds used by the search")
+    parser.add_argument("--eval-fill", choices=FILLS, default=None,
+                        help="backgrounds that re-score the fronts (default: the same kind as --fill)")
+    parser.add_argument("--instance-m", type=int, default=10,
+                        help="popularity backgrounds of the check that selects instances (independent of --m and --fill)")
     parser.add_argument("--budget", type=int, default=100_000, help="SASRec passes per job")
     parser.add_argument("--pop-size", type=int, default=100)
     parser.add_argument("--scalar-pop-size", type=int, default=20)
@@ -65,12 +70,12 @@ def select_instances(args, histories, scorer: SASRecScorer, popularity) -> tuple
     main, stats = build_instances(
         histories, scorer, popularity,
         args.main_per_stratum if args.instance_set == "tune" else args.per_stratum,
-        args.instance_seed, m=args.m, k=args.k,
+        args.instance_seed, m=args.instance_m, k=args.k,
     )
     if args.instance_set == "main":
         return main, stats
     return build_instances(
-        histories, scorer, popularity, args.per_stratum, args.instance_seed + 1, m=args.m, k=args.k,
+        histories, scorer, popularity, args.per_stratum, args.instance_seed + 1, m=args.instance_m, k=args.k,
         exclude_users=[inst.user_index for inst in main],
     )
 
@@ -133,11 +138,13 @@ def run(args: argparse.Namespace) -> int:
     everyone, stats = select_instances(args, histories, scorer, popularity)
     instances = everyone[shard::shards]
     embeddings = scorer.item_embeddings()
-    fills = draw_backgrounds(instances, popularity, embeddings, args.m, args.instance_seed)
+    fills = draw_backgrounds(instances, popularity, embeddings, args.m, args.instance_seed,
+                             fill=args.fill, histories=histories)
     verifier = Verifier(scorer, instances, fills, k=args.k, chunk=args.chunk)
     eval_verifier = None
     if args.m_eval:
-        eval_fills = draw_backgrounds(instances, popularity, embeddings, args.m_eval, args.instance_seed, EVAL_STREAM)
+        eval_fills = draw_backgrounds(instances, popularity, embeddings, args.m_eval, args.instance_seed, EVAL_STREAM,
+                                      fill=args.eval_fill or args.fill, histories=histories)
         eval_verifier = Verifier(scorer, instances, eval_fills, k=args.k, chunk=args.chunk)
     contexts, full = contexts_for(args, scorer, instances, verifier)
 
@@ -164,7 +171,7 @@ def run(args: argparse.Namespace) -> int:
         inst = instances[job.spec.instance]
         save_job(job_path(stage_dir, inst, job.spec), job, {
             "method": job.spec.method, "seed": job.spec.seed, "user_index": inst.user_index, "target": inst.target,
-            "m": args.m, "m_eval": args.m_eval, "k": args.k, "budget_passes": args.budget,
+            "m": args.m, "m_eval": args.m_eval, "fill": args.fill, "eval_fill": args.eval_fill or args.fill, "k": args.k, "budget_passes": args.budget,
             "checkpoint_id": scorer.checkpoint_id,
         })
 

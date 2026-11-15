@@ -73,3 +73,31 @@ def test_built_instances_are_valid_and_reproducible(tmp_path):
         histories, scorer, popularity, exclude_users=[i.user_index for i in instances], **kwargs
     )
     assert not {i.user_index for i in held_out} & {i.user_index for i in instances}
+
+
+def test_fill_variants(tmp_path):
+    scorer, histories = make_scorer(tmp_path), make_histories()
+    popularity = np.bincount(histories.items, minlength=NUM_ITEMS + 1).astype(np.int64)
+    instances, _ = build_instances(histories, scorer, popularity, per_stratum=5, seed=3, m=4, k=5, strata=STRATA, neighbours=3)
+    embeddings = scorer.item_embeddings()
+    draw = lambda **kw: draw_backgrounds(instances, popularity, embeddings, 6, seed=3, neighbours=3, histories=histories, **kw)
+
+    padding = draw(fill="padding")
+    assert all(f.shape == (6, i.n) and not f.any() for f, i in zip(padding, instances))
+    verifier = Verifier(scorer, instances, padding, k=5)
+    result = verifier.evaluate(torch.arange(len(instances)), verifier.full_masks())
+    assert torch.equal(result.size, torch.tensor([i.n for i in instances]))
+    assert torch.allclose(result.nec, result.nec[:, :1].expand_as(result.nec))  # deletion has no randomness
+
+    users = draw(fill="users")
+    again = draw(fill="users")
+    near = nearest_neighbours(embeddings, torch.tensor([i.target for i in instances]), 3).numpy()
+    sequences = [histories.full(u)[:-1].tolist() for u in range(len(histories))]
+    copied = 0
+    for fills, same, inst, close in zip(users, again, instances, near):
+        assert fills.shape == (6, inst.n) and np.array_equal(fills, same)
+        assert fills.min() >= 1 and not np.isin(fills, np.concatenate([inst.seen, close, [inst.target]])).any()
+        for row in fills.tolist():  # rows left untouched are a contiguous piece of some other user
+            copied += any(row == seq[j : j + inst.n] for u, seq in enumerate(sequences) if u != inst.user_index
+                          for j in range(len(seq) - inst.n + 1))
+    assert copied > 0
