@@ -14,7 +14,7 @@ from seqrec import paths
 from seqrec.data import load_histories, load_meta, load_popularity
 from seqrec.explain.backgrounds import EVAL_STREAM, draw_backgrounds
 from seqrec.explain.instances import Instance, build_instances
-from seqrec.explain.methods import METHODS, Context
+from seqrec.explain.methods import METHODS, Context, weight_lattice
 from seqrec.explain.scheduler import Job, JobSpec, job_specs, method_seed, run_jobs, save_job
 from seqrec.explain.verifier import DEFAULT_CHUNK, Verifier
 from seqrec.models.loader import SASRecScorer, load, load_from_hub
@@ -43,6 +43,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--budget", type=int, default=100_000, help="SASRec passes per job")
     parser.add_argument("--pop-size", type=int, default=100)
     parser.add_argument("--scalar-pop-size", type=int, default=20)
+    parser.add_argument("--scalar-divisions", type=int, default=3,
+                        help="weight vectors of the scalarised GA: simplex lattice divisions (2 -> 6, 3 -> 10, 4 -> 15)")
+    parser.add_argument("--init", choices=("sparse", "uniform"), default="sparse", help="initial population of the GAs")
+    parser.add_argument("--no-crossover", action="store_true", help="GAs use mutation only")
+    parser.add_argument("--mutation-scale", type=float, default=1.0, help="per-bit flip rate is this over n")
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--chunk", type=int, default=DEFAULT_CHUNK)
     parser.add_argument("--concurrency", type=int, default=64, help="jobs sharing one GPU batch")
@@ -80,7 +85,10 @@ def contexts_for(args, scorer: SASRecScorer, instances, verifier: Verifier) -> t
         scale = np.maximum(np.abs(row), 1e-6)
         similarity = (embeddings[torch.from_numpy(inst.history)] @ embeddings[inst.target]).numpy()
         contexts.append(
-            Context(inst.n, scale, similarity, args.budget // (2 * args.m), args.pop_size, args.scalar_pop_size)
+            Context(
+                inst.n, scale, similarity, args.budget // (2 * args.m), args.pop_size, args.scalar_pop_size,
+                weight_lattice(args.scalar_divisions), args.init, not args.no_crossover, args.mutation_scale,
+            )
         )
     return contexts, full
 

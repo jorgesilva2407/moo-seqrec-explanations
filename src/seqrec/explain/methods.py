@@ -26,10 +26,16 @@ from pymoo.core.sampling import Sampling
 from pymoo.core.termination import NoTermination
 from pymoo.operators.crossover.ux import UX
 from pymoo.operators.mutation.bitflip import BitflipMutation
+from pymoo.operators.sampling.rnd import BinaryRandomSampling
 from pymoo.problems.static import StaticProblem
 
-# 10 weight vectors over (N, S, C): the simplex lattice with 3 divisions
-DEFAULT_WEIGHTS = np.array([w for w in np.ndindex(4, 4, 4) if sum(w) == 3], dtype=np.float64) / 3
+def weight_lattice(divisions: int) -> np.ndarray:
+    """float [W, 3]: weight vectors over (N, S, C) on the simplex lattice (3 divisions -> 10 vectors)."""
+    grid = np.ndindex(divisions + 1, divisions + 1, divisions + 1)
+    return np.array([w for w in grid if sum(w) == divisions], dtype=np.float64) / divisions
+
+
+DEFAULT_WEIGHTS = weight_lattice(3)
 SPARSE_BITS = 5  # expected bits on in an initial individual
 
 
@@ -45,6 +51,9 @@ class Context:
         pop_size: population of NSGA-II (and batch size of the random baseline).
         scalar_pop_size: population of each scalarised GA run.
         weights: float [W, 3], weight vectors of the scalarised GA.
+        init: ``sparse`` (about ``SPARSE_BITS`` bits on) or ``uniform`` (each bit on with 1/2).
+        crossover: apply uniform crossover (False: offspring are mutated copies of the parents).
+        mutation_scale: the per-bit flip rate is ``mutation_scale / n``.
     """
 
     n: int
@@ -54,6 +63,9 @@ class Context:
     pop_size: int = 100
     scalar_pop_size: int = 20
     weights: np.ndarray = field(default_factory=lambda: DEFAULT_WEIGHTS)
+    init: str = "sparse"
+    crossover: bool = True
+    mutation_scale: float = 1.0
 
 
 def scalarise(objectives: np.ndarray, weights: np.ndarray, scale: np.ndarray) -> np.ndarray:
@@ -103,13 +115,15 @@ class NonEmptyRepair(Repair):
 class _Evolution:
     """A pymoo genetic algorithm driven by ask/tell on a binary mask."""
 
-    def __init__(self, algorithm_class, n: int, n_obj: int, pop_size: int, rng: np.random.Generator) -> None:
-        self.problem = Problem(n_var=n, n_obj=n_obj, xl=0, xu=1, vtype=bool)
+    def __init__(self, algorithm_class, ctx: Context, n_obj: int, pop_size: int, rng: np.random.Generator) -> None:
+        if ctx.init not in ("sparse", "uniform"):
+            raise ValueError(f"init must be sparse or uniform, got {ctx.init!r}")
+        self.problem = Problem(n_var=ctx.n, n_obj=n_obj, xl=0, xu=1, vtype=bool)
         self.algorithm = algorithm_class(
             pop_size=pop_size,
-            sampling=SparseSampling(),
-            crossover=UX(),
-            mutation=BitflipMutation(),  # per-bit rate 1/n (pymoo's default)
+            sampling=SparseSampling() if ctx.init == "sparse" else BinaryRandomSampling(),
+            crossover=UX(prob=1.0 if ctx.crossover else 0.0),
+            mutation=BitflipMutation(prob_var=min(0.5, ctx.mutation_scale / ctx.n)),
             repair=NonEmptyRepair(rng),
             eliminate_duplicates=True,
         )
@@ -118,10 +132,16 @@ class _Evolution:
         self.population = None
 
     def ask(self) -> np.ndarray:
+        # pymoo returns nothing when every offspring duplicates an existing individual
         self.population = self.algorithm.ask()
+        if self.population is None or len(self.population) == 0:
+            self.population = None
+            return np.zeros((0, self.problem.n_var), dtype=bool)
         return self.population.get("X").astype(bool)
 
     def tell(self, fitness: np.ndarray) -> None:
+        if self.population is None:
+            return
         Evaluator().eval(StaticProblem(self.problem, F=fitness), self.population)
         self.algorithm.tell(infills=self.population)
 
@@ -131,7 +151,7 @@ class NSGA2Search(Method):
 
     def __init__(self, ctx: Context, rng: np.random.Generator) -> None:
         super().__init__(ctx, rng)
-        self.evolution = _Evolution(NSGA2, ctx.n, 3, ctx.pop_size, rng)
+        self.evolution = _Evolution(NSGA2, ctx, 3, ctx.pop_size, rng)
 
     def ask(self, remaining: int) -> np.ndarray:
         return self.evolution.ask()
@@ -158,7 +178,7 @@ class ScalarGASearch(Method):
         if self.run >= len(self.ctx.weights):
             self.done = True
             return
-        self.evolution = _Evolution(GA, self.ctx.n, 1, self.ctx.scalar_pop_size, self.rng)
+        self.evolution = _Evolution(GA, self.ctx, 1, self.ctx.scalar_pop_size, self.rng)
 
     def ask(self, remaining: int) -> np.ndarray:
         masks = self.evolution.ask()

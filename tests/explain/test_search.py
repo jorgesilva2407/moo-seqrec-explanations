@@ -101,3 +101,25 @@ def test_front_is_rescored_and_files_round_trip(tmp_path):
     np.testing.assert_allclose(stored["objectives"], job.objectives, rtol=1e-6)
     np.testing.assert_allclose(stored["front_objectives"], job.front_scores[:, :3], rtol=1e-6)
     np.testing.assert_array_equal(stored["front"], job.front())
+
+
+def test_operator_switches_change_the_search():
+    from dataclasses import replace
+
+    from seqrec.explain.methods import NSGA2Search, weight_lattice
+
+    assert [len(weight_lattice(d)) for d in (1, 2, 3, 4)] == [3, 6, 10, 15]
+    ctx = replace(setup()[3][0], n=40, pop_size=200)
+    first = lambda **kw: NSGA2Search(replace(ctx, **kw), np.random.default_rng(0)).ask(10**6)
+    assert first().sum(axis=1).mean() < 8 < 15 < first(init="uniform").sum(axis=1).mean()
+
+    def offspring(**kw):
+        search = NSGA2Search(replace(ctx, **kw), np.random.default_rng(0))
+        parents = search.ask(10**6)
+        search.tell(np.random.default_rng(1).random((len(parents), 3)))
+        return parents, search.ask(10**6)
+
+    parents, children = offspring(crossover=False, mutation_scale=1e-9)
+    assert {c.tobytes() for c in children} <= {p.tobytes() for p in parents}  # copies only (duplicates dropped)
+    _, mutated = offspring(crossover=False, mutation_scale=10.0)
+    assert not {c.tobytes() for c in mutated} <= {p.tobytes() for p in parents}
