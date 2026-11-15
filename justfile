@@ -36,7 +36,7 @@ host_workspace := env("HOST_WORKSPACE", "./workspace")
 inside := env("INSIDE_CONTAINER", "0")
 seqrec := if inside == "1" { "seqrec" } else { "uv run seqrec" }
 python := if inside == "1" { "python" } else { "uv run python" }
-pytest := if inside == "1" { "python -m pytest" } else { "uv run --group dev pytest" }
+pytest := if inside == "1" { "python -m pytest" } else { "uv run --group dev --group explain pytest" }
 run_flag := if run_name == "" { "" } else { "--run-name " + run_name }
 paths_flags := "--data-dir " + data_dir + " --out-dir " + out_dir
 folder_flag := if upload_folder == "" { "" } else { "--folder " + upload_folder }
@@ -56,12 +56,12 @@ lock:
 # Install the project and the dev group into .venv
 [group('local')]
 sync:
-    uv sync --group dev
+    uv sync --group dev --group explain
 
 # Run the tests locally through uv (CPU)
 [group('local')]
 test-local:
-    uv run --group dev pytest
+    uv run --group dev --group explain pytest
 
 # Fail if uv.lock is missing or older than pyproject.toml
 [group('local')]
@@ -148,14 +148,14 @@ push-image-info:
     echo "  password = a personal access token (classic) with the read:packages scope."
     echo "Check locally: docker pull {{image}}:{{tag}}"
 
-# Create a vast.ai template that runs prepare-data + explain-bench at start (vast/onstart-bench.sh): just vast-template-bench sha-xxxxxxx
+# Create the vast.ai template whose onstart command is vast/onstart.sh (runs $SASREC_JOB, default: the benchmark): just vast-template sha-xxxxxxx
 [group('local')]
-vast-template-bench image_tag name="sasrec-ml20m-explain":
+vast-template image_tag name="sasrec-ml20m-explain":
     vastai create template --name "{{name}}" --image "{{image}}" --image_tag "{{image_tag}}" \
         --href "https://{{image}}" --repo "{{image}}" --ssh --direct --disk_space 40 \
-        --desc "SASRec ML-20M explanations: prepare-data + explain-bench at start (/workspace/outputs/onstart.log)" \
+        --desc "SASRec ML-20M explanations: prepare-data + the just recipe in SASREC_JOB at start (/workspace/outputs/onstart.log)" \
         --search_params "verified=True external=False rentable=True gpu_ram>=16 cuda_max_good>=12.6 disk_space>=40 reliability>0.97 num_gpus=1 compute_cap>=800 direct_port_count>=1 cpu_cores_effective>=4 cpu_ram>=16 inet_down>=200" \
-        --onstart-cmd "$(cat vast/onstart-bench.sh)"
+        --onstart-cmd "$(cat vast/onstart.sh)"
 
 # ------------------------------------------------------------------ remote (GPU machine, inside the container)
 
@@ -246,6 +246,11 @@ evaluate checkpoint:
 [group('remote')]
 explain-bench *args:
     {{seqrec}} explain-bench {{paths_flags}} {{args}}
+
+# Run explanation searches: just explain-run --stage main --results-repo user/dataset [--shard 0/4 ...]
+[group('remote')]
+explain-run *args:
+    {{seqrec}} explain-run {{paths_flags}} {{args}}
 
 # Delete only smoke-run outputs (runs/smoke-* and processed_smoke), after confirmation
 [group('remote')]

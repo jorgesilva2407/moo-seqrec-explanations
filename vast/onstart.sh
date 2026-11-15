@@ -1,0 +1,50 @@
+#!/bin/bash
+# vast.ai onstart script: prepare the data and run one job, with no SSH session needed.
+# Installed as the template's onstart command by `just vast-template <image-tag>`.
+#
+# The job is a `just` recipe with its arguments, taken from the instance environment:
+#   SASREC_JOB="explain-run --stage main --shard 0/4"     (default: the verifier benchmark)
+# e.g.  vastai create instance <offer> --template_hash <hash> --env '-e SASREC_JOB="explain-run --stage main"'
+# HF_TOKEN (or SASREC_HF_TOKEN) must be in the environment: the checkpoint comes from the Hub and
+# results go to the dataset SASREC_RESULTS_REPO. Progress is in /workspace/outputs/onstart.log,
+# which ends with "[job] DONE" or "[job] FAILED ..." and is uploaded to logs/ in the dataset.
+
+RESULTS_REPO="${SASREC_RESULTS_REPO:-AbyssWanderer/sasrec-ml20m-explanations}"
+JOB="${SASREC_JOB:-explain-bench --per-stratum 10}"
+LOG=/workspace/outputs/onstart.log
+
+mkdir -p /workspace/data /workspace/outputs
+T="${SASREC_HF_TOKEN:-${HF_TOKEN:-}}"
+if [ -n "$T" ]; then
+    sed -i "/^HF_TOKEN=/d" /etc/environment
+    printf "HF_TOKEN=%s\n" "$T" >> /etc/environment
+    printf "export HF_TOKEN=%q\n" "$T" > /etc/profile.d/hf_token.sh
+    chmod 600 /etc/profile.d/hf_token.sh
+    export HF_TOKEN="$T"
+fi
+. /etc/profile.d/seqrec.sh
+cd /opt/seqrec || exit 1
+
+job() {
+    echo "[job] start $(date -u +%FT%TZ) commit ${GIT_COMMIT:-unknown}: $JOB"
+    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+    echo "[job] cores $(nproc), ram $(free -g | awk 'NR==2 {print $2}') GB"
+    [ -n "${HF_TOKEN:-}" ] || { echo "[job] FAILED no HF_TOKEN in the instance environment"; return 1; }
+    if [ ! -f /workspace/data/processed/data_meta.json ]; then
+        just prepare-data || { echo "[job] FAILED prepare-data"; return 1; }
+    fi
+    # shellcheck disable=SC2086
+    just $JOB --results-repo "$RESULTS_REPO" || { echo "[job] FAILED $JOB"; return 1; }
+    echo "[job] DONE $(date -u +%FT%TZ)"
+}
+
+upload_log() {
+    name="$(date -u +%Y%m%d-%H%M%S)-$(echo "$JOB" | tr -c 'A-Za-z0-9._\n' '-' | cut -c1-80)-${CONTAINER_ID:-$(hostname)}.log"
+    python -c "
+import sys
+from huggingface_hub import HfApi
+HfApi().upload_file(path_or_fileobj=sys.argv[1], path_in_repo='logs/' + sys.argv[2], repo_id=sys.argv[3], repo_type='dataset')
+" "$LOG" "$name" "$RESULTS_REPO" || true
+}
+
+( job > "$LOG" 2>&1; upload_log >> "$LOG" 2>&1 ) &

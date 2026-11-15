@@ -30,6 +30,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--chunks", type=int, nargs="+", default=[512, 1024, 2048, 4096, 8192])
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--results-repo", default=None, help="Hugging Face dataset to upload the result to (needs HF_TOKEN)")
 
 
 def random_masks(verifier: Verifier, per_instance: int, rng: np.random.Generator) -> tuple[torch.Tensor, torch.Tensor]:
@@ -138,4 +139,10 @@ def run(args: argparse.Namespace) -> int:
         json.dump(result, f, indent=2)
     print(json.dumps(result, indent=2))
     print(f"saved to {out_path}")
+    if args.results_repo:
+        from huggingface_hub import HfApi
+
+        target = f"bench/{result['device'].replace(' ', '_')}/{out_path.name}"
+        HfApi().upload_file(path_or_fileobj=out_path, path_in_repo=target, repo_id=args.results_repo, repo_type="dataset")
+        print(f"uploaded to {args.results_repo}/{target}")
     return 0

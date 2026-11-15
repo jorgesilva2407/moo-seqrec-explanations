@@ -157,21 +157,30 @@ added to `paths.py`. Add its dependencies as a separate uv group in `pyproject.t
 `--build-arg DEPENDENCY_GROUPS="dev explain"` (`just groups="dev explain" docker-build`; for CI add the
 arg under `build-args` in the workflow).
 
-## 11. Explanations (in progress)
+## 11. Explanations
 
-`src/seqrec/explain/` holds the counterfactual-explanation part: `instances.py` (sampling of
-(history, target) pairs), `backgrounds.py` (the fills, fixed per instance) and `verifier.py` (margins
-under necessity and sufficiency interventions, counted in SASRec passes). It needs the `explain`
-dependency group. Before any long run, on the GPU instance:
+`src/seqrec/explain/` holds the counterfactual-explanation part and needs the `explain` dependency
+group: `instances.py` (sampling of (history, target) pairs), `backgrounds.py` (the fills, fixed per
+instance), `verifier.py` (margins under necessity and sufficiency interventions, counted in SASRec
+passes), `methods.py` (NSGA-II and the baselines behind one ask/tell protocol) and `scheduler.py`
+(runs many jobs in shared GPU batches, enforces the budget, writes one result file per job).
 
 ```
-just explain-bench                      # downloads fp32/best.pt from the Hub (private repo: set HF_TOKEN)
-just explain-bench --checkpoint /workspace/outputs/runs/<run-name>/best.pt
+just explain-bench                         # passes per second, GPU memory per chunk size, choice of M
+just explain-run --stage main --results-repo AbyssWanderer/sasrec-ml20m-explanations
+just explain-run --stage main --shard 1/4 --results-repo ...       # one of 4 machines
+just explain-run --stage tune-pop50 --instance-set tune --per-stratum 10 --methods nsga2 --pop-size 50
 ```
 
-It prints the SASRec passes per second for several chunk sizes and how well the estimates with
-M = 5, 10, 20, 40 backgrounds agree with a 200-background reference, and saves the numbers to
-`<out-dir>/explanations/bench/`. The search methods and the experiment runner are not written yet.
+Both download `fp32/best.pt` from the Hub (private repo: `HF_TOKEN`). `explain-run` writes
+`<out-dir>/explanations/<stage>/<checkpoint-id>/<method>/u<user>_t<target>_s<seed>.npz` (layout in
+`scheduler.py`), skips jobs whose file exists, and with `--results-repo` first downloads the stage
+from the dataset and uploads every 10 minutes, so an interrupted or sharded run resumes anywhere.
+
+Unattended on vast.ai: `just vast-template sha-xxxxxxx` creates a template whose onstart command is
+`vast/onstart.sh`. It runs `prepare-data` and then the recipe in the `SASREC_JOB` environment variable
+(default: the benchmark), e.g. `--env '-e SASREC_JOB="explain-run --stage main --shard 0/4"'` on
+`vastai create instance`. The log is uploaded to `logs/` in the dataset when the job ends.
 
 ## 12. References and credits
 
