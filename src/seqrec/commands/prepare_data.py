@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import shutil
+import time
 import urllib.request
 from pathlib import Path
 
@@ -23,12 +25,22 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--force", action="store_true", help="overwrite existing processed artifacts")
 
 
-def _download(dest: Path) -> None:
+def _download(dest: Path, attempts: int = 5, timeout: float = 60.0) -> None:
+    """Fetch the zip; a stalled or refused connection is retried instead of hanging forever."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name(dest.name + ".part")
     print(f"downloading {MOVIELENS_URL} -> {dest}")
-    urllib.request.urlretrieve(MOVIELENS_URL, tmp)
-    tmp.replace(dest)
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(MOVIELENS_URL, timeout=timeout) as response, open(tmp, "wb") as f:
+                shutil.copyfileobj(response, f, length=1 << 20)
+            tmp.replace(dest)
+            return
+        except OSError as error:  # URLError, timeouts and connection resets
+            print(f"download attempt {attempt}/{attempts} failed: {error}")
+            if attempt == attempts:
+                raise SystemExit(f"ERROR: could not download {MOVIELENS_URL}; pass --zip-path with a local copy.")
+            time.sleep(30 * attempt)
 
 
 def run(args: argparse.Namespace) -> int:
