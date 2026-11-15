@@ -16,7 +16,7 @@ from seqrec.training.checkpoint import load_training_state
 
 # Arguments stored in checkpoints / config.json (everything that defines the run).
 TRAIN_ARG_NAMES = (
-    "seed", "epochs", "batch_size", "lr", "patience", "compile", "val_subset", "grad_clip",
+    "seed", "epochs", "batch_size", "lr", "patience", "compile", "val_subset", "grad_clip", "precision",
     "hidden_size", "num_layers", "num_heads", "dropout", "processed_name",
 )
 
@@ -29,6 +29,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--precision", choices=("auto", "fp32"), default="auto",
+                        help="auto = bf16 (else fp16) autocast on CUDA; fp32 = no autocast")
     parser.add_argument("--grad-clip", type=float, default=0.0,
                         help="clip the global gradient norm to this value (0 = off, the default)")
     parser.add_argument("--patience", type=int, default=10)

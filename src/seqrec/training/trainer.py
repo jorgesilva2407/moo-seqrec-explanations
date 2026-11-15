@@ -56,9 +56,14 @@ def setup_logging(run_dir: Path) -> logging.Logger:
     return logger
 
 
-def choose_precision(device: torch.device) -> tuple[str, torch.dtype | None, bool]:
-    """(name, autocast dtype, use GradScaler): bf16 if supported, else fp16 + scaler, CPU: fp32."""
-    if device.type == "cuda":
+def choose_precision(device: torch.device, mode: str = "auto") -> tuple[str, torch.dtype | None, bool]:
+    """(name, autocast dtype, use GradScaler).
+
+    mode "auto": bf16 if supported, else fp16 + scaler, CPU: fp32. mode "fp32": no autocast.
+    """
+    if mode not in ("auto", "fp32"):
+        raise ValueError(f"precision must be 'auto' or 'fp32', got {mode!r}")
+    if device.type == "cuda" and mode == "auto":
         if torch.cuda.is_bf16_supported():
             return "bf16", torch.bfloat16, False
         return "fp16", torch.float16, True
@@ -108,7 +113,7 @@ def fit(
     seed_everything(seed)
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=float(train_args["lr"]))
-    precision, amp_dtype, use_scaler = choose_precision(device)
+    precision, amp_dtype, use_scaler = choose_precision(device, train_args.get("precision", "auto"))
     scaler = torch.amp.GradScaler("cuda", enabled=use_scaler)
     logger.info("precision: %s (seed %d)", precision, seed)
 

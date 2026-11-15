@@ -10,6 +10,8 @@ run_name := ""
 seed := "42"
 # global gradient-norm clipping for train/train-bg (0 = off)
 grad_clip := "0"
+# "auto" (bf16 autocast) or "fp32" for train/train-bg
+precision := "auto"
 session := "train"
 # extra uv dependency groups for docker-build, space separated (the upload group is needed for Hub uploads)
 groups := "dev upload"
@@ -162,7 +164,7 @@ prepare-data-smoke:
 # Full training run in the foreground (needs CUDA)
 [group('remote')]
 train:
-    {{seqrec}} train {{paths_flags}} --seed {{seed}} --grad-clip {{grad_clip}} {{run_flag}} {{upload_flag}}
+    {{seqrec}} train {{paths_flags}} --seed {{seed}} --grad-clip {{grad_clip}} --precision {{precision}} {{run_flag}} {{upload_flag}}
 
 # Short training run on the smoke subset (needs CUDA); prints seconds per epoch
 [group('remote')]
@@ -185,7 +187,7 @@ train-bg:
     env_args=()
     if [ -n "${HF_TOKEN:-}" ]; then env_args=(-e "HF_TOKEN=$HF_TOKEN"); fi
     tmux new-session -d -s "{{session}}" "${env_args[@]}" bash -c \
-        "set -o pipefail; {{seqrec}} train {{paths_flags}} --seed {{seed}} --grad-clip {{grad_clip}} {{upload_flag}} --run-name '$name' 2>&1 | tee -a '$run_dir/console.log'; echo; echo 'training process ended'; exec bash"
+        "set -o pipefail; {{seqrec}} train {{paths_flags}} --seed {{seed}} --grad-clip {{grad_clip}} --precision {{precision}} {{upload_flag}} --run-name '$name' 2>&1 | tee -a '$run_dir/console.log'; echo; echo 'training process ended'; exec bash"
     echo "started run '$name' in tmux session '{{session}}'"
     echo "attach:      just attach     (detach with Ctrl-b d)"
     echo "follow log:  just logs       (or: tail -f $run_dir/train.log)"
