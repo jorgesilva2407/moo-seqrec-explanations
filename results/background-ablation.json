@@ -1,0 +1,298 @@
+{
+  "summary": {
+    "main:ablation": {
+      "instances": 99,
+      "hv_mean": 1.0453474382153285,
+      "hv_median": 1.0547813357709337,
+      "hv_le10_mean": 0.8438551443688659,
+      "hv_le10_median": 0.837359337872952,
+      "jobs": 99,
+      "front_size": 78.02020202020202,
+      "evaluations": 230.75757575757575,
+      "passes": 4615.151515151515
+    },
+    "main:greedy": {
+      "instances": 99,
+      "hv_mean": 1.048841605565899,
+      "hv_median": 1.081634348407449,
+      "hv_le10_mean": 0.8850290926730049,
+      "hv_le10_median": 0.8738982451607287,
+      "jobs": 99,
+      "front_size": 201.24242424242425,
+      "evaluations": 3564.1111111111113,
+      "passes": 71282.22222222222
+    },
+    "main:nsga2": {
+      "instances": 99,
+      "hv_mean": 1.009903689003909,
+      "hv_median": 1.0246322903343947,
+      "hv_le10_mean": 0.8958911905935765,
+      "hv_le10_median": 0.886448315900467,
+      "jobs": 495,
+      "front_size": 143.88282828282829,
+      "evaluations": 5000.0,
+      "passes": 100000.0
+    },
+    "main:scalar_ga": {
+      "instances": 99,
+      "hv_mean": 0.9956934103753076,
+      "hv_median": 1.005979366976469,
+      "hv_le10_mean": 0.7926132544289094,
+      "hv_le10_median": 0.7903691910297643,
+      "jobs": 495,
+      "front_size": 118.87676767676767,
+      "evaluations": 4921.230303030303,
+      "passes": 98424.60606060606
+    },
+    "abl-users:ablation": {
+      "instances": 99,
+      "hv_mean": 1.0433354826083197,
+      "hv_median": 1.042669365773692,
+      "hv_le10_mean": 0.8570508600210621,
+      "hv_le10_median": 0.8450332088333027,
+      "jobs": 99,
+      "front_size": 98.12121212121212,
+      "evaluations": 231.08080808080808,
+      "passes": 4621.616161616162
+    },
+    "abl-users:greedy": {
+      "instances": 99,
+      "hv_mean": 1.0630361733821942,
+      "hv_median": 1.0856519770978468,
+      "hv_le10_mean": 0.8898514102813885,
+      "hv_le10_median": 0.8877447689293584,
+      "jobs": 99,
+      "front_size": 220.4747474747475,
+      "evaluations": 3564.4545454545455,
+      "passes": 71289.09090909091
+    },
+    "abl-users:nsga2": {
+      "instances": 99,
+      "hv_mean": 1.0268118558771069,
+      "hv_median": 1.0534566916528152,
+      "hv_le10_mean": 0.906842888062693,
+      "hv_le10_median": 0.8908350518184971,
+      "jobs": 495,
+      "front_size": 141.52727272727273,
+      "evaluations": 5000.0,
+      "passes": 100000.0
+    },
+    "abl-users:scalar_ga": {
+      "instances": 99,
+      "hv_mean": 1.0129711289141419,
+      "hv_median": 1.0357809414849906,
+      "hv_le10_mean": 0.8232089400537201,
+      "hv_le10_median": 0.8221158664143777,
+      "jobs": 495,
+      "front_size": 114.56565656565657,
+      "evaluations": 4918.919191919192,
+      "passes": 98378.38383838384
+    },
+    "abl-padding:ablation": {
+      "instances": 99,
+      "hv_mean": 0.8639234751563073,
+      "hv_median": 0.8827783810496698,
+      "hv_le10_mean": 0.6189971300704712,
+      "hv_le10_median": 0.6562517643722672,
+      "jobs": 99,
+      "front_size": 63.717171717171716,
+      "evaluations": 231.7979797979798,
+      "passes": 463.5959595959596
+    },
+    "abl-padding:greedy": {
+      "instances": 99,
+      "hv_mean": 0.9163828326088682,
+      "hv_median": 0.9508194973452234,
+      "hv_le10_mean": 0.7287984329911558,
+      "hv_le10_median": 0.7494784838582158,
+      "jobs": 99,
+      "front_size": 200.4747474747475,
+      "evaluations": 3574.89898989899,
+      "passes": 7149.79797979798
+    },
+    "abl-padding:nsga2": {
+      "instances": 99,
+      "hv_mean": 0.828292932099356,
+      "hv_median": 0.8404067457267501,
+      "hv_le10_mean": 0.7562650931832436,
+      "hv_le10_median": 0.7673269208942228,
+      "jobs": 495,
+      "front_size": 156.6080808080808,
+      "evaluations": 5000.0,
+      "passes": 10000.0
+    },
+    "abl-padding:scalar_ga": {
+      "instances": 99,
+      "hv_mean": 0.8528883365011944,
+      "hv_median": 0.8660816585457788,
+      "hv_le10_mean": 0.6058115928666729,
+      "hv_le10_median": 0.6064942688846499,
+      "jobs": 495,
+      "front_size": 137.55151515151516,
+      "evaluations": 4916.9717171717175,
+      "passes": 9833.943434343435
+    }
+  },
+  "quality": {
+    "main:ablation": {
+      "valid": 0.494949494949495,
+      "best_pn": 0.9833333221348849,
+      "best_ps": 0.5101009968367188,
+      "recency": 0.8773282353893962
+    },
+    "main:greedy": {
+      "valid": 0.5959595959595959,
+      "best_pn": 0.9850504934185683,
+      "best_ps": 0.5662626131164907,
+      "recency": 0.8578862827516057
+    },
+    "main:nsga2": {
+      "valid": 0.5555555555555556,
+      "best_pn": 0.9875353431460834,
+      "best_ps": 0.5548282702425212,
+      "recency": 0.8403063019902784
+    },
+    "main:scalar_ga": {
+      "valid": 0.503030303030303,
+      "best_pn": 0.9854141278700395,
+      "best_ps": 0.5107676653548925,
+      "recency": 0.7885216263351308
+    },
+    "abl-users:ablation": {
+      "valid": 0.5050505050505051,
+      "best_pn": 0.9842424127790663,
+      "best_ps": 0.5169696850006027,
+      "recency": 0.9042713706400854
+    },
+    "abl-users:greedy": {
+      "valid": 0.5757575757575758,
+      "best_pn": 0.9846464509915824,
+      "best_ps": 0.5661616054071923,
+      "recency": 0.8814891593763768
+    },
+    "abl-users:nsga2": {
+      "valid": 0.5636363636363636,
+      "best_pn": 0.9869696862769849,
+      "best_ps": 0.5602828152703516,
+      "recency": 0.8749096335877896
+    },
+    "abl-users:scalar_ga": {
+      "valid": 0.503030303030303,
+      "best_pn": 0.9853737263968496,
+      "best_ps": 0.5142222095770065,
+      "recency": 0.8308417886861048
+    },
+    "abl-padding:ablation": {
+      "valid": 0.3838383838383838,
+      "best_pn": 0.9723232183793579,
+      "best_ps": 0.3927272624815955,
+      "recency": 0.772273343257888
+    },
+    "abl-padding:greedy": {
+      "valid": 0.43434343434343436,
+      "best_pn": 0.9821212002725312,
+      "best_ps": 0.4349494840046673,
+      "recency": 0.8193235056335677
+    },
+    "abl-padding:nsga2": {
+      "valid": 0.44646464646464645,
+      "best_pn": 0.9849292834599813,
+      "best_ps": 0.4707272611520808,
+      "recency": 0.7258358586403806
+    },
+    "abl-padding:scalar_ga": {
+      "valid": 0.3838383838383838,
+      "best_pn": 0.9804848380763121,
+      "best_ps": 0.4183636271554713,
+      "recency": 0.6303214788178502
+    }
+  },
+  "tests": {
+    "hv|nsga2|abl-users": {
+      "p": 0.001623053511990112,
+      "main_better": 36,
+      "n": 99
+    },
+    "hv|nsga2|abl-padding": {
+      "p": 8.479908245894983e-17,
+      "main_better": 94,
+      "n": 99
+    },
+    "hv|scalar_ga|abl-users": {
+      "p": 1.8630784511354944e-06,
+      "main_better": 25,
+      "n": 99
+    },
+    "hv|scalar_ga|abl-padding": {
+      "p": 2.0332959088745962e-17,
+      "main_better": 95,
+      "n": 99
+    },
+    "hv|greedy|abl-users": {
+      "p": 0.003484928342133892,
+      "main_better": 39,
+      "n": 99
+    },
+    "hv|greedy|abl-padding": {
+      "p": 1.2925465550431929e-14,
+      "main_better": 91,
+      "n": 99
+    },
+    "hv|ablation|abl-users": {
+      "p": 0.8286775514211796,
+      "main_better": 50,
+      "n": 99
+    },
+    "hv|ablation|abl-padding": {
+      "p": 4.459093180496483e-16,
+      "main_better": 90,
+      "n": 99
+    },
+    "hv_le10|nsga2|abl-users": {
+      "p": 0.03353770676429227,
+      "main_better": 41,
+      "n": 99
+    },
+    "hv_le10|nsga2|abl-padding": {
+      "p": 4.609887921147205e-14,
+      "main_better": 88,
+      "n": 99
+    },
+    "hv_le10|scalar_ga|abl-users": {
+      "p": 9.770224337633227e-06,
+      "main_better": 34,
+      "n": 99
+    },
+    "hv_le10|scalar_ga|abl-padding": {
+      "p": 1.0729679824954146e-16,
+      "main_better": 94,
+      "n": 99
+    },
+    "hv_le10|greedy|abl-users": {
+      "p": 0.5049986958502606,
+      "main_better": 49,
+      "n": 99
+    },
+    "hv_le10|greedy|abl-padding": {
+      "p": 8.565958988571278e-15,
+      "main_better": 88,
+      "n": 99
+    },
+    "hv_le10|ablation|abl-users": {
+      "p": 0.08796483355408037,
+      "main_better": 41,
+      "n": 99
+    },
+    "hv_le10|ablation|abl-padding": {
+      "p": 2.1925465761861935e-15,
+      "main_better": 88,
+      "n": 99
+    }
+  },
+  "overlap": {
+    "main seeds 0-1 vs 2-4": 0.993077455063212,
+    "main vs abl-users": 0.8791421292794365,
+    "main vs abl-padding": 0.7154160314662326,
+    "abl-users vs abl-padding": 0.7169296428362154
+  }
+}
