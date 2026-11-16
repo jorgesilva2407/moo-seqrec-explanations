@@ -24,11 +24,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Pinned uv binary; uv downloads and manages Python itself (no system Python).
+# UV_NO_CACHE: without it every wheel stays in /root/.cache/uv as well as in the venv, which
+# doubles the dependency layer (the CUDA PyTorch wheels are several GB).
 COPY --from=uv /uv /uvx /usr/local/bin/
 ENV UV_PYTHON=${PYTHON_VERSION} \
     UV_PYTHON_PREFERENCE=only-managed \
     UV_PYTHON_INSTALL_DIR=/opt/python \
     UV_LINK_MODE=copy \
+    UV_NO_CACHE=1 \
     UV_TOOL_BIN_DIR=/usr/local/bin \
     UV_TOOL_DIR=/opt/uv-tools
 
