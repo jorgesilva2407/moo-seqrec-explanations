@@ -1,0 +1,49 @@
+%% ---- 2. Trabalhos Relacionados ---------------------------------------------
+\section{Trabalhos Relacionados}
+
+\paragraph{Explicadores com acesso ao modelo.}
+Em recomendação, o ACCENT~\cite{tran2021accent} usa funções de influência, o
+PRINCE~\cite{ghazimatin2020prince} explora o grafo de interações e o
+CountER~\cite{tan2021counter} otimiza perturbações contínuas com gradiente. Em
+visão, DiME~\cite{jeanneret2022dime} e LDCE~\cite{schrodi2024ldce} guiam um
+modelo de difusão pelo gradiente do classificador. Todos exigem acesso interno
+ao modelo ou entrada contínua; aqui o histórico é discreto e o recomendador só
+devolve escores.
+
+\paragraph{Caixa-preta em recomendação sequencial.}
+O GECE~\cite{scarcelli2025gece} é o trabalho mais próximo: um algoritmo
+genético sobre a sequência de itens, com mutações de substituição, inserção e
+remoção, cuja aptidão é a soma ponderada da distância de edição e de uma
+diferença de escores. É monoobjetivo e devolve um contrafactual. O
+TRACE~\cite{kim2026trace} gera contrafactuais direcionados por busca em feixe
+com orçamento de consultas e traz uma implementação pública do GECE, que usamos
+como linha de base (Seção~\ref{sec:base}). Os dois editam a sequência, isto é,
+escolhem também \emph{qual item} colocar em cada posição; nós buscamos apenas
+\emph{quais posições} importam e sorteamos os itens substitutos.
+
+\paragraph{Necessidade, suficiência e frentes de Pareto.}
+As probabilidades de necessidade e de suficiência vêm de
+Pearl~\cite{pearl2009causality} e foram usadas em recomendação pelo
+CountER~\cite{tan2021counter}, que as combina em uma otimização escalar. O
+MOC~\cite{dandl2020moc} aplica o NSGA-II a contrafactuais em dados tabulares e
+mostra que a frente de Pareto é uma saída útil. Não encontramos equivalente
+sobre históricos de itens, mas essa é uma afirmação negativa fraca.
+Mohammadi et al.~\cite{mohammadi2025beyondtop1} mostram que a avaliação de
+explicações contrafactuais em recomendação é inconsistente entre trabalhos, o
+que motivou o cuidado com orçamento igual e fundos comuns a todos os métodos.
+
+\begin{table}[t]
+\caption{Posição deste trabalho. ``Escalar'' = critérios somados em um único valor.}
+\label{tab:related}
+\small
+\begin{tabularx}{\columnwidth}{@{}lXXX@{}}
+\toprule
+ & \textbf{CountER} & \textbf{GECE} & \textbf{Este trabalho} \\
+\midrule
+Acesso      & gradiente & escores & escores \\
+Busca       & otimização contínua & AG & NSGA-II \\
+Critérios   & escalar & escalar & vetor $(N,S,C)$ \\
+Saída       & 1 explicação & 1 sequência & frente de Pareto \\
+\bottomrule
+\end{tabularx}
+\end{table}

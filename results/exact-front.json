@@ -1,0 +1,76 @@
+{
+  "config": {
+    "processed": "/private/tmp/claude-501/-Users-jlsilva-workspace-UFMG-2026-2-CompNat-mini-project/509f7dbe-b5d2-4069-b235-52384dd7bb64/scratchpad/local/data/processed",
+    "device": "mps",
+    "length": 12,
+    "instances": 20,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "budget": 1000,
+    "checkpoints": [
+      100,
+      250,
+      500,
+      1000
+    ],
+    "m": 10,
+    "k": 10,
+    "pop_size": 25,
+    "masks": 4095,
+    "checkpoint_id": "e37b97aa9645"
+  },
+  "instances": 20,
+  "candidates": 40,
+  "exact_front_size_mean": 29.9,
+  "summary": {
+    "nsga2": {
+      "100": {
+        "hv_ratio_mean": 0.8372744537559201,
+        "hv_ratio_min": 0.7425978730937175,
+        "front_found_mean": 0.08090420025594247
+      },
+      "250": {
+        "hv_ratio_mean": 0.9632586268274046,
+        "hv_ratio_min": 0.9337880884014009,
+        "front_found_mean": 0.48334540617080474
+      },
+      "500": {
+        "hv_ratio_mean": 0.9952980052583407,
+        "hv_ratio_min": 0.982659977697225,
+        "front_found_mean": 0.8864243700994756
+      },
+      "1000": {
+        "hv_ratio_mean": 0.9998940849563052,
+        "hv_ratio_min": 0.9991281964762038,
+        "front_found_mean": 0.9925689456698483
+      }
+    },
+    "random": {
+      "100": {
+        "hv_ratio_mean": 0.8265437227229826,
+        "hv_ratio_min": 0.7413782887157007,
+        "front_found_mean": 0.0829803379910987
+      },
+      "250": {
+        "hv_ratio_mean": 0.8938947217731202,
+        "hv_ratio_min": 0.826242571449163,
+        "front_found_mean": 0.1610183273073088
+      },
+      "500": {
+        "hv_ratio_mean": 0.9322232211975674,
+        "hv_ratio_min": 0.8533680249721398,
+        "front_found_mean": 0.2594214890587285
+      },
+      "1000": {
+        "hv_ratio_mean": 0.9607804209654699,
+        "hv_ratio_min": 0.8910388237090462,
+        "front_found_mean": 0.41535534845682964
+      }
+    }
+  }
+}

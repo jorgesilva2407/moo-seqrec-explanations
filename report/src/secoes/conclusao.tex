@@ -1,0 +1,49 @@
+%% ---- 7. Discussão e Conclusão -----------------------------------------------
+\section{Discussão e Limitações}
+
+\paragraph{O que a hipótese previa e o que ocorreu.}
+A proposta previa que uma execução do NSGA-II cobriria uma frente mais ampla
+que o mesmo orçamento gasto em buscas escalarizadas. Isso se confirmou contra
+o AG escalarizado, nos dois critérios, e contra o guloso apenas entre
+explicações pequenas. O risco apontado na proposta, de $N$ e $S$ serem quase
+redundantes, se confirmou nas máscaras grandes e é o que torna os métodos
+simples tão fortes ali.
+
+\paragraph{Limitações.}
+(i)~Um único modelo e um único conjunto de dados; a concentração das
+explicações nos itens recentes é uma propriedade deste SASRec e pode não se
+repetir em outros recomendadores. (ii)~A distribuição de fundo define o que
+``suficiente'' significa; a ablação com \emph{padding} mostra que a escolha
+muda as explicações. (iii)~O hipervolume é normalizado pelos extremos das
+frentes comparadas em cada instância, de modo que valores de tabelas
+diferentes não são comparáveis entre si. (iv)~A comparação com a frente exata
+(Seção~\ref{sec:exata}) usa históricos truncados em 12 itens; nos históricos
+reais só a enumeração de $|X|\le2$ é exata. (v)~O ajuste do AG escalarizado foi feito depois da comparação
+principal, que não foi refeita com outra configuração. (vi)~Ao mapear o GECE
+para posições, descartamos os itens que ele inseriu, que são parte da sua
+resposta. (vii)~São 99 instâncias; os testes pareados têm poder para as
+diferenças reportadas, mas não para análises finas por estrato.
+
+\section{Conclusão}
+
+Formulamos a explicação contrafactual de uma recomendação sequencial como a
+busca de conjuntos de posições do histórico sob três objetivos, com
+necessidade e suficiência estimadas por intervenções com fundos fixos, e a
+resolvemos com o NSGA-II sobre máscaras binárias. Sob o mesmo orçamento de
+consultas ao modelo, o NSGA-II é o melhor método para explicações de até 10
+itens, à frente de um algoritmo genético de objetivo único com os mesmos
+operadores, de um guloso e do GECE; a inicialização esparsa e o cruzamento são
+os operadores que mais pesam nessa região. Para máscaras de qualquer tamanho,
+um guloso e um ranking por ablação individual são melhores e mais baratos.
+Os dois objetivos de efeito conflitam mais nas explicações pequenas, e ali uma
+explicação necessária é fácil de achar, enquanto uma suficiente é rara.
+
+Como trabalho futuro, o mais direto é semear a população do NSGA-II com o
+ranking por ablação, que converge mais rápido no início, e repetir o estudo em
+outros recomendadores e conjuntos de dados.
+
+\paragraph{Reprodutibilidade.}
+O código, os arquivos de resultados usados nas tabelas e figuras e o roteiro
+que as gera estão no repositório do projeto.
+%% O repositório (github.com/jorgesilva2407/sasrec-ml20m) é privado em 16/11/2026; pôr a URL aqui
+%% só depois de torná-lo público.

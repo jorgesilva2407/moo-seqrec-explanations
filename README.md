@@ -2,8 +2,9 @@
 
 PyTorch implementation of the SASRec+ recipe (Klenitskiy & Vasilev, RecSys 2023) trained with
 full cross-entropy over all items, packaged in a Docker image for training on vast.ai.
-Every repeatable task is a `just` recipe (`just --list`). Nothing in this repository has been run
-yet: treat the first runs as the real test.
+Every repeatable task is a `just` recipe (`just --list`). The trained model is explained in §11
+(counterfactual explanations by NSGA-II over history masks), which also says how to reproduce the
+results and build the course article.
 
 Reproduction target: the paper reports ML-20M SASRec+ HR@10 about 0.298 and NDCG@10 about 0.183
 (with max length 200; this project deliberately uses 128). Being close is the aim, not identical.
@@ -194,6 +195,83 @@ Unattended on vast.ai: `just vast-template sha-xxxxxxx` creates a template whose
 (default: the benchmark), e.g. `--env '-e SASREC_JOB=explain-run+--stage+main+--shard+0/4'` on
 `vastai create instance` (`+` stands for a space and `,` separates jobs: vast.ai drops values with spaces). The log is uploaded to `logs/` in the dataset when the job ends.
 
+### Article
+
+`report/` holds the course article (Portuguese, ACM format: `acmart` with `sigconf,nonacm`, the class
+that ships with MacTeX/TeX Live, so no template files are vendored).
+
+```
+report/
+  Makefile               latexmk through MacTeX (/Library/TeX/texbin); output in report/build/
+  src/artigo.tex         preamble, title, abstract; inputs the sections
+  src/secoes/*.tex       one file per section
+  src/referencias.bib    bibliography (ACM-Reference-Format, BibTeX)
+  src/figuras/*.pdf      generated figures      } written by scripts/figuras.py from results/*.json
+  src/tabelas/*.tex      generated table bodies } and dados/exemplo.json; do not edit by hand
+  dados/exemplo.json     the worked example (written by scripts/exemplo.py from the result files)
+  scripts/               figuras.py, exemplo.py and the analyses listed under "Reproducing the results"
+```
+
+```
+just report            # build report/build/artigo.pdf
+just report-figures    # regenerate figures and tables from results/*.json, then build
+just report-watch      # rebuild on every save
+just report-check      # fail on undefined references/citations; overfull boxes and page count
+just report-clean
+```
+
+Numbers quoted in the running text of `src/secoes/resultados.tex` were copied from `results/*.json`;
+after re-running an experiment, regenerate the tables and re-check those sentences.
+
+### Reproducing the results
+
+Fixed inputs: checkpoint `fp32/best.pt` of `AbyssWanderer/sasrec-ml20m` (checkpoint id `e37b97aa9645`),
+processed data with hash `806838bcc2ea…` (`just prepare-data`; `explain-run` warns if the hash differs),
+instance seed 0, `K = 10`, 10^5 SASRec passes per job, fronts re-scored on 100 independent
+backgrounds. Every result file is in the dataset `AbyssWanderer/sasrec-ml20m-explanations`
+(private), one folder per stage, so the reports can be rebuilt without re-running the searches.
+Images used: `sha-973992d` (benchmark, tuning, main, scalarised GA and operator stages),
+`sha-6951e5c` (background ablations), `sha-3ff8376` (GECE). Add `--results-repo <dataset>` to every
+`explain-run` / `explain-gece` below to resume from and upload to the dataset.
+
+Searches (GPU; `T` stands for `--instance-set tune --per-stratum 10 --seeds 0 1 2`):
+
+| Stage(s) | Command |
+|---|---|
+| benchmark | `just explain-bench --per-stratum 10` |
+| `tune-p{P}-m{M}`, P in 25 50 100 200, M in 5 10 20 | `just explain-run --stage tune-pP-mM T --methods nsga2 --pop-size P --m M --instance-m M` |
+| `main` | `just explain-run --stage main --pop-size 25` (optionally `--shard i/4` on four machines) |
+| `sga-p{P}-d{D}`, P in 10 25 50, D in 2 3 4 | `just explain-run --stage sga-pP-dD T --methods scalar_ga --scalar-pop-size P --scalar-divisions D --m 10 --pop-size 25` |
+| `op-init-uniform`, `op-no-crossover`, `op-mut0.5`, `op-mut2`, `op-mut4` | `just explain-run --stage <name> T --methods nsga2 --m 10 --pop-size 25` plus `--init uniform`, `--no-crossover` or `--mutation-scale 0.5 / 2 / 4` |
+| `abl-users` | `just explain-run --stage abl-users --fill users --eval-fill popularity --m 10 --methods nsga2 scalar_ga greedy ablation --pop-size 25` |
+| `abl-padding` | the same with `--stage abl-padding --fill padding --m 1 --budget 10000` (deletion has no randomness: one background, the same 5,000 masks per job) |
+| `main` (methods `gece`, `gece_restarts`) | `just explain-gece --stage main` and `just explain-gece --stage main --gece-restarts` |
+
+The tuning stages ran before `--instance-m` existed, when the instance check used `--m` backgrounds;
+`--instance-m M` reproduces that. All later stages use the default of 10.
+
+Analyses (laptop; they write the files in `results/`, which the article's tables and figures read).
+`R` stands for `--results-repo AbyssWanderer/sasrec-ml20m-explanations`, which downloads the stages
+into `<out-dir>/explanations` first; reports are saved under `<out-dir>/explanations/reports/`.
+
+| File in `results/` | Command |
+|---|---|
+| `tuning-stage.json` | `just explain-report --by stage --name tuning R --stages tune-p25-m5 … tune-p200-m20` (the 12 stages) |
+| `main-method.json` and its two convergence plots | `just explain-report --stages main --by method --full --name main R --methods nsga2 scalar_ga random recency similarity ablation greedy enumeration` |
+| `main-with-gece-method.json` | `just explain-report --stages main --by method --name main-with-gece R` |
+| `scalar-ga-tuning-stage.json` | `just explain-report --by stage --name scalar-ga-tuning R --stages sga-p10-d2 … sga-p50-d4` (the 9 stages) |
+| `nsga2-operators-stage.json` and its plots | `just explain-report --by stage --full --name nsga2-operators R --stages tune-p25-m10 op-init-uniform op-no-crossover op-mut0.5 op-mut2 op-mut4` |
+| `background-ablation.json` | `uv run --group explain python report/scripts/ablacao.py <out-dir>/explanations` (needs `main`, `abl-users`, `abl-padding` downloaded) |
+| `gece-returned.json` | `uv run --group explain python report/scripts/gece_retornado.py <out-dir>/explanations` |
+| `exact-front.json` | `uv run --group explain python report/scripts/frente_exata.py --processed <data-dir>/processed [--device mps]` (runs the model: about 35 minutes on an M2 laptop) |
+| `report/dados/exemplo.json` | `uv run --group explain python report/scripts/exemplo.py --explanations <out-dir>/explanations --processed <data-dir>/processed --zip <data-dir>/raw/ml-20m.zip` |
+
+Hypervolumes are scaled inside each instance over the fronts being compared, so a method's value
+changes with the set of methods or stages in the report (for example `main-method.json` against
+`main-with-gece-method.json`); compare values only inside one file. The searches are deterministic
+given the seeds on one device type; results from a different GPU or from MPS can differ in the
+last digits. `exact-front.json` and the worked example were produced on a laptop (MPS).
+
 ## 12. References and credits
 
 The model, loss and hyperparameters follow A. Klenitskiy and A. Vasilev, "Turning Dross Into Gold Loss:
@@ -226,8 +304,12 @@ evaluation details; no code was copied from it.
 }
 ```
 
-## 13. Results (to fill in)
+## 13. Results
 
-| run | seed | epochs (best) | val HR@10 | val NDCG@10 | test HR@10 | test NDCG@10 | s/epoch | checkpoint id |
-|-----|------|---------------|-----------|-------------|------------|--------------|---------|---------------|
-|     |      |               |           |             |            |              |         |               |
+SASRec runs (full ranking over the catalog; the explanations use the fp32 checkpoint):
+
+| run | seed | epochs (best) | val HR@10 | val NDCG@10 | test HR@10 | test NDCG@10 | checkpoint id |
+|-----|------|---------------|-----------|-------------|------------|--------------|---------------|
+| fp32 | 42 | 49 | 0.3272 | 0.1988 | 0.2944 | 0.1806 | `e37b97aa9645` |
+
+Explanation results are in `results/` and in the article (`report/`).

@@ -1,0 +1,46 @@
+%% ---- 1. Introdução ---------------------------------------------------------
+\section{Introdução}
+
+Um recomendador sequencial recebe o histórico de um usuário e devolve uma lista
+de itens. Para um item $v$ dessa lista, uma pergunta natural é \emph{quais
+itens do histórico explicam a presença de $v$}. Uma resposta contrafactual é um
+conjunto de posições do histórico com duas propriedades: se esses itens forem
+trocados por itens neutros, $v$ sai da lista (o conjunto é \emph{necessário});
+se apenas eles forem mantidos, $v$ continua na lista (o conjunto é
+\emph{suficiente}). Queremos também que o conjunto seja pequeno, porque uma
+explicação com metade do histórico não explica nada.
+
+Esses três critérios não são comensuráveis, e o maior conjunto possível (o
+histórico inteiro) é ótimo nos dois primeiros e péssimo no terceiro. Os métodos
+de caixa-preta existentes para recomendação sequencial combinam os critérios em
+um único número e devolvem uma única
+resposta~\cite{scarcelli2025gece,kim2026trace}; quem escolhe o compromisso é o
+peso da soma, fixado antes da busca.
+
+Neste trabalho tratamos o problema como multiobjetivo. A busca é sobre uma
+máscara binária das posições do histórico, o modelo é consultado apenas por
+seus escores, e a saída é uma frente de Pareto de (necessidade, suficiência,
+tamanho), aproximada pelo NSGA-II~\cite{deb2002nsga2}. O recomendador explicado
+é um SASRec~\cite{kang2018sasrec} treinado no MovieLens-20M; ele é o objeto da
+explicação, não a contribuição.
+
+As contribuições são:
+\begin{itemize}
+  \item uma formulação com necessidade e suficiência separadas, estimadas por
+        intervenções repetidas com fundos fixos, o que torna a aptidão
+        determinística (Seções~\ref{sec:formulacao} e~\ref{sec:mc});
+  \item uma comparação sob o mesmo orçamento de consultas ao modelo entre o
+        NSGA-II, um algoritmo genético de objetivo único com os mesmos
+        operadores, um guloso, quatro heurísticas, a enumeração exata de
+        conjuntos pequenos e o GECE (Seção~\ref{sec:resultados});
+  \item um estudo dos operadores do NSGA-II e duas ablações da distribuição de
+        fundo.
+\end{itemize}
+
+O resultado principal tem duas partes. Entre explicações de até 10 posições, o
+NSGA-II tem o maior hipervolume e supera o guloso em 71 das 99 instâncias.
+Quando máscaras de qualquer tamanho contam, o guloso e até um ranking por
+ablação individual, que usa 5\% do orçamento, ficam à frente. A hipótese da
+proposta, de que a vantagem do NSGA-II estaria na cobertura do compromisso com
+o tamanho, vale portanto só na região de explicações pequenas, que é a região
+de interesse.

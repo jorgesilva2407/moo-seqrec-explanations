@@ -1,0 +1,205 @@
+%% Referências do artigo final (herdadas da proposta; ver ../../../project-proposal/src/referencias.bib).
+%% Origem dos metadados:
+%%   - Zotero (Recommender Systems): Klenitskiy 2024/2026, Mohammadi 2025, (Attolou removido).
+%%   - Páginas do arXiv conferidas em 02/11/2026: Scarcelli 2025 (GECE), Tan 2021 (CountER),
+%%     Ghazimatin 2020 (PRINCE), Tran 2021 (ACCENT), Dandl 2020 (MOC).
+%%   - Conferidas por busca na web em 16/11/2026 (título, autores, veículo, volume/páginas, DOI):
+%%     NSGA-II, hipervolume (Zitzler & Thiele), pymoo, SASRec, MovieLens, Krichene & Rendle,
+%%     Klenitskiy & Vasilev 2023, Pearl (2ª ed., CUP, 2009; PN/PS no cap. 9), DiME (ACCV 2022,
+%%     pp. 858-876) e LDCE (GCPR 2024). DiME e LDCE seguem sem DOI: nenhum foi encontrado para a
+%%     versão de conferência.
+%%   - RecBole não é citado no artigo (o SASRec foi implementado em PyTorch); não foi reconferido.
+
+%% ---- Explicações contrafactuais em recomendação ---------------------------
+
+@inproceedings{ghazimatin2020prince,
+  title     = {{PRINCE}: Provider-side Interpretability with Counterfactual Explanations in Recommender Systems},
+  author    = {Ghazimatin, Azin and Balalau, Oana and Saha Roy, Rishiraj and Weikum, Gerhard},
+  booktitle = {Proc. 13th ACM International Conference on Web Search and Data Mining (WSDM)},
+  year      = {2020},
+  doi       = {10.1145/3336191.3371824}
+}
+
+@inproceedings{tran2021accent,
+  title     = {Counterfactual Explanations for Neural Recommenders},
+  author    = {Tran, Khanh Hiep and Ghazimatin, Azin and Saha Roy, Rishiraj},
+  booktitle = {Proc. 44th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+  year      = {2021},
+  doi       = {10.1145/3404835.3463005}
+}
+
+@inproceedings{tan2021counter,
+  title     = {Counterfactual Explainable Recommendation},
+  author    = {Tan, Juntao and Xu, Shuyuan and Ge, Yingqiang and Li, Yunqi and Chen, Xu and Zhang, Yongfeng},
+  booktitle = {Proc. 30th ACM International Conference on Information and Knowledge Management (CIKM)},
+  year      = {2021},
+  doi       = {10.1145/3459637.3482420}
+}
+
+@misc{scarcelli2025gece,
+  title        = {Demystifying Sequential Recommendations: Counterfactual Explanations via Genetic Algorithms},
+  author       = {Scarcelli, Domiziano and Betello, Filippo and Perelli, Giuseppe and Silvestri, Fabrizio and Tolomei, Gabriele},
+  year         = {2025},
+  howpublished = {arXiv preprint arXiv:2508.03606}
+}
+
+@inproceedings{mohammadi2025beyondtop1,
+  title     = {Beyond Top-1: Addressing Inconsistencies in Evaluating Counterfactual Explanations for Recommender Systems},
+  author    = {Mohammadi, Amir Reza and Peintner, Andreas and M{\"u}ller, Michael and Zangerle, Eva},
+  booktitle = {Proc. 19th ACM Conference on Recommender Systems (RecSys)},
+  pages     = {515--520},
+  year      = {2025},
+  doi       = {10.1145/3705328.3748028}
+}
+
+%% ---- Busca evolutiva multiobjetivo ----------------------------------------
+
+@inproceedings{dandl2020moc,
+  title     = {Multi-Objective Counterfactual Explanations},
+  author    = {Dandl, Susanne and Molnar, Christoph and Binder, Martin and Bischl, Bernd},
+  booktitle = {Parallel Problem Solving from Nature (PPSN XVI), LNCS vol. 12269},
+  year      = {2020},
+  doi       = {10.1007/978-3-030-58112-1_31}
+}
+
+@article{deb2002nsga2,
+  title   = {A Fast and Elitist Multiobjective Genetic Algorithm: {NSGA-II}},
+  author  = {Deb, Kalyanmoy and Pratap, Amrit and Agarwal, Sameer and Meyarivan, T.},
+  journal = {IEEE Transactions on Evolutionary Computation},
+  volume  = {6},
+  number  = {2},
+  pages   = {182--197},
+  year    = {2002},
+  doi     = {10.1109/4235.996017}
+}
+
+@article{zitzler1999spea,
+  title   = {Multiobjective Evolutionary Algorithms: A Comparative Case Study and the Strength {Pareto} Approach},
+  author  = {Zitzler, Eckart and Thiele, Lothar},
+  journal = {IEEE Transactions on Evolutionary Computation},
+  volume  = {3},
+  number  = {4},
+  pages   = {257--271},
+  year    = {1999},
+  doi     = {10.1109/4235.797969}
+}
+
+@article{blank2020pymoo,
+  title   = {pymoo: Multi-Objective Optimization in {Python}},
+  author  = {Blank, Julian and Deb, Kalyanmoy},
+  journal = {IEEE Access},
+  volume  = {8},
+  pages   = {89497--89509},
+  year    = {2020},
+  doi     = {10.1109/ACCESS.2020.2990567}
+}
+
+%% ---- Recomendação sequencial, dados e avaliação ---------------------------
+
+@inproceedings{kang2018sasrec,
+  title     = {Self-Attentive Sequential Recommendation},
+  author    = {Kang, Wang-Cheng and McAuley, Julian},
+  booktitle = {Proc. IEEE International Conference on Data Mining (ICDM)},
+  pages     = {197--206},
+  year      = {2018},
+  doi       = {10.1109/ICDM.2018.00035}
+}
+
+@inproceedings{klenitskiy2024looks,
+  title     = {Does It Look Sequential? An Analysis of Datasets for Evaluation of Sequential Recommendations},
+  author    = {Klenitskiy, Anton and Volodkevich, Anna and Pembek, Anton and Vasilev, Alexey},
+  booktitle = {Proc. 18th ACM Conference on Recommender Systems (RecSys)},
+  pages     = {1067--1072},
+  year      = {2024},
+  doi       = {10.1145/3640457.3688195}
+}
+
+@article{klenitskiy2026patterns,
+  title   = {An Analysis of Sequential Patterns in Datasets for Evaluation of Sequential Recommendations},
+  author  = {Klenitskiy, Anton and Volodkevich, Anna and Pembek, Anton and Vasilev, Alexey},
+  journal = {ACM Transactions on Recommender Systems},
+  volume  = {4},
+  number  = {4},
+  pages   = {55:1--55:28},
+  year    = {2026},
+  doi     = {10.1145/3787969}
+}
+
+@article{harper2015movielens,
+  title   = {The {MovieLens} Datasets: History and Context},
+  author  = {Harper, F. Maxwell and Konstan, Joseph A.},
+  journal = {ACM Transactions on Interactive Intelligent Systems},
+  volume  = {5},
+  number  = {4},
+  pages   = {19:1--19:19},
+  year    = {2015},
+  doi     = {10.1145/2827872}
+}
+
+@inproceedings{zhao2021recbole,
+  title     = {{RecBole}: Towards a Unified, Comprehensive and Efficient Framework for Recommendation Algorithms},
+  author    = {Zhao, Wayne Xin and Mu, Shanlei and Hou, Yupeng and others},
+  booktitle = {Proc. 30th ACM International Conference on Information and Knowledge Management (CIKM)},
+  pages     = {4653--4664},
+  year      = {2021},
+  doi       = {10.1145/3459637.3482016}
+}
+
+@inproceedings{krichene2020sampled,
+  title     = {On Sampled Metrics for Item Recommendation},
+  author    = {Krichene, Walid and Rendle, Steffen},
+  booktitle = {Proc. 26th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  pages     = {1748--1757},
+  year      = {2020},
+  doi       = {10.1145/3394486.3403226}
+}
+
+%% ---- Contrafactuais generativos (visão); arXiv conferido em 02/11/2026 ------
+
+@inproceedings{jeanneret2022dime,
+  title     = {Diffusion Models for Counterfactual Explanations},
+  author    = {Jeanneret, Guillaume and Simon, Lo{\"i}c and Jurie, Fr{\'e}d{\'e}ric},
+  booktitle = {Proc. Asian Conference on Computer Vision (ACCV)},
+  pages     = {858--876},
+  year      = {2022}
+}
+
+%% Versão publicada (GCPR 2024) põe Schrodi como primeiro autor; o arXiv 2310.06668 põe Farid.
+%% Conferido em 02/11 e 16/11/2026 na página do grupo (lmb.informatik.uni-freiburg.de), que não lista DOI.
+@inproceedings{schrodi2024ldce,
+  title     = {Latent Diffusion Counterfactual Explanations},
+  author    = {Schrodi, Simon and Farid, Karim and Argus, Max and Brox, Thomas},
+  booktitle = {Proc. German Conference on Pattern Recognition (GCPR)},
+  year      = {2024}
+}
+
+%% ---- Causalidade e estado da arte recente (adicionadas em 02/11/2026) -------
+
+%% Livro-texto; PN/PS no cap. 9 (pp. 283-308). Edição e editora conferidas em 16/11/2026.
+@book{pearl2009causality,
+  title     = {Causality: Models, Reasoning, and Inference},
+  author    = {Pearl, Judea},
+  edition   = {2},
+  publisher = {Cambridge University Press},
+  year      = {2009}
+}
+
+%% BibTeX do README oficial (github.com/devUuung/TRACE), conferido em 02/11/2026.
+@inproceedings{kim2026trace,
+  title     = {{TRACE}: Targeted Ranking-Aware Counterfactual Explanation for Sequential Recommendation},
+  author    = {Kim, Ungsik and Choi, Sang-Min and Kim, Gun-Woo and Lee, Suwon},
+  booktitle = {Proc. 20th ACM Conference on Recommender Systems (RecSys)},
+  year      = {2026},
+  doi       = {10.1145/3773078.3831796}
+}
+
+%% ---- Receita de treino do SASRec (adicionada no artigo final) ---------------
+
+%% arXiv 2309.07602; DOI conferido em 16/11/2026.
+@inproceedings{klenitskiy2023turning,
+  title     = {Turning Dross Into Gold Loss: is {BERT4Rec} really better than {SASRec}?},
+  author    = {Klenitskiy, Anton and Vasilev, Alexey},
+  booktitle = {Proc. 17th ACM Conference on Recommender Systems (RecSys)},
+  year      = {2023},
+  doi       = {10.1145/3604915.3610644}
+}

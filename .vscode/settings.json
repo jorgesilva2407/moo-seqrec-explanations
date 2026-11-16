@@ -1,0 +1,13 @@
+{
+  // The article lives in report/; build output goes to report/build/ (same layout as report/Makefile).
+  "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%/report/build",
+  "latex-workshop.latex.rootFile.doNotPrompt": true,
+  "latex-workshop.latex.rootFile.useSubFile": false,
+  "latex-workshop.latex.recipe.default": "latexmk",
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.autoClean.run": "never",
+  "latex-workshop.view.pdf.viewer": "tab",
+  "files.exclude": {
+    "report/build/*.{aux,bbl,blg,fdb_latexmk,fls,log,out,synctex.gz}": true
+  }
+}

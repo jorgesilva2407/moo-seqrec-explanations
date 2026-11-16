@@ -1,0 +1,22 @@
+{
+  "gece": {
+    "jobs": 495,
+    "valid": 495,
+    "queries_mean": 281.010101010101,
+    "returned_size_mean": 1.9777777777777779,
+    "returned_single_position_share": 0.7333333333333333,
+    "returned_pn_mean": 0.4299191818130438,
+    "returned_ps_mean": 0.10498989668082107,
+    "returned_pn_above_half_share": 0.4262626262626263
+  },
+  "gece_restarts": {
+    "jobs": 495,
+    "valid": 495,
+    "queries_mean": 100000.0,
+    "returned_size_mean": 1.0,
+    "returned_single_position_share": 1.0,
+    "returned_pn_mean": 0.29652524561141475,
+    "returned_ps_mean": 0.042666665833405774,
+    "returned_pn_above_half_share": 0.2808080808080808
+  }
+}

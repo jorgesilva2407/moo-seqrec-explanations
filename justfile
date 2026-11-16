@@ -157,6 +157,32 @@ vast-template image_tag name="sasrec-ml20m-explain":
         --search_params "verified=True external=False rentable=True gpu_ram>=16 cuda_max_good>=12.6 disk_space>=40 reliability>0.97 num_gpus=1 compute_cap>=800 direct_port_count>=1 cpu_cores_effective>=4 cpu_ram>=16 inet_down>=200" \
         --onstart-cmd "$(cat vast/onstart.sh)"
 
+# Build the article (report/build/artigo.pdf) with MacTeX's latexmk; see report/Makefile
+[group('local')]
+report:
+    make -C report
+
+# Regenerate the article's figures and tables from results/*.json, then build it
+[group('local')]
+report-figures:
+    make -C report figures
+    make -C report
+
+# Rebuild the article on every save
+[group('local')]
+report-watch:
+    make -C report watch
+
+# Fail on undefined references or citations in the article; count overfull boxes and pages
+[group('local')]
+report-check:
+    make -C report check pages
+
+# Remove the article's build files
+[group('local')]
+report-clean:
+    make -C report clean
+
 # ------------------------------------------------------------------ remote (GPU machine, inside the container)
 
 # Show the GPU and check that torch sees CUDA

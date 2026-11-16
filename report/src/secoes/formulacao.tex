@@ -1,0 +1,79 @@
+%% ---- 3. Formulação do Problema ---------------------------------------------
+\section{Formulação do Problema}
+\label{sec:formulacao}
+
+\paragraph{Margem.}
+O recomendador atribui um escore $f_i(s)$ a cada item $i$ dado o histórico
+$s=(s_1,\dots,s_n)$. Fixamos um item $v$ e medimos quão dentro da lista ele
+está pela margem
+\begin{equation}
+  \delta(v \mid s') \;=\; f_v(s') \;-\; f_{(K)}(s'),
+  \label{eq:margem}
+\end{equation}
+em que $f_{(K)}(s')$ é o $K$-ésimo maior escore entre os demais itens de um
+conjunto de candidatos fixo $\mathcal{C}$: o catálogo sem os itens que o
+usuário já consumiu. O conjunto é o mesmo para todas as intervenções, para que
+trocar itens do histórico não altere quem concorre com $v$. Assim,
+$v$ está no top-$K$ de $s'$ se e somente se $\delta(v \mid s') \ge 0$. Usamos
+$K=10$.
+
+\paragraph{Explicação e intervenções.}
+Uma explicação é um conjunto de posições $X \subseteq \{1,\dots,n\}$,
+codificado pela máscara $z \in \{0,1\}^n$ com $z_j = 1 \iff j \in X$. Dado um
+histórico de fundo $r$ de mesmo comprimento, definimos
+\begin{equation}
+  s[X \leftarrow r]_j =
+  \begin{cases} r_j, & j \in X \\ s_j, & j \notin X \end{cases}
+  \label{eq:int-nec}
+\end{equation}
+\begin{equation}
+  s[\bar X \leftarrow r]_j =
+  \begin{cases} s_j, & j \in X \\ r_j, & j \notin X \end{cases}
+  \label{eq:int-suf}
+\end{equation}
+A primeira apaga a explicação e mantém o resto; a segunda mantém a explicação
+e troca todo o resto. As duas são substituições: o comprimento e as posições
+não mudam.
+
+\paragraph{Necessidade e suficiência.}
+Com o fundo $R$ sorteado de uma distribuição $\mathcal{R}$, as probabilidades
+de necessidade e de suficiência~\cite{pearl2009causality,tan2021counter} são
+\begin{equation}
+  \PN(X) \;=\; \Pr_{R \sim \mathcal{R}}\!\big[\,\delta(v \mid s[X \leftarrow R]) < 0\,\big]
+  \label{eq:pn}
+\end{equation}
+\begin{equation}
+  \PS(X) \;=\; \Pr_{R \sim \mathcal{R}}\!\big[\,\delta(v \mid s[\bar X \leftarrow R]) \ge 0\,\big]
+  \label{eq:ps}
+\end{equation}
+
+\paragraph{Problema.}
+Buscamos as máscaras não dominadas de
+\begin{equation}
+  \min_{z \in \{0,1\}^n} \;\; \big(\, N(z),\; S(z),\; C(z) \,\big)
+  \label{eq:problema}
+\end{equation}
+\begin{equation}
+  N(z) = \E_{R}\big[\,\delta(v \mid s[X \leftarrow R])\,\big]
+  \label{eq:N}
+\end{equation}
+\begin{equation}
+  S(z) = -\,\E_{R}\big[\,\delta(v \mid s[\bar X \leftarrow R])\,\big]
+  \label{eq:S}
+\end{equation}
+\begin{equation}
+  C(z) = |X|
+  \label{eq:C}
+\end{equation}
+$N$ é a margem esperada de $v$ depois de apagar $X$ (quanto menor, mais
+necessário); $S$ é a margem esperada mantendo só $X$, com sinal trocado (quanto
+menor, mais suficiente); $C$ é o tamanho. Otimizamos margens médias, e não
+$\PN$ e $\PS$, porque estas são quase sempre $0$ ou $1$ e não dão pressão de
+seleção à busca; $\PN$ e $\PS$ entram só na avaliação.
+
+\paragraph{Por que é difícil.}
+O espaço tem $2^n$ máscaras, com $n$ até 128. O modelo é uma caixa-preta e
+cada avaliação de uma máscara custa várias consultas. Os objetivos não são
+comensuráveis: o histórico inteiro é ótimo em $N$ e $S$ e pior em $C$. Se $N$
+e $S$ também conflitam entre si é uma pergunta empírica, respondida na
+Seção~\ref{sec:conflito}.

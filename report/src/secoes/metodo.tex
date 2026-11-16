@@ -1,0 +1,117 @@
+%% ---- 4. Método --------------------------------------------------------------
+\section{Método}
+
+\subsection{Estimação por Monte Carlo}
+\label{sec:mc}
+
+\paragraph{Distribuição de fundo.}
+Cada posição de um fundo é um item sorteado independentemente com
+probabilidade proporcional à sua popularidade no treino. Nunca sorteamos $v$,
+seus 50 vizinhos mais próximos no espaço de \emph{embeddings} (similaridade do
+cosseno) nem os itens que o próprio usuário consumiu, para que um
+preenchimento ``neutro'' não devolva evidência a favor de $v$. O fundo
+representa um histórico qualquer, sem relação com $v$, e essa escolha define o
+que ``suficiente'' significa; por isso a testamos com duas ablações
+(Seção~\ref{sec:ablacao}).
+
+\paragraph{Estimadores.}
+Para cada instância $(s,v)$ sorteamos uma única vez $M$ fundos, de
+$r^{(1)}$ a $r^{(M)}$, e estimamos
+\begin{equation}
+  \hat N(z) = \frac{1}{M} \sum_{m=1}^{M} \delta\big(v \mid s[X \leftarrow r^{(m)}]\big)
+  \label{eq:Nhat}
+\end{equation}
+\begin{equation}
+  \hat S(z) = -\,\frac{1}{M} \sum_{m=1}^{M} \delta\big(v \mid s[\bar X \leftarrow r^{(m)}]\big)
+  \label{eq:Shat}
+\end{equation}
+$\widehat{\PN}$ e $\widehat{\PS}$ são as frações dos mesmos $M$ sorteios com
+$\delta<0$ e $\delta\ge0$, respectivamente. Cada parcela é uma passada do
+SASRec, de modo que avaliar uma máscara custa $2M$ passadas.
+
+\paragraph{Fundos fixos.}
+O mesmo conjunto de fundos serve a todas as máscaras e a todos os métodos da
+instância (números aleatórios comuns). A aptidão vira uma função
+determinística de $z$: o NSGA-II não compara indivíduos contaminados por
+ruídos diferentes, e máscaras repetidas podem ser respondidas de um
+\emph{cache} sem custo. O preço é um viés de seleção: a busca pode se ajustar
+aos $M$ fundos que viu. Por isso as frentes finais são reavaliadas com
+$M'=100$ fundos independentes, e todos os resultados reportados usam essa
+reavaliação.
+
+\subsection{NSGA-II sobre máscaras}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize, >=stealth, node distance=5mm and 4mm,
+  box/.style={draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
+              minimum height=8mm}]
+  \node[box] (pop) {População\\[-1pt]$\{z_k\}$};
+  \node[box, right=of pop] (ver) {Verificador: substitui\\[-1pt]itens por $M$ fundos e\\[-1pt]consulta o SASRec};
+  \node[box, right=of ver] (obj) {$(\hat N,\hat S,C)$\\[-1pt]de cada $z_k$};
+  \node[box, below=of obj] (sel) {Ordenação não\\[-1pt]dominada e\\[-1pt]aglomeração};
+  \node[box, below=of ver] (var) {Seleção, cruzamento\\[-1pt]e mutação};
+  \draw[->] (pop) -- (ver);
+  \draw[->] (ver) -- (obj);
+  \draw[->] (obj) -- (sel);
+  \draw[->] (sel) -- (var);
+  \draw[->] (var) -| node[pos=0.25, below, font=\tiny] {nova geração} (pop);
+  \node[font=\scriptsize, below=2mm of var, align=center]
+        {Ao final: máscaras não dominadas entre todas as avaliadas};
+\end{tikzpicture}
+\caption{Visão geral. Cada máscara $z_k$ gera $2M$ históricos com
+substituições, avaliados em lote pelo SASRec.}
+\label{fig:visao}
+\end{figure}
+
+O indivíduo é a máscara $z$ (Figura~\ref{fig:visao}). Usamos o
+NSGA-II~\cite{deb2002nsga2} da pymoo~\cite{blank2020pymoo} com:
+\begin{itemize}
+  \item \textbf{inicialização esparsa}: cada bit ligado com probabilidade
+        $5/n$, para começar perto das explicações pequenas;
+  \item \textbf{cruzamento uniforme} e \textbf{mutação por inversão de bit} com
+        taxa $1/n$;
+  \item \textbf{reparo}: uma máscara vazia recebe um bit aleatório;
+  \item eliminação de indivíduos duplicados.
+\end{itemize}
+A frente devolvida é o conjunto não dominado de \emph{todas} as máscaras que a
+execução avaliou, e não apenas a população final. O tamanho da população e $M$
+foram ajustados em usuários separados dos de avaliação
+(Seção~\ref{sec:ajuste}), e cada escolha de operador foi testada isoladamente
+(Seção~\ref{sec:operadores}).
+
+\subsection{Linhas de base}
+\label{sec:base}
+
+Todos os métodos consultam o mesmo verificador, com os mesmos fundos, e sua
+frente é o conjunto não dominado de tudo o que avaliaram.
+\begin{itemize}
+  \item \textbf{AG escalarizado}: algoritmo genético de objetivo único com os
+        mesmos operadores do NSGA-II. A aptidão é a soma ponderada dos três
+        objetivos, cada um dividido pelo seu valor na máscara cheia ($N$, $S$)
+        ou por $n$ ($C$). O orçamento é dividido igualmente entre 10 vetores de
+        pesos (reticulado do simplex), uma execução por vetor, com população
+        20. É o controle que separa o efeito de ser evolutivo do efeito de ser
+        multiobjetivo.
+  \item \textbf{Guloso}: sobre $\hat N + \hat S$ normalizados, inclui uma
+        posição por vez a partir da máscara vazia e, com o que sobra do
+        orçamento, remove uma por vez a partir da cheia.
+  \item \textbf{Ranking por ablação}: avalia cada posição sozinha e depois os
+        conjuntos das $k$ melhores posições por $\hat N$ e por $\hat S$, para
+        todo $k$.
+  \item \textbf{Recência} e \textbf{similaridade}: as $k$ posições mais
+        recentes, ou os $k$ itens mais semelhantes a $v$, para todo $k$.
+  \item \textbf{Aleatório}: subconjuntos de tamanho uniforme em $1..n$.
+  \item \textbf{Enumeração}: todas as máscaras com uma ou duas posições, sem
+        limite de orçamento, como referência exata para $|X|\le2$.
+  \item \textbf{GECE}~\cite{scarcelli2025gece}, pela implementação do
+        TRACE~\cite{kim2026trace}, sem alterações de código e com seus
+        parâmetros padrão (população 100, taxa de mutação $0{,}1$). A condição
+        de validade passada a ele é a nossa: $v$ sair do top-10 dos candidatos,
+        com no máximo 10 posições editadas. Como o GECE edita a sequência,
+        mapeamos cada sequência que ele consulta para o conjunto de posições
+        em que ela difere do histórico, e avaliamos esses conjuntos com o
+        nosso verificador. Essa implementação para no primeiro contrafactual
+        válido; a variante \textbf{GECE com reinícios} a reinicia até gastar o
+        orçamento inteiro.
+\end{itemize}

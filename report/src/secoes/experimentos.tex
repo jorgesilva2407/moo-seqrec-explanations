@@ -1,0 +1,57 @@
+%% ---- 5. Configuração Experimental -------------------------------------------
+\section{Configuração Experimental}
+
+\paragraph{Dados e modelo.}
+Usamos o MovieLens-20M~\cite{harper2015movielens} com filtro 5-core iterativo
+(138\,493 usuários, 18\,345 itens, 19{,}98 milhões de interações), divisão
+\emph{leave-one-out} (último item para teste, penúltimo para validação) e
+comprimento máximo 128. Esse conjunto tem estrutura sequencial forte e
+históricos longos~\cite{klenitskiy2026patterns}, o que mantém $2^n$ fora do
+alcance da enumeração. O SASRec~\cite{kang2018sasrec} foi implementado em
+PyTorch e treinado com entropia cruzada sobre todos os itens, seguindo
+Klenitskiy e Vasilev~\cite{klenitskiy2023turning}: 2 camadas, dimensão 256,
+uma cabeça de atenção. Com ranking completo~\cite{krichene2020sampled}, ele
+atinge HR@10 de $0{,}294$ e NDCG@10 de $0{,}181$ no teste, próximo do que
+aqueles autores reportam ($0{,}298$ e $0{,}183$, com comprimento 200).
+
+\paragraph{Instâncias.}
+Uma instância é um par (usuário, item-alvo). O histórico $s$ são os itens do
+usuário anteriores ao item de teste, limitados aos 128 mais recentes. Os
+usuários têm $n\ge30$ e vêm de três estratos de comprimento ($30$--$49$,
+$50$--$99$, $100$--$128$), 33 por estrato, 99 no total. O alvo $v$ é sorteado
+uniformemente entre os 10 primeiros candidatos. Mantemos só instâncias em que
+apagar o histórico inteiro dá $\hat N<0$, isto é, em que existe ao menos uma
+explicação válida; nenhuma instância sorteada foi descartada por esse
+critério. Um segundo conjunto, de 30 usuários disjuntos (10 por estrato),
+serve apenas aos ajustes.
+
+\paragraph{Orçamento.}
+Cada execução de cada método recebe $10^5$ passadas do SASRec. Com $M=10$,
+isso são 5\,000 máscaras; máscaras repetidas não são cobradas. A reavaliação
+com $M'=100$ fundos fica fora do orçamento. Para o GECE, o custo é o número de
+sequências que ele consulta. Um teste preliminar mostrou que $M=10$ ordena as
+máscaras quase como uma referência de 200 fundos (correlação de Spearman de
+$0{,}97$ em $\hat N$ e $0{,}94$ em $\hat S$).
+
+\paragraph{Métricas.}
+A métrica principal é o hipervolume~\cite{zitzler1999spea} da frente
+reavaliada. Em cada instância, os três objetivos são normalizados para
+$[0,1]$ pelos extremos observados entre todas as frentes comparadas, e o ponto
+de referência é $1{,}1$ em cada objetivo. Reportamos o hipervolume de todas as
+máscaras (HV) e o das máscaras com no máximo 10 posições (\HVp), que é a
+região de explicações que uma pessoa leria. Reportamos também o tamanho da
+frente, a maior $\widehat{\PN}$ e a maior $\widehat{\PS}$ entre máscaras de
+até 10 posições, e a posição relativa média dos itens escolhidos ($0$ = mais
+antigo, $1$ = mais recente).
+
+\paragraph{Protocolo estatístico.}
+Métodos estocásticos rodam com 5 sementes (3 nos ajustes). A unidade de análise
+é a instância: fazemos a média das sementes dentro de cada instância e
+comparamos métodos pelo teste de Wilcoxon pareado bilateral, com correção de
+Holm para comparações múltiplas.
+
+\paragraph{Execução.}
+Um escalonador avança muitas execuções em paralelo e envia as máscaras de
+todas elas em um único lote à GPU, o que rende cerca de 20 mil passadas por
+segundo em uma RTX~A4000. Todos os experimentos somam cerca de $7\times10^8$
+passadas e custaram menos de dois dólares em GPUs alugadas.

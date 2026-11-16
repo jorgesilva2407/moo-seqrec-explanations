@@ -1,0 +1,74 @@
+%% Artigo final do Mini-Projeto — Computação Natural (PPGCC/UFMG, 2026/2)
+%% Formato ACM exigido pelo enunciado (Fase 4): classe acmart, modelo sigconf (duas colunas).
+%% A opção nonacm retira o bloco de direitos autorais, CCS e formato de referência da ACM,
+%% que não se aplicam a um trabalho de disciplina.
+%%
+%% Estrutura: o preâmbulo fica aqui; cada seção em secoes/; tabelas/ e figuras/ são gerados por
+%% ../scripts/figuras.py a partir de ../../results/*.json (não editar à mão).
+%% Compilar: `make` em report/ (ou `just report` na raiz).
+
+\documentclass[sigconf,nonacm]{acmart}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazilian]{babel}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\setlist{nosep, leftmargin=*}
+\graphicspath{{figuras/}}
+
+\newcommand{\PN}{\mathrm{PN}}
+\newcommand{\PS}{\mathrm{PS}}
+\newcommand{\E}{\mathbb{E}}
+%% Corpo de tabela gerado (tabelas/<nome>.tex). Usa a primitiva \@@input, que é expansível:
+%% com \input, um \bottomrule logo depois do arquivo dá "Misplaced \noalign".
+\makeatletter
+\newcommand{\tabela}[1]{\@@input tabelas/#1.tex }
+\makeatother
+\newcommand{\HVp}{HV$_{\le 10}$}  % hipervolume das máscaras com no máximo 10 posições
+
+\begin{document}
+
+\title{Explicações Contrafactuais Multiobjetivo em Recomendação Sequencial}
+\subtitle{Mini-Projeto --- Computação Natural}
+
+\author{Jorge Augusto de Lima e Silva}
+\affiliation{%
+  \institution{Programa de Pós-Graduação em Ciência da Computação, UFMG}
+  \city{Belo Horizonte}
+  \state{MG}
+  \country{Brasil}}
+
+\begin{abstract}
+Dado um recomendador sequencial e um item recomendado, buscamos subconjuntos do
+histórico do usuário que explicam a recomendação: substituir esses itens por
+itens neutros tira o item da lista (necessidade), e mantê-los basta para
+sustentá-lo (suficiência). Formulamos a busca como um problema de três
+objetivos (necessidade, suficiência e tamanho) sobre uma máscara binária das
+posições do histórico, com os dois primeiros estimados por Monte Carlo, e a
+resolvemos com o NSGA-II. Em 99 instâncias do MovieLens-20M com um SASRec, sob
+o mesmo orçamento de consultas ao modelo, o NSGA-II obtém o maior hipervolume
+entre explicações pequenas (até 10 itens), à frente de um guloso escalarizado,
+de um algoritmo genético de objetivo único e do GECE; quando máscaras de
+qualquer tamanho contam, o guloso é melhor. Necessidade e suficiência
+conflitam pouco em máscaras grandes e bem mais nas pequenas, e uma explicação
+pequena raramente é suficiente.
+\end{abstract}
+
+\maketitle
+
+\input{secoes/introducao}
+\input{secoes/relacionados}
+\input{secoes/formulacao}
+\input{secoes/metodo}
+\input{secoes/experimentos}
+\input{secoes/resultados}
+\input{secoes/conclusao}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{referencias}
+
+\end{document}
