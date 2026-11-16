@@ -231,7 +231,8 @@ instance seed 0, `K = 10`, 10^5 SASRec passes per job, fronts re-scored on 100 i
 backgrounds. Every result file is in the dataset `AbyssWanderer/sasrec-ml20m-explanations`
 (private), one folder per stage, so the reports can be rebuilt without re-running the searches.
 Images used: `sha-973992d` (benchmark, tuning, main, scalarised GA and operator stages),
-`sha-6951e5c` (background ablations), `sha-3ff8376` (GECE). Add `--results-repo <dataset>` to every
+`sha-6951e5c` (background ablations), `sha-3ff8376` (GECE), `sha-79e6c1a` (seeded NSGA-II and the
+scalarised GA re-run on the main instances). Add `--results-repo <dataset>` to every
 `explain-run` / `explain-gece` below to resume from and upload to the dataset.
 
 Searches (GPU; `T` stands for `--instance-set tune --per-stratum 10 --seeds 0 1 2`):
@@ -260,7 +261,9 @@ into `<out-dir>/explanations` first; reports are saved under `<out-dir>/explanat
 | File in `results/` | Command |
 |---|---|
 | `tuning-stage.json` | `just explain-report --by stage --name tuning R --stages tune-p25-m5 … tune-p200-m20` (the 12 stages) |
-| `main-method.json` and its two convergence plots | `just explain-report --stages main --by method --full --name main R --methods nsga2 scalar_ga random recency similarity ablation greedy enumeration` |
+| `main-method.json` and its two convergence plots (earlier snapshots, kept for reference: `main-method.json` and `main-with-gece-method.json` predate the seeded NSGA-II) | `just explain-report --stages main --by method --full --name main R --methods nsga2 scalar_ga random recency similarity ablation greedy enumeration` |
+| `main-final-method.json` (the article's main table and convergence figure) | `just explain-report --stages main main-sga-p25-d4 main-sga-p10-d2 --by method --tag-stages --full --name main-final R --pairs nsga2_seeded,greedy nsga2_seeded,nsga2 nsga2,scalar_ga@main-sga-p25-d4 nsga2,scalar_ga@main-sga-p10-d2 scalar_ga@main-sga-p25-d4,scalar_ga scalar_ga@main-sga-p10-d2,scalar_ga nsga2_seeded,scalar_ga@main-sga-p10-d2 greedy,nsga2 ablation,nsga2 greedy,ablation` |
+| `nsga2-seeded-tuning-stage.json` | `just explain-report --by stage --full --name nsga2-seeded-tuning R --stages tune-p25-m10 tune-seeded` |
 | `main-with-gece-method.json` | `just explain-report --stages main --by method --name main-with-gece R` |
 | `scalar-ga-tuning-stage.json` | `just explain-report --by stage --name scalar-ga-tuning R --stages sga-p10-d2 … sga-p50-d4` (the 9 stages) |
 | `nsga2-operators-stage.json` and its plots | `just explain-report --by stage --full --name nsga2-operators R --stages tune-p25-m10 op-init-uniform op-no-crossover op-mut0.5 op-mut2 op-mut4` |

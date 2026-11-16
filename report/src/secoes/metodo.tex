@@ -80,6 +80,16 @@ foram ajustados em usuários separados dos de avaliação
 (Seção~\ref{sec:ajuste}), e cada escolha de operador foi testada isoladamente
 (Seção~\ref{sec:operadores}).
 
+\paragraph{Variante semeada.}
+O ranking por ablação individual (Seção~\ref{sec:base}) converge muito rápido
+no início da busca. A variante \textbf{NSGA-II semeado} gasta primeiro o que
+esse ranking gasta (cada posição sozinha e depois as $k$ melhores posições por
+$\hat N$ e por $\hat S$, no máximo $3n$ máscaras). A população inicial são as
+máscaras, entre essas, que a própria sobrevivência do NSGA-II manteria
+(ordenação não dominada e aglomeração); o restante do orçamento é o NSGA-II
+usual. Essa variante foi proposta depois da comparação principal e é
+reportada à parte (Seção~\ref{sec:semeado}).
+
 \subsection{Linhas de base}
 \label{sec:base}
 

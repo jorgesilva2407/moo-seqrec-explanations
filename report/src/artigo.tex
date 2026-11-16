@@ -52,10 +52,12 @@ posições do histórico, com os dois primeiros estimados por Monte Carlo, e a
 resolvemos com o NSGA-II. Em 99 instâncias do MovieLens-20M com um SASRec, sob
 o mesmo orçamento de consultas ao modelo, o NSGA-II obtém o maior hipervolume
 entre explicações pequenas (até 10 itens), à frente de um guloso escalarizado,
-de um algoritmo genético de objetivo único e do GECE; quando máscaras de
-qualquer tamanho contam, o guloso é melhor. Necessidade e suficiência
-conflitam pouco em máscaras grandes e bem mais nas pequenas, e uma explicação
-pequena raramente é suficiente.
+de um algoritmo genético de objetivo único e do GECE. Quando máscaras de
+qualquer tamanho contam, o guloso supera o NSGA-II; semear a população inicial
+com um ranking por ablação individual inverte esse resultado, ao custo de uma
+perda pequena nas explicações pequenas. Necessidade e suficiência conflitam
+pouco em máscaras grandes e bem mais nas pequenas, e uma explicação pequena
+raramente é suficiente.
 \end{abstract}
 
 \maketitle

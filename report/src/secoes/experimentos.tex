@@ -50,8 +50,15 @@ Métodos estocásticos rodam com 5 sementes (3 nos ajustes). A unidade de análi
 comparamos métodos pelo teste de Wilcoxon pareado bilateral, com correção de
 Holm para comparações múltiplas.
 
+\paragraph{Experimentos posteriores à comparação principal.}
+Dois experimentos foram decididos depois de vermos os resultados da comparação
+principal e estão marcados com $\dagger$ na Tabela~\ref{tab:metodos}: o
+NSGA-II semeado, avaliado antes nos usuários de ajuste, e duas configurações
+ajustadas do AG escalarizado. Eles não alteram os fundos, as instâncias nem o
+orçamento.
+
 \paragraph{Execução.}
 Um escalonador avança muitas execuções em paralelo e envia as máscaras de
 todas elas em um único lote à GPU, o que rende cerca de 20 mil passadas por
-segundo em uma RTX~A4000. Todos os experimentos somam cerca de $7\times10^8$
-passadas e custaram menos de dois dólares em GPUs alugadas.
+segundo em uma RTX~A4000. Todos os experimentos somam cerca de $9\times10^8$
+passadas e custaram menos de três dólares em GPUs alugadas.

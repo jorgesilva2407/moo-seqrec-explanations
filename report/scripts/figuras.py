@@ -23,8 +23,11 @@ TABLES = REPORT / "src" / "tabelas"
 
 NAMES = {
     "nsga2": "NSGA-II",
+    "nsga2_seeded": "NSGA-II semeado$^\dagger$",
+    "scalar_ga@main-sga-p25-d4": "AG escalarizado (25, 15)$^\dagger$",
+    "scalar_ga@main-sga-p10-d2": "AG escalarizado (10, 6)$^\dagger$",
     "greedy": "Guloso",
-    "scalar_ga": "AG escalarizado",
+    "scalar_ga": "AG escalarizado (20, 10)",
     "ablation": "Ranking por ablação",
     "gece_restarts": "GECE com reinícios",
     "gece": "GECE",
@@ -40,7 +43,7 @@ STYLE = {
     "scalar_ga": ("#1baf7a", "^", "-."),
     "gece_restarts": ("#eda100", "D", ":"),
     "ablation": ("#e87ba4", "v", "--"),
-    "random": ("#008300", "x", ":"),
+    "nsga2_seeded": ("#008300", "P", "-"),
 }
 INK, MUTED, GRID = "#1a1a19", "#6b6a63", "#e4e3dd"
 COLUMN = 3.33  # width of one acmart sigconf column, in inches
@@ -90,15 +93,23 @@ def save(fig, name: str) -> None:
 
 
 def convergence() -> None:
-    data = load("main-method.json")["convergence_le10"]
-    fig, ax = plt.subplots(figsize=(COLUMN, 2.0))
-    for method in ("nsga2", "greedy", "ablation", "scalar_ga", "random"):
-        plot(ax, data["checkpoints"], data["curves"][method], method)
-    ax.set_xscale("log")
-    ax.set_xlabel("máscaras avaliadas")
-    ax.set_ylabel(r"hipervolume ($|X|\leq 10$)")
-    ax.set_ylim(0, 1)
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, columnspacing=1.0, handlelength=2.4)
+    """Hypervolume along the search: masks of at most 10 positions (left) and of every size (right)."""
+    data = load("main-final-method.json")
+    short = {"nsga2_seeded": "NSGA-II semeado", "scalar_ga": "AG escalarizado"}
+    fig, axes = plt.subplots(1, 2, figsize=(COLUMN, 1.75), sharex=True)
+    for axis, key, title in ((axes[0], "convergence_le10", r"$|X|\leq 10$"), (axes[1], "convergence_all", "todos os tamanhos")):
+        for method in ("nsga2", "nsga2_seeded", "greedy", "ablation", "scalar_ga"):
+            colour, marker, line = STYLE[method]
+            axis.plot(data[key]["checkpoints"], data[key]["curves"][method], color=colour, marker=marker, linestyle=line,
+                      markersize=2.6, linewidth=1.1, label=short.get(method, NAMES[method]))
+        axis.set_xscale("log")
+        axis.set_xlabel("máscaras avaliadas")
+        axis.set_title(title, fontsize=7)
+        axis.set_ylim(0, 1.15)
+    axes[0].set_ylabel("hipervolume")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.98), ncol=3, columnspacing=1.0, handlelength=2.4)
+    fig.tight_layout(w_pad=0.6)
     save(fig, "convergencia.pdf")
 
 
@@ -127,7 +138,7 @@ def example_front() -> None:
 
 
 def correlation() -> None:
-    data = load("main-method.json")["objective_correlation"]
+    data = load("main-final-method.json")["objective_correlation"]
     labels = ["0–10", "10–25", "25–50", "50–75", "75–100"]
     values = list(data["by_size"].values())
     fig, ax = plt.subplots(figsize=(COLUMN, 1.6))
@@ -145,7 +156,7 @@ def correlation() -> None:
 
 
 def methods_table() -> None:
-    data = load("main-with-gece-method.json")
+    data = load("main-final-method.json")
     summary, quality = data["summary"], data["quality"]
     order = sorted(summary, key=lambda m: -summary[m]["hv_le10_mean"])
     best_all = max(summary[m]["hv_mean"] for m in order)

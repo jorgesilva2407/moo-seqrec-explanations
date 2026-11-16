@@ -65,7 +65,8 @@ População & $M=5$ & $M=10$ & $M=20$ \\
 fundos independentes. \HVp{}: hipervolume das máscaras com até 10 posições; HV:
 de todas as máscaras. Passadas: consultas ao SASRec usadas pela busca. PN e PS:
 média da maior $\widehat{\PN}$ e da maior $\widehat{\PS}$ entre máscaras de até
-10 posições.}
+10 posições. AG escalarizado: (população, vetores de pesos). $\dagger$:
+experimentos posteriores à comparação principal.}
 \label{tab:metodos}
 \small
 \begin{tabular}{@{}lcccrcc@{}}
@@ -82,44 +83,61 @@ região da frente.
 
 \paragraph{Explicações pequenas.}
 No \HVp{}, o NSGA-II é o melhor método. Ele supera o guloso em 71 das 99
-instâncias ($p=1{,}8\times10^{-5}$ após Holm), o ranking por ablação em 89, o
+instâncias ($p=3{,}3\times10^{-5}$ após Holm), o ranking por ablação em 89, o
 GECE com reinícios em 96 e o AG escalarizado em 97 (todos com
-$p<10^{-15}$). A diferença para o AG escalarizado, que usa os mesmos
+$p<10^{-14}$). A diferença para o AG escalarizado, que usa os mesmos
 operadores e o mesmo orçamento, é a mais informativa: dividir o orçamento
 entre vetores de pesos cobre pior a região pequena do que uma única população
 ordenada por dominância.
 
 \paragraph{Todas as máscaras.}
-No HV sem limite de tamanho a ordem se inverte: o guloso é o melhor e supera o
-NSGA-II em 81 das 99 instâncias ($p=1{,}1\times10^{-9}$). O ranking por
-ablação fica logo atrás usando 4\,615 passadas, menos de 5\% do orçamento. A
-razão é estrutural: o guloso e o ranking percorrem todos os tamanhos de $1$ a
-$n$, enquanto o NSGA-II, com inicialização esparsa, concentra a busca nas
-máscaras pequenas. Como $\hat N$ e $\hat S$ concordam nas máscaras grandes
+No HV sem limite de tamanho a ordem se inverte: o guloso supera o NSGA-II em
+81 das 99 instâncias ($p=5\times10^{-10}$). O ranking por ablação fica logo
+atrás do guloso usando 4\,615 passadas, menos de 5\% do orçamento. A razão é
+estrutural: o guloso e o ranking percorrem todos os tamanhos de $1$ a $n$,
+enquanto o NSGA-II, com inicialização esparsa, concentra a busca nas máscaras
+pequenas. Como $\hat N$ e $\hat S$ concordam nas máscaras grandes
 (Seção~\ref{sec:conflito}), ali uma ordenação simples das posições já basta.
-
-\paragraph{Convergência.}
-A Figura~\ref{fig:convergencia} mostra o \HVp{} ao longo da busca. O ranking
-por ablação é o mais rápido no início e estaciona; o NSGA-II ultrapassa o
-guloso depois de cerca de mil máscaras; o AG escalarizado só se aproxima no
-fim, quando já rodou a maior parte dos seus vetores de pesos.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{convergencia}
-\caption{\HVp{} em função do número de máscaras avaliadas (fundos de busca,
-média sobre instâncias e sementes). O orçamento completo são 5\,000 máscaras.}
-\label{fig:convergencia}
-\end{figure}
 
 \paragraph{Recência.}
 Os itens escolhidos pelo NSGA-II em máscaras pequenas têm posição relativa
 média de $0{,}84$: as explicações se concentram no fim do histórico, como o
 GECE já havia observado~\cite{scarcelli2025gece}. Ainda assim, tomar apenas as
-$k$ posições mais recentes rende \HVp{} de $0{,}755$, bem abaixo dos métodos
+$k$ posições mais recentes rende \HVp{} de $0{,}752$, bem abaixo dos métodos
 de busca: a recência indica onde procurar, mas não quais itens escolher. O
 \HVp{} do NSGA-II varia pouco com a popularidade do alvo ($0{,}91$, $0{,}95$ e
-$0{,}90$ nos tercis de baixa, média e alta popularidade).
+$0{,}89$ nos tercis de baixa, média e alta popularidade).
+
+\subsection{NSGA-II semeado}
+\label{sec:semeado}
+
+O resultado anterior sugere a correção: dar ao NSGA-II, de saída, o que o
+ranking por ablação encontra. Nos 30 usuários de ajuste, a variante semeada
+melhora o HV em 28 deles ($p=1{,}3\times10^{-8}$) sem diferença significativa
+no \HVp{} ($p=0{,}50$). Nas 99 instâncias (Tabela~\ref{tab:metodos}), ela
+passa a ter o maior HV: supera o guloso em 66 instâncias
+($p=2{,}2\times10^{-7}$ após Holm), o ranking por ablação em 96 e o NSGA-II
+original em 94. Há um custo nas explicações pequenas: o NSGA-II original é
+melhor no \HVp{} em 72 das 99 instâncias ($p=1{,}7\times10^{-5}$), embora a
+diferença das médias seja pequena ($0{,}919$ contra $0{,}911$). Parte da
+população inicial semeada são máscaras grandes, e o orçamento que as refina
+deixa de ir para as pequenas. No \HVp{}, a variante semeada e o guloso não se
+distinguem ($p=0{,}25$).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{convergencia}
+\caption{Hipervolume em função do número de máscaras avaliadas (fundos de
+busca, média sobre instâncias e sementes), para máscaras de até 10 posições e
+de todos os tamanhos. O orçamento completo são 5\,000 máscaras.}
+\label{fig:convergencia}
+\end{figure}
+
+A Figura~\ref{fig:convergencia} mostra a busca ao longo do orçamento. O
+ranking por ablação é o mais rápido no início e estaciona. O NSGA-II semeado
+parte da curva do ranking e continua a subir; o NSGA-II original ultrapassa o
+guloso na região pequena depois de cerca de mil máscaras; o AG escalarizado só
+se aproxima no fim, quando já rodou a maior parte dos seus vetores de pesos.
 
 \subsection{Operadores do NSGA-II}
 \label{sec:operadores}
@@ -190,11 +208,17 @@ Para que a comparação não dependa de uma configuração ruim da linha de base
 variamos sua população em $\{10,25,50\}$ e o número de vetores de pesos em
 $\{6,10,15\}$ nos usuários de ajuste (Tabela~\ref{tab:escalar}). Nenhuma
 configuração vence nos dois critérios: populações pequenas com poucos vetores
-têm o maior HV (até $0{,}974$), e as intermediárias o maior \HVp{}. A
-configuração usada na comparação principal (população 20, 10 vetores) fica
-entre duas que empatam estatisticamente com a melhor em um dos critérios, e a
-variação de \HVp{} entre configurações vizinhas é bem menor que a distância
-para o NSGA-II na Tabela~\ref{tab:metodos}.
+têm o maior HV (até $0{,}974$), e as intermediárias o maior \HVp{}.
+
+Rodamos então nas 99 instâncias a melhor configuração de cada critério
+(Tabela~\ref{tab:metodos}). A de população 25 com 15 vetores melhora o \HVp{}
+da linha de base de $0{,}815$ para $0{,}826$ e piora o HV; o NSGA-II a supera
+em 96 das 99 instâncias nos dois critérios. A de população 10 com 6 vetores
+faz o contrário: seu HV sobe para $1{,}059$, acima do NSGA-II original em 71
+instâncias ($p=1{,}3\times10^{-8}$), mas seu \HVp{} cai para $0{,}703$ e o
+NSGA-II a supera ali em todas as 99. Nenhuma configuração do AG escalarizado é
+competitiva nas duas regiões ao mesmo tempo, e o NSGA-II semeado supera a
+melhor delas em 97 instâncias no HV e em 98 no \HVp{}.
 
 \begin{table}[t]
 \caption{Ajuste do AG escalarizado: \HVp{} nos 30 usuários de ajuste, por
@@ -215,7 +239,7 @@ Como distribuído no TRACE, o GECE sempre encontra um contrafactual válido (495
 de 495 execuções) e para depois de 281 consultas em média; com tão poucas
 máscaras avaliadas, sua frente fica entre as piores. Com reinícios até o orçamento
 completo, ele sobe para perto da linha de base de recência e continua abaixo do
-AG escalarizado sobre máscaras. A resposta que o GECE devolve muda uma única
+AG escalarizado padrão (população 20, 10 vetores) no \HVp{}. A resposta que o GECE devolve muda uma única
 posição em 73\% das execuções. Avaliadas com fundos novos, essas posições têm
 $\widehat{\PN}$ média de $0{,}43$, e só 43\% delas são necessárias pelo nosso
 critério ($\widehat{\PN}>0{,}5$). Em mais da metade dos casos, portanto, o

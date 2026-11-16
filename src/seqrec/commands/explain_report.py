@@ -24,6 +24,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--tag-stages", action="store_true",
                         help="with --by method: label the jobs of every stage after the first as method@stage, "
                              "to compare variants of a method that ran in their own stages")
+    parser.add_argument("--pairs", nargs="+", default=[], metavar="A,B",
+                        help="extra paired tests between two labels (the default tests are the best label against each other)")
     parser.add_argument("--source", choices=("front_objectives", "objectives"), default="front_objectives")
     parser.add_argument("--max-size", type=int, default=10, help="size limit of the 'small explanations' columns")
     parser.add_argument("--full", action="store_true",
@@ -45,6 +47,15 @@ def paired_tests(records, order, field) -> dict:
     for test, adjusted in zip(tests.values(), analysis.holm([t["p"] for t in tests.values()])):
         test["p_holm"] = adjusted
     return {"best": best, "against": tests}
+
+
+def pair_test(records, first: str, second: str, field: str) -> dict:
+    """Two-sided Wilcoxon signed-rank test between two labels (unadjusted)."""
+    means = analysis.per_instance_means(records, field=field)
+    shared = sorted(set(means[first]) & set(means[second]))
+    x, y = [means[first][i] for i in shared], [means[second][i] for i in shared]
+    return {"instances": len(shared), "p": float(wilcoxon(x, y).pvalue),
+            "wins": sum(u > v for u, v in zip(x, y)), "losses": sum(u < v for u, v in zip(x, y))}
 
 
 def print_tests(title: str, tests: dict) -> None:
@@ -115,6 +126,15 @@ def run(args: argparse.Namespace) -> int:
               "wilcoxon_small": paired_tests(records, small_order, small)}
     print_tests("Hypervolume", report["wilcoxon_hv"])
     print_tests(f"Hypervolume, at most {args.max_size} positions", report["wilcoxon_small"])
+
+    if args.pairs:
+        report["pairs"] = {}
+        print("\nExtra paired tests (unadjusted)")
+        for pair in args.pairs:
+            first, second = pair.split(",")
+            report["pairs"][pair] = {field: pair_test(records, first, second, field) for field in ("hv", small)}
+            for field, t in report["pairs"][pair].items():
+                print(f"  {field:8s} {first} against {second}: p = {t['p']:.4g}, better on {t['wins']}, worse on {t['losses']} of {t['instances']}")
 
     # hypervolume by popularity of the target (terciles over the instances)
     popularity = {r["instance"]: r["target_popularity"] for r in records if r["target_popularity"] is not None}

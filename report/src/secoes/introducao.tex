@@ -33,14 +33,18 @@ As contribuições são:
         NSGA-II, um algoritmo genético de objetivo único com os mesmos
         operadores, um guloso, quatro heurísticas, a enumeração exata de
         conjuntos pequenos e o GECE (Seção~\ref{sec:resultados});
-  \item um estudo dos operadores do NSGA-II e duas ablações da distribuição de
-        fundo.
+  \item um estudo dos operadores do NSGA-II, duas ablações da distribuição de
+        fundo e uma variante do NSGA-II com população inicial semeada por um
+        ranking por ablação.
 \end{itemize}
 
-O resultado principal tem duas partes. Entre explicações de até 10 posições, o
+O resultado principal tem três partes. Entre explicações de até 10 posições, o
 NSGA-II tem o maior hipervolume e supera o guloso em 71 das 99 instâncias.
 Quando máscaras de qualquer tamanho contam, o guloso e até um ranking por
-ablação individual, que usa 5\% do orçamento, ficam à frente. A hipótese da
-proposta, de que a vantagem do NSGA-II estaria na cobertura do compromisso com
-o tamanho, vale portanto só na região de explicações pequenas, que é a região
-de interesse.
+ablação individual, que usa 5\% do orçamento, ficam à frente do NSGA-II. A
+variante semeada, proposta depois de ver esses resultados, passa a ser a melhor
+em todos os tamanhos e supera o guloso em 66 das 99 instâncias, mas perde um
+pouco para o NSGA-II original nas explicações pequenas. A hipótese da proposta,
+de que a vantagem do NSGA-II estaria na cobertura do compromisso com o tamanho,
+vale portanto sem ressalvas só na região de explicações pequenas, que é a
+região de interesse.
