@@ -20,6 +20,7 @@ import numpy as np
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.core.evaluator import Evaluator
+from pymoo.core.population import Population
 from pymoo.core.problem import Problem
 from pymoo.core.repair import Repair
 from pymoo.core.sampling import Sampling
@@ -27,6 +28,7 @@ from pymoo.core.termination import NoTermination
 from pymoo.operators.crossover.ux import UX
 from pymoo.operators.mutation.bitflip import BitflipMutation
 from pymoo.operators.sampling.rnd import BinaryRandomSampling
+from pymoo.operators.survival.rank_and_crowding import RankAndCrowding
 from pymoo.problems.static import StaticProblem
 
 def weight_lattice(divisions: int) -> np.ndarray:
@@ -115,13 +117,15 @@ class NonEmptyRepair(Repair):
 class _Evolution:
     """A pymoo genetic algorithm driven by ask/tell on a binary mask."""
 
-    def __init__(self, algorithm_class, ctx: Context, n_obj: int, pop_size: int, rng: np.random.Generator) -> None:
+    def __init__(self, algorithm_class, ctx: Context, n_obj: int, pop_size: int, rng: np.random.Generator,
+                 initial: np.ndarray | None = None) -> None:
+        """``initial`` (bool [P, n]) replaces the sampled initial population."""
         if ctx.init not in ("sparse", "uniform"):
             raise ValueError(f"init must be sparse or uniform, got {ctx.init!r}")
         self.problem = Problem(n_var=ctx.n, n_obj=n_obj, xl=0, xu=1, vtype=bool)
         self.algorithm = algorithm_class(
             pop_size=pop_size,
-            sampling=SparseSampling() if ctx.init == "sparse" else BinaryRandomSampling(),
+            sampling=initial if initial is not None else SparseSampling() if ctx.init == "sparse" else BinaryRandomSampling(),
             crossover=UX(prob=1.0 if ctx.crossover else 0.0),
             mutation=BitflipMutation(prob_var=min(0.5, ctx.mutation_scale / ctx.n)),
             repair=NonEmptyRepair(rng),
@@ -158,6 +162,46 @@ class NSGA2Search(Method):
 
     def tell(self, objectives: np.ndarray) -> None:
         self.evolution.tell(objectives)
+
+
+class SeededNSGA2Search(Method):
+    """NSGA-II whose initial population comes from the ablation ranking.
+
+    First it scores what ``AblationRanking`` scores (every single position, then the top-k
+    positions by necessity and by sufficiency for every k: at most 3n masks). The initial
+    population is the ``pop_size`` of those masks that NSGA-II's own survival (non-dominated rank,
+    then crowding) keeps; the scheduler answers them from the job's cache, so they are not paid
+    for twice. The rest of the budget is the usual NSGA-II.
+    """
+
+    def __init__(self, ctx: Context, rng: np.random.Generator) -> None:
+        super().__init__(ctx, rng)
+        self.phase = 0
+        self.seeds = np.eye(ctx.n, dtype=bool)
+        self.scores = np.zeros((0, 3))
+        self.evolution = None
+
+    def ask(self, remaining: int) -> np.ndarray:
+        if self.phase == 0:
+            return self.seeds
+        if self.phase == 1:
+            return self.ranked
+        return self.evolution.ask()
+
+    def tell(self, objectives: np.ndarray) -> None:
+        if self.phase == 0:
+            self.scores = objectives
+            self.ranked = np.concatenate([nested(np.argsort(objectives[:, column], kind="stable")) for column in (0, 1)])
+            self.phase = 1
+        elif self.phase == 1:
+            masks, index = np.unique(np.concatenate([self.seeds, self.ranked]), axis=0, return_index=True)
+            scores = np.concatenate([self.scores, objectives])[index]
+            problem = Problem(n_var=self.ctx.n, n_obj=3, xl=0, xu=1, vtype=bool)
+            kept = RankAndCrowding().do(problem, Population.new(X=masks, F=scores), n_survive=min(self.ctx.pop_size, len(masks)))
+            self.evolution = _Evolution(NSGA2, self.ctx, 3, self.ctx.pop_size, self.rng, initial=kept.get("X").astype(bool))
+            self.phase = 2
+        else:
+            self.evolution.tell(objectives)
 
 
 class ScalarGASearch(Method):
@@ -299,6 +343,7 @@ class Greedy(Scripted):
 
 METHODS: dict[str, Callable[[Context, np.random.Generator], Method]] = {
     "nsga2": NSGA2Search,
+    "nsga2_seeded": SeededNSGA2Search,
     "scalar_ga": ScalarGASearch,
     "random": RandomSubsets,
     "recency": RecencySubsets,

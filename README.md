@@ -245,6 +245,9 @@ Searches (GPU; `T` stands for `--instance-set tune --per-stratum 10 --seeds 0 1 
 | `op-init-uniform`, `op-no-crossover`, `op-mut0.5`, `op-mut2`, `op-mut4` | `just explain-run --stage <name> T --methods nsga2 --m 10 --pop-size 25` plus `--init uniform`, `--no-crossover` or `--mutation-scale 0.5 / 2 / 4` |
 | `abl-users` | `just explain-run --stage abl-users --fill users --eval-fill popularity --m 10 --methods nsga2 scalar_ga greedy ablation --pop-size 25` |
 | `abl-padding` | the same with `--stage abl-padding --fill padding --m 1 --budget 10000` (deletion has no randomness: one background, the same 5,000 masks per job) |
+| `tune-seeded` | `just explain-run --stage tune-seeded T --methods nsga2_seeded --m 10 --pop-size 25` (NSGA-II seeded with the ablation ranking) |
+| `main` (method `nsga2_seeded`) | `just explain-run --stage main --methods nsga2_seeded --pop-size 25` |
+| `main-sga-p25-d4`, `main-sga-p10-d2` | `just explain-run --stage main-sga-pP-dD --methods scalar_ga --scalar-pop-size P --scalar-divisions D --pop-size 25` (tuned scalarised GA on the main instances) |
 | `main` (methods `gece`, `gece_restarts`) | `just explain-gece --stage main` and `just explain-gece --stage main --gece-restarts` |
 
 The tuning stages ran before `--instance-m` existed, when the instance check used `--m` backgrounds;

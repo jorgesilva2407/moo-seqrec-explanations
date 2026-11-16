@@ -147,3 +147,14 @@ def test_gece_edits_are_mapped_to_position_masks():
         others = [float(logits[i - 1]) for i in range(1, NUM_ITEMS + 1)
                   if i != inst.target and i not in inst.seen and i not in cf]
         assert sum(o > float(logits[inst.target - 1]) for o in others) >= 3
+
+
+def test_seeded_nsga2_starts_from_the_ablation_ranking():
+    jobs, _ = run(["nsga2_seeded", "ablation"], seeds=(0,), budget=60)
+    by_method = {job.spec.method: job for job in jobs if job.spec.instance == 0}
+    seeded, ablation = by_method["nsga2_seeded"], by_method["ablation"]
+    masks = np.asarray(seeded.masks)
+    assert np.array_equal(masks[:6], np.eye(6, dtype=bool))  # single positions first
+    scored = {m.tobytes() for m in masks}
+    assert {m.tobytes() for m in np.asarray(ablation.masks)} <= scored  # everything the ranking scores
+    assert len(masks) > len(ablation.masks)  # and then the evolution goes on

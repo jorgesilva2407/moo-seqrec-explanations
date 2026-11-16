@@ -21,6 +21,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--by", choices=("stage", "method"), default="method",
                         help="stage: compare configurations (tuning); method: compare methods inside the stages")
     parser.add_argument("--methods", nargs="+", default=None, help="keep only these methods")
+    parser.add_argument("--tag-stages", action="store_true",
+                        help="with --by method: label the jobs of every stage after the first as method@stage, "
+                             "to compare variants of a method that ran in their own stages")
     parser.add_argument("--source", choices=("front_objectives", "objectives"), default="front_objectives")
     parser.add_argument("--max-size", type=int, default=10, help="size limit of the 'small explanations' columns")
     parser.add_argument("--full", action="store_true",
@@ -83,6 +86,8 @@ def run(args: argparse.Namespace) -> int:
                 if args.methods and record["method"] not in args.methods:
                     continue
                 record["label"] = stage if args.by == "stage" else record["method"]
+                if args.by == "method" and args.tag_stages and stage != args.stages[0]:
+                    record["label"] = f"{record['method']}@{stage}"
                 records.append(record)
     if not records:
         raise SystemExit(f"ERROR: no result files for {args.stages} under {root}")
