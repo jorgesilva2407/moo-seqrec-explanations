@@ -92,7 +92,7 @@ ordenada por dominância.
 
 \paragraph{Todas as máscaras.}
 No HV sem limite de tamanho a ordem se inverte: o guloso supera o NSGA-II em
-81 das 99 instâncias ($p=5\times10^{-10}$). O ranking por ablação fica logo
+81 das 99 instâncias ($p=5\times10^{-10}$, sem ajuste). O ranking por ablação fica logo
 atrás do guloso usando 4\,615 passadas, menos de 5\% do orçamento. A razão é
 estrutural: o guloso e o ranking percorrem todos os tamanhos de $1$ a $n$,
 enquanto o NSGA-II, com inicialização esparsa, concentra a busca nas máscaras
@@ -118,11 +118,11 @@ no \HVp{} ($p=0{,}50$). Nas 99 instâncias (Tabela~\ref{tab:metodos}), ela
 passa a ter o maior HV: supera o guloso em 66 instâncias
 ($p=2{,}2\times10^{-7}$ após Holm), o ranking por ablação em 96 e o NSGA-II
 original em 94. Há um custo nas explicações pequenas: o NSGA-II original é
-melhor no \HVp{} em 72 das 99 instâncias ($p=1{,}7\times10^{-5}$), embora a
-diferença das médias seja pequena ($0{,}919$ contra $0{,}911$). Parte da
-população inicial semeada são máscaras grandes, e o orçamento que as refina
-deixa de ir para as pequenas. No \HVp{}, a variante semeada e o guloso não se
-distinguem ($p=0{,}25$).
+melhor no \HVp{} em 72 das 99 instâncias ($p=3{,}3\times10^{-5}$ após Holm),
+embora a diferença das médias seja pequena ($0{,}919$ contra $0{,}911$). A
+causa provável, que não medimos, é que parte da população inicial semeada são
+máscaras grandes, e o orçamento que as refina deixa de ir para as pequenas. No \HVp{}, a variante semeada e o guloso não se
+distinguem ($p=0{,}25$, sem ajuste).
 
 \begin{figure}[t]
 \centering
@@ -136,7 +136,7 @@ de todos os tamanhos. O orçamento completo são 5\,000 máscaras.}
 A Figura~\ref{fig:convergencia} mostra a busca ao longo do orçamento. O
 ranking por ablação é o mais rápido no início e estaciona. O NSGA-II semeado
 parte da curva do ranking e continua a subir; o NSGA-II original ultrapassa o
-guloso na região pequena depois de cerca de mil máscaras; o AG escalarizado só
+guloso na região pequena entre mil e 2\,500 máscaras; o AG escalarizado só
 se aproxima no fim, quando já rodou a maior parte dos seus vetores de pesos.
 
 \subsection{Operadores do NSGA-II}
@@ -215,10 +215,11 @@ Rodamos então nas 99 instâncias a melhor configuração de cada critério
 da linha de base de $0{,}815$ para $0{,}826$ e piora o HV; o NSGA-II a supera
 em 96 das 99 instâncias nos dois critérios. A de população 10 com 6 vetores
 faz o contrário: seu HV sobe para $1{,}059$, acima do NSGA-II original em 71
-instâncias ($p=1{,}3\times10^{-8}$), mas seu \HVp{} cai para $0{,}703$ e o
+instâncias ($p=1{,}3\times10^{-8}$, sem ajuste), mas seu \HVp{} cai para $0{,}703$ e o
 NSGA-II a supera ali em todas as 99. Nenhuma configuração do AG escalarizado é
-competitiva nas duas regiões ao mesmo tempo, e o NSGA-II semeado supera a
-melhor delas em 97 instâncias no HV e em 98 no \HVp{}.
+competitiva nas duas regiões ao mesmo tempo. O NSGA-II semeado supera a
+configuração (10, 6), a melhor do AG escalarizado no HV, em 97 instâncias no
+HV, e a configuração (25, 15), a melhor no \HVp{}, em 96 instâncias no \HVp{}.
 
 \begin{table}[t]
 \caption{Ajuste do AG escalarizado: \HVp{} nos 30 usuários de ajuste, por

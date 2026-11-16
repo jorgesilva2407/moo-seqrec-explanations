@@ -509,6 +509,20 @@
         "losses": 1
       }
     },
+    "nsga2_seeded,scalar_ga@main-sga-p25-d4": {
+      "hv": {
+        "instances": 99,
+        "p": 5.8738900510967945e-18,
+        "wins": 98,
+        "losses": 1
+      },
+      "hv_le10": {
+        "instances": 99,
+        "p": 8.233665352309466e-17,
+        "wins": 96,
+        "losses": 3
+      }
+    },
     "greedy,nsga2": {
       "hv": {
         "instances": 99,
