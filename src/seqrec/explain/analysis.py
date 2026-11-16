@@ -55,6 +55,8 @@ def load_jobs(stage_dir: Path, source: str = "front_objectives") -> list[dict]:
                 "n": meta["n"],
                 "m": meta["m"],
                 "evaluations": meta["evaluations"],
+                # model queries the method itself paid for (GECE queries sequences, not masks)
+                "passes": meta.get("queries", meta["evaluations"] * 2 * meta["m"]),
                 "target_popularity": popularity.get(instance),
                 "front": (job["front_objectives"] if evaluated else job["objectives"][rows]).astype(np.float64),
                 "front_pn": job["front_pn"] if evaluated else job["pn"][rows],
@@ -133,7 +135,7 @@ def summarise(records: Sequence[dict], key: str = "label", fields: Sequence[str]
             jobs=len(mine),
             front_size=float(np.mean([len(record["front"]) for record in mine])),
             evaluations=float(np.mean([record["evaluations"] for record in mine])),
-            passes=float(np.mean([record["evaluations"] * 2 * record["m"] for record in mine])),
+            passes=float(np.mean([record["passes"] for record in mine])),
         )
     return dict(out)
 

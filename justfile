@@ -252,6 +252,11 @@ explain-bench *args:
 explain-run *args:
     {{seqrec}} explain-run {{paths_flags}} {{args}}
 
+# Run the GECE baseline (TRACE's implementation) on the instances of a stage: just explain-gece --stage main
+[group('remote')]
+explain-gece *args:
+    {{seqrec}} explain-gece {{paths_flags}} {{args}}
+
 # Compare stages or methods by hypervolume: just explain-report --stages main [--by stage] [--results-repo user/dataset]
 [group('remote')]
 explain-report *args:

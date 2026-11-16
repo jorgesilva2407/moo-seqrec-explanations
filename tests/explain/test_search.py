@@ -123,3 +123,27 @@ def test_operator_switches_change_the_search():
     assert {c.tobytes() for c in children} <= {p.tobytes() for p in parents}  # copies only (duplicates dropped)
     _, mutated = offspring(crossover=False, mutation_scale=10.0)
     assert not {c.tobytes() for c in mutated} <= {p.tobytes() for p in parents}
+
+
+def test_gece_edits_are_mapped_to_position_masks():
+    from seqrec.explain.gece import run_gece
+
+    scorer, instances, _, _ = setup()
+    inst = instances[0]
+    found = [run_gece(scorer, inst, seed, k=3, budget=2000, population=20, max_edits=3) for seed in range(6)]
+    again = run_gece(scorer, inst, 0, k=3, budget=2000, population=20, max_edits=3)
+    np.testing.assert_array_equal(found[0].masks, again.masks)  # reproducible from the seed
+    assert any(r.chosen is not None for r in found)
+    for r in found:
+        assert r.masks.shape[1] == inst.n and r.masks.any(axis=1).all() and r.queries <= 2000
+        assert len({m.tobytes() for m in r.masks}) == len(r.masks)
+        if r.chosen is None:
+            continue
+        mask, cf = r.masks[r.chosen], np.asarray(r.counterfactual)
+        assert 1 <= mask.sum() <= 3
+        original = np.concatenate([np.zeros(scorer.max_length - inst.n, dtype=np.int64), inst.history])
+        np.testing.assert_array_equal(mask, (cf != original)[-inst.n :])
+        logits = scorer.table[torch.from_numpy(cf)].sum(dim=0)  # the target really left the top-3 candidates
+        others = [float(logits[i - 1]) for i in range(1, NUM_ITEMS + 1)
+                  if i != inst.target and i not in inst.seen and i not in cf]
+        assert sum(o > float(logits[inst.target - 1]) for o in others) >= 3

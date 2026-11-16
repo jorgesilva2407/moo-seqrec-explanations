@@ -177,6 +177,18 @@ Both download `fp32/best.pt` from the Hub (private repo: `HF_TOKEN`). `explain-r
 `scheduler.py`), skips jobs whose file exists, and with `--results-repo` first downloads the stage
 from the dataset and uploads every 10 minutes, so an interrupted or sharded run resumes anywhere.
 
+Background ablations: `--fill {popularity,users,padding}` chooses the fill of the search (`users` =
+snippets of other users' histories, `padding` = the positions are deleted), `--eval-fill` the fill
+that re-scores the fronts (default: the same), and `--instance-m` the number of popularity
+backgrounds of the check that selects instances, so every stage uses the same instances.
+
+GECE baseline: `just explain-gece --stage main` runs GECE (Scarcelli et al., arXiv 2508.03606)
+through the implementation in TRACE, copied unmodified into `src/seqrec/explain/third_party/trace/`
+(github.com/devUuung/TRACE, commit ab14d96, MIT). Every sequence GECE queries is mapped to the
+positions it changed and those position sets are scored by the verifier, in the same file layout
+(method `gece`). TRACE's GECE stops at its first valid counterfactual; `--gece-restarts` starts it
+again until the pass budget is spent (method `gece_restarts`).
+
 Unattended on vast.ai: `just vast-template sha-xxxxxxx` creates a template whose onstart command is
 `vast/onstart.sh`. It runs `prepare-data` and then the recipe in the `SASREC_JOB` environment variable
 (default: the benchmark), e.g. `--env '-e SASREC_JOB=explain-run+--stage+main+--shard+0/4'` on
