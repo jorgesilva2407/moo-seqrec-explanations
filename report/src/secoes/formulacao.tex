@@ -17,10 +17,24 @@ trocar itens do histórico não altere quem concorre com $v$. Assim,
 $v$ está no top-$K$ de $s'$ se e somente se $\delta(v \mid s') \ge 0$. Usamos
 $K=10$.
 
-\paragraph{Explicação e intervenções.}
+\paragraph{Explicação.}
 Uma explicação é um conjunto de posições $X \subseteq \{1,\dots,n\}$,
-codificado pela máscara $z \in \{0,1\}^n$ com $z_j = 1 \iff j \in X$. Dado um
-histórico de fundo $r$ de mesmo comprimento, definimos
+codificado pela máscara $z \in \{0,1\}^n$ com $z_j = 1 \iff j \in X$.
+
+\paragraph{Históricos de fundo.}
+Para saber se as posições de $X$ importam, precisamos ver o que o modelo
+recomenda sem elas. Não basta apagá-las: o SASRec não aceita um ``buraco'' na
+sequência, e remover itens desloca todos os anteriores, o que muda também as
+suas posições. Em vez disso, \emph{substituímos} os itens por outros. Um
+\textbf{histórico de fundo} (ou simplesmente \textbf{fundo}) $r=(r_1,\dots,r_n)$
+é uma sequência artificial do mesmo comprimento do histórico, formada por itens
+``neutros'', sem relação com $v$; sua posição $j$ fornece o item que entra no
+lugar de $s_j$ quando a posição $j$ é trocada. Como um único fundo é uma
+escolha arbitrária, usamos muitos fundos sorteados de uma mesma distribuição e
+olhamos a média; a distribuição está na Seção~\ref{sec:mc}.
+
+\paragraph{Intervenções.}
+Dado um fundo $r$, definimos
 \begin{equation}
   s[X \leftarrow r]_j =
   \begin{cases} r_j, & j \in X \\ s_j, & j \notin X \end{cases}
@@ -32,8 +46,16 @@ histórico de fundo $r$ de mesmo comprimento, definimos
   \label{eq:int-suf}
 \end{equation}
 A primeira apaga a explicação e mantém o resto; a segunda mantém a explicação
-e troca todo o resto. As duas são substituições: o comprimento e as posições
-não mudam.
+e troca todo o resto. Por exemplo, com $s=(a,b,c,d,e)$, $X=\{2,4\}$ e o fundo
+$r=(p,q,t,u,w)$:
+\begin{equation*}
+  s[X \leftarrow r]=(a,\mathbf{q},c,\mathbf{u},e),
+  \qquad
+  s[\bar X \leftarrow r]=(\mathbf{p},b,\mathbf{t},d,\mathbf{w}).
+\end{equation*}
+Se $X$ é \emph{necessário}, a primeira sequência já não recomenda $v$; se é
+\emph{suficiente}, a segunda, que só guarda $b$ e $d$ do usuário, ainda o
+recomenda. Nas duas o comprimento e as posições não mudam.
 
 \paragraph{Necessidade e suficiência.}
 Com o fundo $R$ sorteado de uma distribuição $\mathcal{R}$, as probabilidades

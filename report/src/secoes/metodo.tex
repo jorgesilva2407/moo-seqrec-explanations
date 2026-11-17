@@ -4,9 +4,11 @@
 \subsection{Estimação por Monte Carlo}
 \label{sec:mc}
 
-\paragraph{Distribuição de fundo.}
-Cada posição de um fundo é um item sorteado independentemente com
-probabilidade proporcional à sua popularidade no treino. Nunca sorteamos $v$,
+\paragraph{Como os fundos são sorteados.}
+Cada posição de um fundo (Seção~\ref{sec:formulacao}) é um item sorteado
+independentemente com probabilidade proporcional à sua popularidade no treino:
+um fundo se parece com o histórico de um usuário típico, mas com itens
+escolhidos ao acaso. Nunca sorteamos $v$,
 seus 50 vizinhos mais próximos no espaço de \emph{embeddings} (similaridade do
 cosseno) nem os itens que o próprio usuário consumiu, para que um
 preenchimento ``neutro'' não devolva evidência a favor de $v$. O fundo
@@ -35,9 +37,12 @@ instância (números aleatórios comuns). A aptidão vira uma função
 determinística de $z$: o NSGA-II não compara indivíduos contaminados por
 ruídos diferentes, e máscaras repetidas podem ser respondidas de um
 \emph{cache} sem custo. O preço é um viés de seleção: a busca pode se ajustar
-aos $M$ fundos que viu. Por isso as frentes finais são reavaliadas com
-$M'=100$ fundos independentes, e todos os resultados reportados usam essa
-reavaliação.
+aos $M$ fundos que viu. Por isso usamos dois conjuntos de fundos por
+instância: os $M=10$ \textbf{fundos de busca}, vistos por todos os métodos
+durante a otimização, e $M'=100$ \textbf{fundos de avaliação}, sorteados da
+mesma distribuição mas independentes dos primeiros, com os quais as frentes
+finais são reavaliadas. Todos os resultados reportados usam essa reavaliação,
+exceto as curvas de convergência, que acompanham a própria busca.
 
 \subsection{NSGA-II sobre máscaras}
 
