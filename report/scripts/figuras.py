@@ -170,11 +170,18 @@ def methods_table() -> None:
     ])
 
 
-def grid_table(name: str, source: str, rows: list, columns: list, key, field: str) -> None:
+def grid_table(name: str, source: str, rows: list, columns: list, key) -> None:
+    """Rows x columns of configurations: HV (all masks) block, then HV<=10 block; best of each block in bold."""
     summary = load(source)["summary"]
-    best = max(summary[key(r, c)][field] for r, _ in rows for c, _ in columns)
-    cell = lambda v: rf"\textbf{{{num(v)}}}" if v == best else num(v)  # noqa: E731
-    write_table(name, [[label] + [cell(summary[key(r, c)][field]) for c, _ in columns] for r, label in rows])
+    blocks = []
+    for field in ("hv_mean", "hv_le10_mean"):
+        best = max(summary[key(r, c)][field] for r, _ in rows for c, _ in columns)
+        blocks.append((field, best))
+    cell = lambda v, best: rf"\textbf{{{num(v)}}}" if v == best else num(v)  # noqa: E731
+    write_table(name, [
+        [label] + [cell(summary[key(r, c)][field], best) for field, best in blocks for c, _ in columns]
+        for r, label in rows
+    ])
 
 
 def operators_table() -> None:
@@ -231,12 +238,10 @@ def main() -> None:
     correlation()
     methods_table()
     pops, ms = [(p, str(p)) for p in (25, 50, 100, 200)], [(m, str(m)) for m in (5, 10, 20)]
-    grid_table("ajuste.tex", "tuning-stage.json", pops, ms, lambda p, m: f"tune-p{p}-m{m}", "hv_mean")
-    grid_table("ajuste-pequenas.tex", "tuning-stage.json", pops, ms, lambda p, m: f"tune-p{p}-m{m}", "hv_le10_mean")
+    grid_table("ajuste.tex", "tuning-stage.json", pops, ms, lambda p, m: f"tune-p{p}-m{m}")
     weights = [(d, w) for d, w in ((2, "6"), (3, "10"), (4, "15"))]
     spops = [(p, str(p)) for p in (10, 25, 50)]
-    grid_table("escalar.tex", "scalar-ga-tuning-stage.json", spops, weights, lambda p, d: f"sga-p{p}-d{d}", "hv_mean")
-    grid_table("escalar-pequenas.tex", "scalar-ga-tuning-stage.json", spops, weights, lambda p, d: f"sga-p{p}-d{d}", "hv_le10_mean")
+    grid_table("escalar.tex", "scalar-ga-tuning-stage.json", spops, weights, lambda p, d: f"sga-p{p}-d{d}")
     operators_table()
     ablation_table()
     print(f"figures in {FIGURES}, tables in {TABLES}")

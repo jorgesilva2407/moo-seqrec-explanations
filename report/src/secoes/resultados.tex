@@ -12,8 +12,12 @@ aleatória e de enumeração, que não são escolhidas pela aptidão, e medimos 
 correlação de Spearman entre $\hat N$ e $\hat S$ \emph{entre máscaras do mesmo
 tamanho}, para descontar o efeito do tamanho. Ignorando o tamanho, a correlação
 é $0{,}92$: máscaras maiores são melhores nos dois objetivos. Com o tamanho
-fixo, ela cai para $0{,}44$ em máscaras de uma posição e $0{,}50$ nas de duas,
-e sobe com o tamanho (Figura~\ref{fig:correlacao}).
+fixo, ela cai para $0{,}44$ em máscaras de uma posição e $0{,}50$ nas de duas.
+A Figura~\ref{fig:correlacao} mostra a correlação por faixa de tamanho: ela
+sobe de $0{,}56$ nas máscaras com até 10\% do histórico para $0{,}87$ entre
+25\% e 75\%, e volta a $0{,}67$ nas maiores. Uma explicação provável, que não
+testamos, é que nessas máscaras quase todo o histórico já está selecionado e as
+diferenças entre elas são pequenas perto do ruído dos fundos.
 
 \begin{figure}[t]
 \centering
@@ -38,20 +42,27 @@ histórico inteiro de itens neutros.
 Nos 30 usuários de ajuste, variamos a população em $\{25,50,100,200\}$ e $M$ em
 $\{5,10,20\}$, sempre com $10^5$ passadas e 3 sementes
 (Tabela~\ref{tab:ajuste}). Com o orçamento fixo, população e $M$ maiores
-significam menos gerações, e o hipervolume cai nas duas direções. Escolhemos
-população 25 e $M=10$. Ela é melhor que população 100 com $M=10$ em 27 dos 30
-usuários ($p=3\times10^{-6}$ após Holm); a diferença para população 50 com
-$M=10$ não é significativa ($p=0{,}23$). O \HVp{} quase não distingue as
-configurações (entre $0{,}75$ e $0{,}78$, exceto $0{,}70$ na maior).
+significam menos gerações, e o HV cai nas duas direções: o pior canto da
+tabela (população 200, $M=20$) perde quase um quarto do HV do melhor.
+Escolhemos população 25 e $M=10$, a de maior HV. Ela é melhor que população
+100 com $M=10$ em 27 dos 30 usuários ($p=3\times10^{-6}$ após Holm); a
+diferença para população 50 com $M=10$ não é significativa ($p=0{,}23$). O
+bloco do \HVp{} quase não distingue as configurações (entre $0{,}75$ e
+$0{,}78$, exceto $0{,}70$ no pior canto): o tamanho da população e $M$ mudam
+sobretudo a cobertura das máscaras grandes.
 
 \begin{table}[t]
-\caption{Ajuste do NSGA-II: hipervolume (todas as máscaras) nos 30 usuários de
-ajuste, por tamanho da população e número de fundos $M$.}
+\caption{Ajuste do NSGA-II nos 30 usuários de ajuste: hipervolume de todas as
+máscaras (HV) e das máscaras com até 10 posições (\HVp{}), por tamanho da
+população e número de fundos $M$. Em negrito, o melhor valor de cada bloco.}
 \label{tab:ajuste}
-\small
-\begin{tabular}{@{}lccc@{}}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-População & $M=5$ & $M=10$ & $M=20$ \\
+ & \multicolumn{3}{c}{HV} & \multicolumn{3}{c}{\HVp} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+População & $M=5$ & $10$ & $20$ & $M=5$ & $10$ & $20$ \\
 \midrule
 \tabela{ajuste}
 \bottomrule
@@ -78,8 +89,14 @@ Método & \HVp & HV & Tamanho da frente & Passadas & PN & PS \\
 \end{tabular}
 \end{table*}
 
-A Tabela~\ref{tab:metodos} resume a comparação. O quadro muda conforme a
-região da frente.
+A Tabela~\ref{tab:metodos} resume a comparação, ordenada pelo \HVp{}. A busca
+aleatória, o GECE sem reinícios e a similaridade com o alvo ocupam o fim da
+tabela; a similaridade é a pior no \HVp{}: os itens mais parecidos com $v$ no
+espaço de \emph{embeddings} não são os que o sustentam. O tamanho da frente
+varia muito entre métodos: o guloso, que percorre todos os tamanhos, tem as
+maiores frentes, e o GECE sem reinícios e a enumeração, que avaliam poucas
+máscaras ou só as de uma e duas posições, as menores. No hipervolume, o quadro
+muda conforme a região da frente.
 
 \paragraph{Explicações pequenas.}
 No \HVp{}, o NSGA-II é o melhor método. Ele supera o guloso em 71 das 99
@@ -206,9 +223,14 @@ cobre uma fração ínfima de $2^n$.
 \paragraph{Ajuste do AG escalarizado.}
 Para que a comparação não dependa de uma configuração ruim da linha de base,
 variamos sua população em $\{10,25,50\}$ e o número de vetores de pesos em
-$\{6,10,15\}$ nos usuários de ajuste (Tabela~\ref{tab:escalar}). Nenhuma
-configuração vence nos dois critérios: populações pequenas com poucos vetores
-têm o maior HV (até $0{,}974$), e as intermediárias o maior \HVp{}.
+$\{6,10,15\}$ nos usuários de ajuste (Tabela~\ref{tab:escalar}, em que as
+colunas são o número de vetores). Nenhuma configuração vence nos dois
+critérios, e os dois blocos da tabela variam em sentidos opostos: populações
+pequenas com poucos vetores têm o maior HV ($0{,}974$ com população 10 e 6
+vetores), mas o pior \HVp{} ($0{,}622$), enquanto população 25 com 15 vetores
+tem o maior \HVp{} ($0{,}774$) e um HV bem menor. Com mais vetores, cada
+execução recebe uma fatia menor do orçamento, o que provavelmente explica a
+queda do HV.
 
 Rodamos então nas 99 instâncias a melhor configuração de cada critério
 (Tabela~\ref{tab:metodos}). A de população 25 com 15 vetores melhora o \HVp{}
@@ -222,15 +244,19 @@ configuração (10, 6), a melhor do AG escalarizado no HV, em 97 instâncias no
 HV, e a configuração (25, 15), a melhor no \HVp{}, em 96 instâncias no \HVp{}.
 
 \begin{table}[t]
-\caption{Ajuste do AG escalarizado: \HVp{} nos 30 usuários de ajuste, por
-população e número de vetores de pesos.}
+\caption{Ajuste do AG escalarizado nos 30 usuários de ajuste: HV e \HVp{}, por
+população e número de vetores de pesos. Em negrito, o melhor valor de cada
+bloco.}
 \label{tab:escalar}
-\small
-\begin{tabular}{@{}lccc@{}}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-População & 6 vetores & 10 vetores & 15 vetores \\
+ & \multicolumn{3}{c}{HV} & \multicolumn{3}{c}{\HVp} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+População & 6 & 10 & 15 & 6 & 10 & 15 \\
 \midrule
-\tabela{escalar-pequenas}
+\tabela{escalar}
 \bottomrule
 \end{tabular}
 \end{table}
@@ -316,5 +342,9 @@ Substituir esses quatro filmes tira \emph{Full Metal Jacket} do top-10 em 97\%
 dos fundos, e mantê-los sozinhos o sustenta em 86\%. A melhor explicação de um
 único item (o filme mais recente, \emph{Reservoir Dogs}) é necessária em 75\%
 dos fundos, mas suficiente em apenas 40\%. A Figura~\ref{fig:exemplo} mostra o
-que uma resposta única esconderia: o usuário da explicação pode trocar tamanho
-por força, e as máscaras maiores avançam nos dois objetivos ao mesmo tempo.
+que uma resposta única esconderia. Os dois pontos claros no alto, à direita,
+são máscaras de uma e de duas posições que derrubam a recomendação em média
+($\hat N<0$) mas têm $\hat S>0$, isto é, não a sustentam sozinhas. À medida que a máscara cresce (pontos mais escuros), as
+soluções descem e vão para a esquerda, avançando nos dois objetivos ao mesmo
+tempo; a explicação da Tabela~\ref{tab:exemplo} está no meio desse caminho, com
+apenas quatro posições. Quem lê a explicação pode escolher onde parar.

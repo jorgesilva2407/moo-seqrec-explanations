@@ -64,7 +64,11 @@ substituições, avaliados em lote pelo SASRec.}
 \label{fig:visao}
 \end{figure}
 
-O indivíduo é a máscara $z$ (Figura~\ref{fig:visao}). Usamos o
+A Figura~\ref{fig:visao} mostra o ciclo de uma geração. Cada máscara da
+população vira $2M$ históricos modificados (Seção~\ref{sec:mc}), avaliados em
+um único lote pelo SASRec; as margens resultantes dão $(\hat N,\hat S,C)$, e a
+ordenação não dominada com aglomeração escolhe os pais da geração seguinte. O
+indivíduo é a máscara $z$. Usamos o
 NSGA-II~\cite{deb2002nsga2} da pymoo~\cite{blank2020pymoo} com:
 \begin{itemize}
   \item \textbf{inicialização esparsa}: cada bit ligado com probabilidade
