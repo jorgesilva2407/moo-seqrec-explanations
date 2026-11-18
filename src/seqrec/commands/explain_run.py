@@ -29,11 +29,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--hub-file", default="fp32/best.pt")
     parser.add_argument("--device", default=None, help="default: cuda if available, else cpu")
     parser.add_argument("--stage", required=True, help="name of the output folder, e.g. main or tune-pop50")
-    parser.add_argument("--instance-set", choices=("main", "tune"), default="main",
-                        help="tune = held-out users, disjoint from the main set")
+    parser.add_argument("--instance-set", choices=("main", "tune", "redraw"), default="main",
+                        help="tune = held-out users, disjoint from the main set; redraw = a second evaluation "
+                             "set, disjoint from both main and tune")
     parser.add_argument("--per-stratum", type=int, default=33, help="instances per length stratum")
     parser.add_argument("--main-per-stratum", type=int, default=33,
-                        help="size of the main set that the tune set must avoid")
+                        help="size of the main set that the tune and redraw sets must avoid")
+    parser.add_argument("--tune-per-stratum", type=int, default=10,
+                        help="size of the tune set that the redraw set must avoid")
     parser.add_argument("--instance-seed", type=int, default=0)
     parser.add_argument("--methods", nargs="+", choices=sorted(METHODS), default=list(DEFAULT_METHODS))
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
@@ -53,6 +56,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--init", choices=("sparse", "uniform"), default="sparse", help="initial population of the GAs")
     parser.add_argument("--no-crossover", action="store_true", help="GAs use mutation only")
     parser.add_argument("--mutation-scale", type=float, default=1.0, help="per-bit flip rate is this over n")
+    parser.add_argument("--partitions", type=int, default=5,
+                        help="MOEA/D and NSGA-III: Das-Dennis partitions (3 objectives: 5 -> 21 directions, 6 -> 28)")
+    parser.add_argument("--decomposition", choices=("tchebicheff", "pbi"), default="tchebicheff", help="MOEA/D")
+    parser.add_argument("--neighbours", type=int, default=20, help="MOEA/D neighbourhood size")
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--chunk", type=int, default=DEFAULT_CHUNK)
     parser.add_argument("--concurrency", type=int, default=64, help="jobs sharing one GPU batch")
@@ -67,17 +74,21 @@ def job_path(stage_dir: Path, instance: Instance, spec: JobSpec) -> Path:
 
 
 def select_instances(args, histories, scorer: SASRecScorer, popularity) -> tuple[list[Instance], dict]:
-    main, stats = build_instances(
-        histories, scorer, popularity,
-        args.main_per_stratum if args.instance_set == "tune" else args.per_stratum,
-        args.instance_seed, m=args.instance_m, k=args.k,
-    )
+    """The main set (seed s), the tuning set (seed s + 1, other users) or the redrawn evaluation set
+    (seed s + 2, users in neither). The earlier sets are rebuilt with their own sizes so the
+    exclusions are exact."""
+    build = lambda size, offset, exclude=(): build_instances(  # noqa: E731
+        histories, scorer, popularity, size, args.instance_seed + offset, m=args.instance_m, k=args.k,
+        exclude_users=exclude)
+    main, stats = build(args.per_stratum if args.instance_set == "main" else args.main_per_stratum, 0)
     if args.instance_set == "main":
         return main, stats
-    return build_instances(
-        histories, scorer, popularity, args.per_stratum, args.instance_seed + 1, m=args.instance_m, k=args.k,
-        exclude_users=[inst.user_index for inst in main],
-    )
+    main_users = [inst.user_index for inst in main]
+    tune_size = args.per_stratum if args.instance_set == "tune" else args.tune_per_stratum
+    tune, tune_stats = build(tune_size, 1, main_users)
+    if args.instance_set == "tune":
+        return tune, tune_stats
+    return build(args.per_stratum, 2, main_users + [inst.user_index for inst in tune])
 
 
 def contexts_for(args, scorer: SASRecScorer, instances, verifier: Verifier) -> tuple[list[Context], np.ndarray]:
@@ -93,6 +104,7 @@ def contexts_for(args, scorer: SASRecScorer, instances, verifier: Verifier) -> t
             Context(
                 inst.n, scale, similarity, args.budget // (2 * args.m), args.pop_size, args.scalar_pop_size,
                 weight_lattice(args.scalar_divisions), args.init, not args.no_crossover, args.mutation_scale,
+                partitions=args.partitions, decomposition=args.decomposition, neighbours=args.neighbours,
             )
         )
     return contexts, full

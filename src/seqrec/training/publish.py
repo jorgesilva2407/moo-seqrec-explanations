@@ -78,7 +78,7 @@ MovieLens-20M (Harper & Konstan, 2015). Max sequence length here is 128, not the
 """
 
 
-def upload_run(run_dir: Path, repo_id: str, private: bool = True, folder: str = "") -> str:
+def upload_run(run_dir: Path, repo_id: str, private: bool = True, folder: str = "", include_last: bool = False) -> str:
     """Upload the run's files in one commit; returns the repo URL.
 
     With ``folder`` (e.g. ``fp32``) the files go under that folder of the repo and the root README is
@@ -100,7 +100,7 @@ def upload_run(run_dir: Path, repo_id: str, private: bool = True, folder: str = 
         )
     operations = [
         CommitOperationAdd(path_in_repo=prefix + name, path_or_fileobj=str(run_dir / name))
-        for name in RUN_FILES
+        for name in RUN_FILES + (("last.pt",) if include_last else ())
         if (run_dir / name).is_file()
     ]
     if not folder:

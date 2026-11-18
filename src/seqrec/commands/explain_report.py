@@ -43,19 +43,21 @@ def paired_tests(records, order, field) -> dict:
         x, y = [means[best][i] for i in shared], [means[other][i] for i in shared]
         if len(shared) >= 6 and any(u != v for u, v in zip(x, y)):
             tests[other] = {"instances": len(shared), "p": float(wilcoxon(x, y).pvalue),
-                            "wins": sum(u > v for u, v in zip(x, y)), "losses": sum(u < v for u, v in zip(x, y))}
+                            "wins": sum(u > v for u, v in zip(x, y)), "losses": sum(u < v for u, v in zip(x, y)),
+                            **analysis.paired_statistics(x, y)}
     for test, adjusted in zip(tests.values(), analysis.holm([t["p"] for t in tests.values()])):
         test["p_holm"] = adjusted
     return {"best": best, "against": tests}
 
 
 def pair_test(records, first: str, second: str, field: str) -> dict:
-    """Two-sided Wilcoxon signed-rank test between two labels (unadjusted)."""
+    """Two-sided Wilcoxon signed-rank test between two labels, with effect sizes (p unadjusted)."""
     means = analysis.per_instance_means(records, field=field)
     shared = sorted(set(means[first]) & set(means[second]))
     x, y = [means[first][i] for i in shared], [means[second][i] for i in shared]
     return {"instances": len(shared), "p": float(wilcoxon(x, y).pvalue),
-            "wins": sum(u > v for u, v in zip(x, y)), "losses": sum(u < v for u, v in zip(x, y))}
+            "wins": sum(u > v for u, v in zip(x, y)), "losses": sum(u < v for u, v in zip(x, y)),
+            **analysis.paired_statistics(x, y)}
 
 
 def print_tests(title: str, tests: dict) -> None:
@@ -106,7 +108,10 @@ def run(args: argparse.Namespace) -> int:
     small = f"hv_le{args.max_size}"
     analysis.add_hypervolume(records)
     analysis.add_hypervolume(records, args.max_size, small)
-    summary = analysis.summarise(records, fields=("hv", small))
+    analysis.add_hypervolume(records, args.max_size, f"{small}_nc", columns=(0, 2))  # the (N, C) projection
+    analysis.add_igd_plus(records)
+    analysis.add_igd_plus(records, args.max_size, f"igd_plus_le{args.max_size}")
+    summary = analysis.summarise(records, fields=("hv", small, f"{small}_nc", "igd_plus", f"igd_plus_le{args.max_size}"))
     quality = analysis.explanation_quality(records, args.max_size)
     order = sorted(summary, key=lambda name: -summary[name]["hv_mean"])
     small_order = sorted(summary, key=lambda name: -summary[name][f"{small}_mean"])
@@ -128,13 +133,22 @@ def run(args: argparse.Namespace) -> int:
     print_tests(f"Hypervolume, at most {args.max_size} positions", report["wilcoxon_small"])
 
     if args.pairs:
+        # one Holm family per field over all the requested pairs
         report["pairs"] = {}
-        print("\nExtra paired tests (unadjusted)")
         for pair in args.pairs:
             first, second = pair.split(",")
             report["pairs"][pair] = {field: pair_test(records, first, second, field) for field in ("hv", small)}
+        for field in ("hv", small):
+            tests = [report["pairs"][pair][field] for pair in args.pairs]
+            for test, adjusted in zip(tests, analysis.holm([t["p"] for t in tests])):
+                test["p_holm"] = adjusted
+        print("\nExtra paired tests (Holm over these pairs, per field)")
+        for pair in args.pairs:
+            first, second = pair.split(",")
             for field, t in report["pairs"][pair].items():
-                print(f"  {field:8s} {first} against {second}: p = {t['p']:.4g}, better on {t['wins']}, worse on {t['losses']} of {t['instances']}")
+                print(f"  {field:8s} {first} against {second}: Holm p = {t['p_holm']:.4g}, better on {t['wins']}, "
+                      f"worse on {t['losses']} of {t['instances']}, mean diff {t['mean_diff']:+.4f} "
+                      f"[{t['ci95'][0]:+.4f}, {t['ci95'][1]:+.4f}], r = {t['rank_biserial']:+.2f}")
 
     # hypervolume by popularity of the target (terciles over the instances)
     popularity = {r["instance"]: r["target_popularity"] for r in records if r["target_popularity"] is not None}

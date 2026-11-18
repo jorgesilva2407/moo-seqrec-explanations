@@ -61,6 +61,37 @@ def read_ratings(zip_path: Path) -> pd.DataFrame:
     return df.rename(columns={"userId": "user_id", "movieId": "item_id"})
 
 
+def read_zvuk(parquet_path: Path, min_play_seconds: float = 30.0, max_items: int | None = None) -> pd.DataFrame:
+    """Read the Zvuk listening log (Shevchenko et al., KDD 2024; Kaggle ``alexxl/zvuk-dataset``,
+    CC BY 4.0) as int64 ``user_id``, ``item_id``, ``timestamp`` (ms).
+
+    * a play counts as a listen when it lasted at least ``min_play_seconds`` (about 40% of the
+      plays are skips of a few seconds);
+    * only the first listen of each (user, track) is kept, because the explanation task, like
+      ML-20M, recommends items the user has not consumed yet;
+    * with ``max_items``, only the tracks listened to by the most distinct users are kept, which
+      keeps full cross-entropy training and every scoring pass affordable (both scale with the
+      catalogue).
+    """
+    import pyarrow.compute as pc
+    import pyarrow.dataset as ds
+
+    table = ds.dataset(str(parquet_path), format="parquet").to_table(
+        columns=["user_id", "track_id", "datetime"], filter=pc.field("play_duration") >= min_play_seconds)
+    df = pd.DataFrame({
+        "user_id": table.column("user_id").to_numpy().astype(np.int64),
+        "item_id": table.column("track_id").to_numpy().astype(np.int64),
+        "timestamp": table.column("datetime").cast("int64").to_numpy(),
+    })
+    del table
+    df = df.sort_values(["timestamp", "item_id"], kind="mergesort").drop_duplicates(["user_id", "item_id"], keep="first")
+    if max_items is not None:
+        listeners = df.groupby("item_id")["user_id"].size()  # one row per (user, item) now
+        keep = listeners.sort_values(ascending=False, kind="mergesort").index[:max_items]
+        df = df[df["item_id"].isin(keep)]
+    return df.reset_index(drop=True)
+
+
 def kcore_filter(df: pd.DataFrame, min_user_count: int, min_item_count: int) -> pd.DataFrame:
     """Drop items with < min_item_count distinct users and users with < min_user_count distinct
     items, repeating until nothing changes."""

@@ -64,10 +64,13 @@ class Job:
         return np.asarray(self.rows, dtype=np.float64).reshape(-1, 5)[:, :3]
 
     def front(self) -> np.ndarray:
-        """Rows of the non-dominated evaluated masks."""
-        if not self.rows:
+        """Rows of the non-dominated evaluated masks. The empty mask (scored by methods that need a
+        baseline value) is not an explanation and never enters the front."""
+        candidates = np.flatnonzero(self.objectives[:, 2] > 0) if self.rows else np.zeros(0, dtype=np.int64)
+        if not len(candidates):
             return np.zeros(0, dtype=np.int64)
-        return np.sort(NonDominatedSorting().do(self.objectives, only_non_dominated_front=True))
+        kept = NonDominatedSorting().do(self.objectives[candidates], only_non_dominated_front=True)
+        return np.sort(candidates[kept])
 
 
 def job_specs(instances: Sequence[int], methods: Sequence[str], seeds: Sequence[int]) -> list[JobSpec]:

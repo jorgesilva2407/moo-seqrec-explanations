@@ -168,7 +168,7 @@ passes), `methods.py` (NSGA-II and the baselines behind one ask/tell protocol) a
 
 ```
 just explain-bench                         # passes per second, GPU memory per chunk size, choice of M
-just explain-run --stage main --results-repo AbyssWanderer/sasrec-ml20m-explanations
+just explain-run --stage main --results-repo AbyssWanderer/moo-seqrec-explanations-ml20m
 just explain-run --stage main --shard 1/4 --results-repo ...       # one of 4 machines
 just explain-run --stage tune-pop50 --instance-set tune --per-stratum 10 --methods nsga2 --pop-size 50
 ```
@@ -228,7 +228,7 @@ after re-running an experiment, regenerate the tables and re-check those sentenc
 Fixed inputs: checkpoint `fp32/best.pt` of `AbyssWanderer/sasrec-ml20m` (checkpoint id `e37b97aa9645`),
 processed data with hash `806838bcc2ea…` (`just prepare-data`; `explain-run` warns if the hash differs),
 instance seed 0, `K = 10`, 10^5 SASRec passes per job, fronts re-scored on 100 independent
-backgrounds. Every result file is in the dataset `AbyssWanderer/sasrec-ml20m-explanations`
+backgrounds. Every result file is in the dataset `AbyssWanderer/moo-seqrec-explanations-ml20m`
 (private), one folder per stage, so the reports can be rebuilt without re-running the searches.
 Images used: `sha-973992d` (benchmark, tuning, main, scalarised GA and operator stages),
 `sha-6951e5c` (background ablations), `sha-3ff8376` (GECE), `sha-79e6c1a` (seeded NSGA-II and the
@@ -255,7 +255,7 @@ The tuning stages ran before `--instance-m` existed, when the instance check use
 `--instance-m M` reproduces that. All later stages use the default of 10.
 
 Analyses (laptop; they write the files in `results/`, which the article's tables and figures read).
-`R` stands for `--results-repo AbyssWanderer/sasrec-ml20m-explanations`, which downloads the stages
+`R` stands for `--results-repo AbyssWanderer/moo-seqrec-explanations-ml20m`, which downloads the stages
 into `<out-dir>/explanations` first; reports are saved under `<out-dir>/explanations/reports/`.
 
 | File in `results/` | Command |

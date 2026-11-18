@@ -25,6 +25,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     paths.add_path_arguments(parser)
     parser.add_argument("--run-name", default=None, help="default: <timestamp>-seed<seed>")
     parser.add_argument("--resume", action="store_true", help="resume <run-name> from its last.pt")
+    parser.add_argument("--extend-epochs", type=int, default=0,
+                        help="with --resume: raise the epoch limit (continue a run that stopped at its limit)")
+    parser.add_argument("--upload-last", action="store_true",
+                        help="also upload last.pt, so another machine can resume the run")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -74,6 +78,8 @@ def run(args: argparse.Namespace) -> int:
             raise SystemExit(f"ERROR: nothing to resume, {last_path} does not exist.")
         saved = load_training_state(last_path)
         train_args = saved["train_args"]
+        if args.extend_epochs:
+            train_args["epochs"] = args.extend_epochs
         config = SASRecConfig.from_dict(saved["model_config"])
         processed = paths.processed_dir(data_dir, train_args["processed_name"])
         meta = load_meta(processed)
@@ -121,7 +127,8 @@ def run(args: argparse.Namespace) -> int:
     )
     if args.upload_to:
         try:
-            url = publish.upload_run(run_dir, args.upload_to, private=not args.upload_public, folder=args.upload_folder)
+            url = publish.upload_run(run_dir, args.upload_to, private=not args.upload_public, folder=args.upload_folder,
+                                     include_last=args.upload_last)
             logger.info("uploaded run to %s", url)
         except (Exception, SystemExit):  # training result is safe on disk; report loudly
             logger.exception("UPLOAD FAILED (the run is intact in %s; retry with `just upload`)", run_dir)

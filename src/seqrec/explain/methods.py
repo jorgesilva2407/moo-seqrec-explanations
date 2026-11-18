@@ -12,12 +12,15 @@ Scalarised methods use ``Context.scale`` to put the three objectives on comparab
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import combinations
 from typing import Callable, Iterator
 
 import numpy as np
+from pymoo.algorithms.moo.moead import ParallelMOEAD
 from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.algorithms.moo.nsga3 import NSGA3
+from pymoo.algorithms.moo.sms import SMSEMOA
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.core.evaluator import Evaluator
 from pymoo.core.population import Population
@@ -25,11 +28,14 @@ from pymoo.core.problem import Problem
 from pymoo.core.repair import Repair
 from pymoo.core.sampling import Sampling
 from pymoo.core.termination import NoTermination
+from pymoo.decomposition.pbi import PBI
+from pymoo.decomposition.tchebicheff import Tchebicheff
 from pymoo.operators.crossover.ux import UX
 from pymoo.operators.mutation.bitflip import BitflipMutation
 from pymoo.operators.sampling.rnd import BinaryRandomSampling
 from pymoo.operators.survival.rank_and_crowding import RankAndCrowding
 from pymoo.problems.static import StaticProblem
+from pymoo.util.ref_dirs import get_reference_directions
 
 def weight_lattice(divisions: int) -> np.ndarray:
     """float [W, 3]: weight vectors over (N, S, C) on the simplex lattice (3 divisions -> 10 vectors)."""
@@ -56,6 +62,12 @@ class Context:
         init: ``sparse`` (about ``SPARSE_BITS`` bits on) or ``uniform`` (each bit on with 1/2).
         crossover: apply uniform crossover (False: offspring are mutated copies of the parents).
         mutation_scale: the per-bit flip rate is ``mutation_scale / n``.
+        objectives: which of (N, S, C) the multi-objective searches see (indices; the archive
+            always stores all three).
+        partitions: Das-Dennis partitions of the reference directions of MOEA/D and NSGA-III
+            (3 objectives: 5 -> 21 directions, 6 -> 28); also their population size.
+        decomposition: ``tchebicheff`` or ``pbi`` (MOEA/D).
+        neighbours: MOEA/D neighbourhood size (clamped to the number of directions).
     """
 
     n: int
@@ -68,6 +80,10 @@ class Context:
     init: str = "sparse"
     crossover: bool = True
     mutation_scale: float = 1.0
+    objectives: tuple = (0, 1, 2)
+    partitions: int = 5
+    decomposition: str = "tchebicheff"
+    neighbours: int = 20
 
 
 def scalarise(objectives: np.ndarray, weights: np.ndarray, scale: np.ndarray) -> np.ndarray:
@@ -117,20 +133,27 @@ class NonEmptyRepair(Repair):
 class _Evolution:
     """A pymoo genetic algorithm driven by ask/tell on a binary mask."""
 
-    def __init__(self, algorithm_class, ctx: Context, n_obj: int, pop_size: int, rng: np.random.Generator,
-                 initial: np.ndarray | None = None) -> None:
-        """``initial`` (bool [P, n]) replaces the sampled initial population."""
+    def __init__(self, algorithm_class, ctx: Context, n_obj: int, pop_size: int | None, rng: np.random.Generator,
+                 initial: np.ndarray | None = None, fitness_scale: np.ndarray | None = None, **options) -> None:
+        """``initial`` (bool [P, n]) replaces the sampled initial population. ``fitness_scale``
+        divides what ``tell`` receives (for algorithms that do not normalise objectives).
+        ``pop_size=None`` leaves the population size to the algorithm (MOEA/D: one per direction);
+        ``options`` go to the algorithm's constructor."""
         if ctx.init not in ("sparse", "uniform"):
             raise ValueError(f"init must be sparse or uniform, got {ctx.init!r}")
         self.problem = Problem(n_var=ctx.n, n_obj=n_obj, xl=0, xu=1, vtype=bool)
-        self.algorithm = algorithm_class(
-            pop_size=pop_size,
+        self.fitness_scale = fitness_scale
+        settings = dict(
             sampling=initial if initial is not None else SparseSampling() if ctx.init == "sparse" else BinaryRandomSampling(),
             crossover=UX(prob=1.0 if ctx.crossover else 0.0),
             mutation=BitflipMutation(prob_var=min(0.5, ctx.mutation_scale / ctx.n)),
             repair=NonEmptyRepair(rng),
-            eliminate_duplicates=True,
         )
+        if pop_size is not None:
+            settings["pop_size"] = pop_size
+        if algorithm_class is not ParallelMOEAD:  # MOEA/D sets its own (no) duplicate elimination
+            settings["eliminate_duplicates"] = True
+        self.algorithm = algorithm_class(**settings, **options)
         seed = int(rng.integers(2**31))
         self.algorithm.setup(self.problem, termination=NoTermination(), seed=seed, verbose=False)
         self.population = None
@@ -146,22 +169,68 @@ class _Evolution:
     def tell(self, fitness: np.ndarray) -> None:
         if self.population is None:
             return
+        if self.fitness_scale is not None:
+            fitness = fitness / self.fitness_scale
         Evaluator().eval(StaticProblem(self.problem, F=fitness), self.population)
         self.algorithm.tell(infills=self.population)
 
 
-class NSGA2Search(Method):
-    """NSGA-II on (N, S, C): uniform crossover, bit-flip mutation 1/n, sparse initialisation."""
+class _MultiObjective(Method):
+    """A pymoo multi-objective algorithm on the objectives in ``ctx.objectives``."""
 
     def __init__(self, ctx: Context, rng: np.random.Generator) -> None:
         super().__init__(ctx, rng)
-        self.evolution = _Evolution(NSGA2, ctx, 3, ctx.pop_size, rng)
+        self.columns = list(ctx.objectives)
+        self.evolution = self.build(ctx, rng, len(self.columns))
+
+    def build(self, ctx: Context, rng: np.random.Generator, n_obj: int) -> _Evolution:
+        raise NotImplementedError
 
     def ask(self, remaining: int) -> np.ndarray:
         return self.evolution.ask()
 
     def tell(self, objectives: np.ndarray) -> None:
-        self.evolution.tell(objectives)
+        self.evolution.tell(objectives[:, self.columns])
+
+
+class NSGA2Search(_MultiObjective):
+    """NSGA-II on (N, S, C): uniform crossover, bit-flip mutation 1/n, sparse initialisation."""
+
+    def build(self, ctx, rng, n_obj):
+        return _Evolution(NSGA2, ctx, n_obj, ctx.pop_size, rng)
+
+
+def _directions(ctx: Context, n_obj: int) -> np.ndarray:
+    return get_reference_directions("das-dennis", n_obj, n_partitions=ctx.partitions)
+
+
+class MOEADSearch(_MultiObjective):
+    """MOEA/D (generation-wise variant): one subproblem per Das-Dennis direction, neighbourhood
+    mating, Tchebicheff or PBI decomposition. The objectives are divided by ``ctx.scale`` first,
+    because decompositions compare raw objective values and C is two orders larger than N, S."""
+
+    def build(self, ctx, rng, n_obj):
+        directions = _directions(ctx, n_obj)
+        decomposition = {"tchebicheff": Tchebicheff, "pbi": PBI}[ctx.decomposition]()
+        return _Evolution(ParallelMOEAD, ctx, n_obj, None, rng, fitness_scale=ctx.scale[self.columns],
+                          ref_dirs=directions, n_neighbors=min(ctx.neighbours, len(directions)),
+                          decomposition=decomposition)
+
+
+class NSGA3Search(_MultiObjective):
+    """NSGA-III: non-dominated sorting with reference-direction niching (normalises internally)."""
+
+    def build(self, ctx, rng, n_obj):
+        directions = _directions(ctx, n_obj)
+        return _Evolution(NSGA3, ctx, n_obj, len(directions), rng, ref_dirs=directions)
+
+
+class SMSEMOASearch(_MultiObjective):
+    """SMS-EMOA: survival by least hypervolume contribution (normalises internally). Generates a
+    whole population of offspring per step so each ask is one GPU batch."""
+
+    def build(self, ctx, rng, n_obj):
+        return _Evolution(SMSEMOA, ctx, n_obj, ctx.pop_size, rng, n_offsprings=ctx.pop_size)
 
 
 class SeededNSGA2Search(Method):
@@ -341,8 +410,39 @@ class Greedy(Scripted):
             current[used[np.argmin(scalarise(objectives, self.weights, self.ctx.scale))]] = False
 
 
+class ShapleyRanking(Scripted):
+    """Monte Carlo Shapley values of each position for N-hat and S-hat, then nested top-k.
+
+    The value of a set X is (N-hat(X), S-hat(X)); the empty mask is scored once. Each random
+    permutation scores its n prefix masks, so one permutation gives a marginal contribution of every
+    position to both objectives. Permutations are drawn until only 2n evaluations are left, which go
+    to the nested top-k masks by the Shapley value for N and for S (most negative first, i.e. the
+    positions whose presence in X lowers the objective most).
+    """
+
+    def script(self):
+        n = self.ctx.n
+        base = (yield np.zeros((1, n), dtype=bool))[0, :2]
+        left = self.ctx.budget - 1 - 2 * n
+        total, count = np.zeros((n, 2)), 0
+        while left >= n or count == 0:
+            order = self.rng.permutation(n)
+            values = np.vstack([base, (yield nested(order))[:, :2]])
+            total[order] += np.diff(values, axis=0)
+            count += 1
+            left -= n
+        self.shapley = total / count
+        yield nested(np.argsort(self.shapley[:, 0], kind="stable"))
+        yield nested(np.argsort(self.shapley[:, 1], kind="stable"))
+
+
 METHODS: dict[str, Callable[[Context, np.random.Generator], Method]] = {
     "nsga2": NSGA2Search,
+    "nsga2_nc": lambda ctx, rng: NSGA2Search(replace(ctx, objectives=(0, 2)), rng),
+    "moead": MOEADSearch,
+    "nsga3": NSGA3Search,
+    "smsemoa": SMSEMOASearch,
+    "shapley": ShapleyRanking,
     "nsga2_seeded": SeededNSGA2Search,
     "scalar_ga": ScalarGASearch,
     "random": RandomSubsets,

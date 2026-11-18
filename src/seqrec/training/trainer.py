@@ -137,6 +137,8 @@ def fit(
 
     encoder = torch.compile(model) if train_args.get("compile") else model
     epochs, patience = int(train_args["epochs"]), int(train_args["patience"])
+    if finished and bad_epochs < patience and start_epoch <= epochs:
+        finished = False  # stopped by the epoch limit, which was raised (train --resume --epochs N)
     batch_size = int(train_args["batch_size"])
     grad_clip = float(train_args.get("grad_clip", 0.0))  # 0 = off (also for runs saved before the option)
     val_users = _val_subset(data.num_users, int(train_args.get("val_subset", 0)), seed)

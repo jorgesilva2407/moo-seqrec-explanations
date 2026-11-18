@@ -29,7 +29,7 @@ from seqrec.explain.scheduler import _padded, _scores, job_specs, method_seed, r
 from seqrec.explain.verifier import Verifier
 from seqrec.models.loader import load_from_hub
 
-OUT = Path(__file__).resolve().parents[2] / "results" / "exact-front.json"
+RESULTS = Path(__file__).resolve().parents[2] / "results"
 
 
 def short_instances(histories, scorer, popularity, length: int, count: int, k: int, seed: int) -> list[Instance]:
@@ -52,11 +52,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--processed", type=Path, required=True)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
-    parser.add_argument("--length", type=int, default=12)
+    parser.add_argument("--length", type=int, default=16)
+    parser.add_argument("--methods", nargs="+", default=["nsga2", "random", "greedy"])
+    parser.add_argument("--results-repo", default=None, help="also upload the JSON to exact-front/ in this dataset")
     parser.add_argument("--instances", type=int, default=20)
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
-    parser.add_argument("--budget", type=int, default=1000)
-    parser.add_argument("--checkpoints", type=int, nargs="+", default=[100, 250, 500, 1000])
+    parser.add_argument("--budget", type=int, default=2500)
+    parser.add_argument("--checkpoints", type=int, nargs="+", default=[100, 250, 500, 1000, 2500])
     parser.add_argument("--m", type=int, default=10)
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--pop-size", type=int, default=25)
@@ -85,11 +87,11 @@ def main() -> None:
 
     contexts = [Context(n, np.maximum(np.abs(e[-1]), 1e-6), np.zeros(n), args.budget, args.pop_size) for e in exact]
     jobs = []
-    run_jobs(verifier, job_specs(range(len(instances)), ["nsga2", "random"], args.seeds), contexts,
+    run_jobs(verifier, job_specs(range(len(instances)), args.methods, args.seeds), contexts,
              lambda spec: method_seed(spec, instances[spec.instance].user_index), jobs.append)
 
     hv = analysis.HV(ref_point=np.full(3, analysis.REFERENCE))
-    rows = {method: {c: {"hv_ratio": [], "front_found": []} for c in args.checkpoints} for method in ("nsga2", "random")}
+    rows = {method: {c: {"hv_ratio": [], "front_found": []} for c in args.checkpoints} for method in args.methods}
     for row, objectives in enumerate(exact):
         low, high = objectives.min(axis=0), objectives.max(axis=0)
         scale = lambda points: (points - low) / np.where(high > low, high - low, 1.0)  # noqa: E731
@@ -119,8 +121,15 @@ def main() -> None:
                       "checkpoint_id": scorer.checkpoint_id},
            "instances": len(instances), "candidates": len(candidates),
            "exact_front_size_mean": float(np.mean([len(analysis.non_dominated(e)) for e in exact])), "summary": summary}
-    with open(OUT, "w", encoding="utf-8") as f:
+    out_path = RESULTS / f"exact-front-n{args.length}.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
+    if args.results_repo:
+        from huggingface_hub import HfApi
+
+        HfApi().upload_file(path_or_fileobj=str(out_path), path_in_repo=f"exact-front/{out_path.name}",
+                            repo_id=args.results_repo, repo_type="dataset")
     print(json.dumps(out["summary"], indent=1), "front size", out["exact_front_size_mean"], f"{time.perf_counter() - start:.0f} s")
 
 

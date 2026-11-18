@@ -158,3 +158,26 @@ def test_seeded_nsga2_starts_from_the_ablation_ranking():
     scored = {m.tobytes() for m in masks}
     assert {m.tobytes() for m in np.asarray(ablation.masks)} <= scored  # everything the ranking scores
     assert len(masks) > len(ablation.masks)  # and then the evolution goes on
+
+
+def test_shapley_is_exact_for_additive_objectives():
+    from seqrec.explain.methods import ShapleyRanking
+
+    n, weights = 6, np.array([[-3.0, 1.0], [2.0, -1.0], [0.5, -4.0], [-1.0, 0.0], [0.0, 2.0], [1.5, 0.5]])
+    ctx = Context(n, np.ones(3), np.zeros(n), budget=200)
+    method = ShapleyRanking(ctx, np.random.default_rng(0))
+    while not method.done:
+        masks = method.ask(10**6)
+        method.tell(np.column_stack([masks @ weights, masks.sum(axis=1)]))
+    np.testing.assert_allclose(method.shapley, weights)  # every permutation gives the exact value
+
+
+def test_decomposition_and_indicator_searches_ask_whole_generations():
+    from dataclasses import replace
+
+    ctx = replace(setup()[3][0], n=40, pop_size=25, partitions=5)
+    for name, size in (("moead", 21), ("nsga3", 21), ("smsemoa", 25), ("nsga2_nc", 25)):
+        method = METHODS[name](ctx, np.random.default_rng(0))
+        first = method.ask(10**6)
+        method.tell(np.random.default_rng(1).random((len(first), 3)))
+        assert len(first) == size and 0 < len(method.ask(10**6)) <= size, name

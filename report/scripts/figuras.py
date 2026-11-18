@@ -219,7 +219,7 @@ def example_table() -> None:
 
 
 def exact_front_table() -> None:
-    data = load("exact-front.json")
+    data = load("exact-front-n12.json")
     pct = lambda v: num(100 * v, 1)  # noqa: E731
     rows = []
     for c, row in data["summary"]["nsga2"].items():

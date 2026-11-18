@@ -2,8 +2,8 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 # ---- variables (override: `just tag=v0.1.0 docker-build` or `just --set tag v0.1.0 docker-build`)
-image := "ghcr.io/jorgesilva2407/sasrec-ml20m"
-repo_url := "https://github.com/jorgesilva2407/sasrec-ml20m"
+image := "ghcr.io/jorgesilva2407/moo-seqrec-explanations"
+repo_url := "https://github.com/jorgesilva2407/moo-seqrec-explanations"
 tag := "latest"
 # empty = the CLI picks <timestamp>-seed<seed>
 run_name := ""
@@ -150,7 +150,7 @@ push-image-info:
 
 # Create the vast.ai template whose onstart command is vast/onstart.sh (runs $SASREC_JOB, default: the benchmark): just vast-template sha-xxxxxxx
 [group('local')]
-vast-template image_tag name="sasrec-ml20m-explain":
+vast-template image_tag name="moo-seqrec-explanations":
     vastai create template --name "{{name}}" --image "{{image}}" --image_tag "{{image_tag}}" \
         --href "https://{{image}}" --repo "{{image}}" --ssh --direct --disk_space 40 \
         --desc "SASRec ML-20M explanations: prepare-data + the just recipe in SASREC_JOB at start (/workspace/outputs/onstart.log)" \
@@ -198,8 +198,27 @@ test:
 
 # Download (if needed) and preprocess ML-20M into <data-dir>/processed
 [group('remote')]
-prepare-data:
-    {{seqrec}} prepare-data {{paths_flags}}
+prepare-data *args:
+    {{seqrec}} prepare-data {{paths_flags}} {{args}}
+
+# Copy a processed dataset to / from a Hub dataset repo (folder processed/<name>), so machines skip preprocessing
+[group('remote')]
+push-processed name repo:
+    {{python}} -c "import sys; from huggingface_hub import HfApi; HfApi().upload_folder(folder_path=sys.argv[1], repo_id=sys.argv[2], repo_type='dataset', path_in_repo='processed/' + sys.argv[3], commit_message='processed data ' + sys.argv[3])" "{{data_dir}}/{{name}}" "{{repo}}" "{{name}}"
+
+[group('remote')]
+fetch-processed name repo:
+    {{python}} -c "import sys, shutil, pathlib; from huggingface_hub import snapshot_download; root = pathlib.Path(snapshot_download(sys.argv[2], repo_type='dataset', allow_patterns=['processed/' + sys.argv[3] + '/*'])); shutil.copytree(root / 'processed' / sys.argv[3], pathlib.Path(sys.argv[1]) / sys.argv[3], dirs_exist_ok=True)" "{{data_dir}}" "{{repo}}" "{{name}}"
+
+# Training with explicit flags (vast.ai jobs): just train-with --processed-name processed_zvuk --hidden-size 128 ...
+[group('remote')]
+train-with *args:
+    {{seqrec}} train {{paths_flags}} {{args}}
+
+# Download a run uploaded with --upload-last (Hub model repo, folder) into <out-dir>/runs/<name>, to resume it here
+[group('remote')]
+fetch-run repo folder name:
+    {{python}} -c "import sys, shutil, pathlib; from huggingface_hub import snapshot_download; root = pathlib.Path(snapshot_download(sys.argv[1], allow_patterns=[sys.argv[2] + '/*'])); shutil.copytree(root / sys.argv[2], pathlib.Path(sys.argv[3]) / 'runs' / sys.argv[4], dirs_exist_ok=True)" "{{repo}}" "{{folder}}" "{{out_dir}}" "{{name}}"
 
 # Preprocess a small user subset into <data-dir>/processed_smoke
 [group('remote')]
@@ -282,6 +301,11 @@ explain-run *args:
 [group('remote')]
 explain-gece *args:
     {{seqrec}} explain-gece {{paths_flags}} {{args}}
+
+# Exact-front check (enumerates every mask of short histories; GPU): just exact-front --length 16
+[group('remote')]
+exact-front *args:
+    {{python}} report/scripts/frente_exata.py --processed {{data_dir}}/processed {{args}}
 
 # Compare stages or methods by hypervolume: just explain-report --stages main [--by stage] [--results-repo user/dataset]
 [group('remote')]

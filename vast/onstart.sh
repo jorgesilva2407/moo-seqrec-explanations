@@ -7,12 +7,13 @@
 # so write "+" for a space and "," between jobs:
 #   --env '-e SASREC_LABEL=main-0 -e SASREC_JOB=explain-run+--stage+main+--shard+0/4'
 #   SASREC_JOB=explain-run+--stage+tune-a+--pop-size+50,explain-run+--stage+tune-b+--pop-size+100
+# SASREC_NEEDS lists the Hub repos the job must reach (checked at start, see job()).
 # HF_TOKEN (or SASREC_HF_TOKEN) must be in the environment: the checkpoint comes from the Hub and
 # results go to the dataset SASREC_RESULTS_REPO. Progress is in /workspace/outputs/onstart.log,
 # which ends with "[job] DONE" or "[job] FAILED ..." and is uploaded to logs/ in the dataset
 # (named after SASREC_LABEL).
 
-RESULTS_REPO="${SASREC_RESULTS_REPO:-AbyssWanderer/sasrec-ml20m-explanations}"
+RESULTS_REPO="${SASREC_RESULTS_REPO:-AbyssWanderer/moo-seqrec-explanations-ml20m}"
 JOB="${SASREC_JOB:-explain-bench+--per-stratum+10}"
 JOB="${JOB//+/ }"
 LOG=/workspace/outputs/onstart.log
@@ -34,14 +35,43 @@ job() {
     nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
     echo "[job] cores $(nproc), ram $(free -g | awk 'NR==2 {print $2}') GB"
     [ -n "${HF_TOKEN:-}" ] || { echo "[job] FAILED no HF_TOKEN in the instance environment"; return 1; }
-    if [ ! -f /workspace/data/processed/data_meta.json ]; then
+    # Fail in seconds, not hours, when the token cannot reach a repo the job needs.
+    # SASREC_NEEDS: comma-separated type:repo:access, e.g. model:AbyssWanderer/sasrec-zvuk:write
+    python - "${SASREC_NEEDS:-dataset:$RESULTS_REPO:write}" <<'PY' || { echo "[job] FAILED Hugging Face token lacks access (see above)"; return 1; }
+import sys
+from huggingface_hub import HfApi
+api, ok = HfApi(), True
+token = api.whoami().get("auth", {}).get("accessToken", {})
+scoped = {s["entity"]["name"]: set(s.get("permissions", [])) for s in token.get("fineGrained", {}).get("scoped", [])}
+if not token.get("role") and not scoped:  # unknown token format: only check that each repo is readable
+    for need in filter(None, sys.argv[1].split(",")):
+        kind, repo, _ = need.split(":")
+        api.auth_check(repo, repo_type=kind)
+        print(f"[job] token can read {kind} {repo} (write access not checked: unknown token format)")
+    sys.exit(0)
+for need in filter(None, sys.argv[1].split(",")):
+    kind, repo, access = need.split(":")
+    if token.get("role") in ("write", "admin") or (token.get("role") == "read" and access == "read"):
+        good = True
+    else:
+        perms = scoped.get(repo, set()) | scoped.get(repo.split("/")[0], set())
+        good = f"repo.{'write' if access == 'write' else 'content.read'}" in perms or "repo.write" in perms
+    print(f"[job] token {'can' if good else 'CANNOT'} {access} {kind} {repo}")
+    ok &= good
+sys.exit(0 if ok else 1)
+PY
+    # SASREC_PREPARE=none skips the ML-20M preprocessing (jobs that bring their own data)
+    if [ "${SASREC_PREPARE:-ml-20m}" != none ] && [ ! -f /workspace/data/processed/data_meta.json ]; then
         just prepare-data || { echo "[job] FAILED prepare-data"; return 1; }
     fi
     IFS=',' read -ra steps <<< "$JOB"
     for step in "${steps[@]}"; do
         echo "[job] step $(date -u +%FT%TZ): $step"
         # shellcheck disable=SC2086
-        just $step --results-repo "$RESULTS_REPO" || { echo "[job] FAILED $step"; return 1; }
+        case "$step" in  # only the explanation commands take --results-repo
+            explain-run*|explain-gece*|exact-front*) just $step --results-repo "$RESULTS_REPO" ;;
+            *) just $step ;;
+        esac || { echo "[job] FAILED $step"; return 1; }
     done
     echo "[job] DONE $(date -u +%FT%TZ)"
 }

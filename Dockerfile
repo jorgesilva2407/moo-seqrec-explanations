@@ -52,6 +52,7 @@ RUN set -eu; flags=""; for g in ${DEPENDENCY_GROUPS}; do flags="${flags} --group
 COPY src ./src
 COPY tests ./tests
 COPY justfile ./justfile
+COPY report/scripts ./report/scripts
 RUN set -eu; flags=""; for g in ${DEPENDENCY_GROUPS}; do flags="${flags} --group ${g}"; done; \
     uv sync --frozen ${flags}
 

@@ -19,12 +19,14 @@ from typing import Iterable, Sequence
 
 import numpy as np
 from pymoo.indicators.hv import HV
+from pymoo.indicators.igd_plus import IGDPlus
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
 from seqrec.explain.scheduler import load_job
 
 REFERENCE = 1.1
 _HV = HV(ref_point=np.full(3, REFERENCE))
+_HV2 = HV(ref_point=np.full(2, REFERENCE))
 
 
 def load_jobs(stage_dir: Path, source: str = "front_objectives") -> list[dict]:
@@ -80,7 +82,9 @@ def _restrict(points: np.ndarray, max_size: int | None) -> np.ndarray:
 
 def _scaled_hv(points: np.ndarray, low: np.ndarray, span: np.ndarray) -> float:
     points = non_dominated(points)
-    return float(_HV((points - low) / span)) if len(points) else 0.0
+    if not len(points):
+        return 0.0
+    return float((_HV if points.shape[1] == 3 else _HV2)((points - low) / span))
 
 
 def _bounds(fronts: Sequence[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
@@ -96,13 +100,18 @@ def _by_instance(records: Iterable[dict]) -> dict:
     return groups
 
 
-def add_hypervolume(records: Iterable[dict], max_size: int | None = None, field: str = "hv") -> None:
+def add_hypervolume(records: Iterable[dict], max_size: int | None = None, field: str = "hv",
+                    columns: Sequence[int] = (0, 1, 2)) -> None:
     """Set ``record[field]``: hypervolume after scaling the objectives inside each instance.
 
-    With ``max_size`` only the masks with at most that many positions count (small explanations).
+    With ``max_size`` only the masks with at most that many positions count (small explanations),
+    and the scaling bounds come from those masks only. ``columns`` picks the objectives (e.g.
+    ``(0, 2)`` for the (N, C) projection; the reference point is 1.1 in each, so the largest
+    possible value is 1.1 ** len(columns)).
     """
+    columns = list(columns)
     for group in _by_instance(records).values():
-        fronts = [_restrict(record["front"], max_size) for record in group]
+        fronts = [_restrict(record["front"], max_size)[:, columns] for record in group]
         if not any(len(front) for front in fronts):
             for record in group:
                 record[field] = 0.0
@@ -110,6 +119,45 @@ def add_hypervolume(records: Iterable[dict], max_size: int | None = None, field:
         low, span = _bounds([front for front in fronts if len(front)])
         for record, front in zip(group, fronts):
             record[field] = _scaled_hv(front, low, span)
+
+
+def add_igd_plus(records: Iterable[dict], max_size: int | None = None, field: str = "igd_plus") -> None:
+    """Set ``record[field]``: IGD+ of the job's front against the reference front of its instance.
+
+    The reference is the non-dominated union of all compared fronts of the instance (restricted to
+    ``max_size`` positions if given), scaled with the same per-instance bounds as the hypervolume.
+    Lower is better; a job without masks in the region gets ``nan``.
+    """
+    for group in _by_instance(records).values():
+        fronts = [_restrict(record["front"], max_size) for record in group]
+        present = [front for front in fronts if len(front)]
+        if not present:
+            for record in group:
+                record[field] = float("nan")
+            continue
+        low, span = _bounds(present)
+        reference = non_dominated(np.concatenate(present))
+        indicator = IGDPlus((reference - low) / span)
+        for record, front in zip(group, fronts):
+            record[field] = float(indicator((non_dominated(front) - low) / span)) if len(front) else float("nan")
+
+
+def paired_statistics(x: Sequence[float], y: Sequence[float], resamples: int = 10_000, seed: int = 0) -> dict:
+    """Effect size of paired values (one pair per instance): mean of x - y with an instance
+    bootstrap 95% interval, and the matched-pairs rank-biserial correlation (+1: x always larger)."""
+    diff = np.asarray(x, dtype=float) - np.asarray(y, dtype=float)
+    rng = np.random.default_rng(seed)
+    means = diff[rng.integers(len(diff), size=(resamples, len(diff)))].mean(axis=1)
+    nonzero = diff[diff != 0]
+    ranks = np.argsort(np.argsort(np.abs(nonzero))) + 1.0
+    if len(nonzero):  # average ranks for ties in |diff|
+        _, inverse, counts = np.unique(np.abs(nonzero), return_inverse=True, return_counts=True)
+        sums = np.bincount(inverse, weights=ranks)
+        ranks = (sums / counts)[inverse]
+    total = ranks.sum()
+    biserial = float((ranks[nonzero > 0].sum() - ranks[nonzero < 0].sum()) / total) if total else 0.0
+    return {"mean_diff": float(diff.mean()), "ci95": [float(np.quantile(means, 0.025)), float(np.quantile(means, 0.975))],
+            "rank_biserial": biserial}
 
 
 def per_instance_means(records: Iterable[dict], key: str = "label", field: str = "hv") -> dict:

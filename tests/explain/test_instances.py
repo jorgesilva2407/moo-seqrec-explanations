@@ -101,3 +101,26 @@ def test_fill_variants(tmp_path):
             copied += any(row == seq[j : j + inst.n] for u, seq in enumerate(sequences) if u != inst.user_index
                           for j in range(len(seq) - inst.n + 1))
     assert copied > 0
+
+
+def test_main_tune_and_redraw_sets_are_disjoint(tmp_path):
+    import argparse
+
+    import seqrec.explain.instances as instances_module
+    from seqrec.commands import explain_run
+
+    scorer, histories = make_scorer(tmp_path), make_histories(200)
+    popularity = np.bincount(histories.items, minlength=NUM_ITEMS + 1).astype(np.int64)
+    original = instances_module.STRATA
+    args = argparse.Namespace(per_stratum=4, main_per_stratum=4, tune_per_stratum=3, instance_seed=0, instance_m=4, k=5)
+    sets = {}
+    try:
+        explain_run.build_instances = lambda *a, **kw: instances_module.build_instances(*a, strata=STRATA, neighbours=3, **kw)
+        for name, size in (("main", 4), ("tune", 3), ("redraw", 4)):
+            args.instance_set, args.per_stratum = name, size
+            sets[name] = {inst.user_index for inst in explain_run.select_instances(args, histories, scorer, popularity)[0]}
+    finally:
+        explain_run.build_instances = instances_module.build_instances
+        assert instances_module.STRATA is original
+    assert all(sets.values())
+    assert not (sets["main"] & sets["tune"]) and not (sets["main"] & sets["redraw"]) and not (sets["tune"] & sets["redraw"])

@@ -23,7 +23,7 @@ packages = ["src/seqrec"]
 [dependency-groups]
 dev = ["pytest>=8"]
 upload = ["huggingface_hub>=0.24"]
-explain = ["huggingface_hub>=0.24", "pymoo>=0.6.1", "scipy>=1.11", "matplotlib>=3.8"]
+explain = ["huggingface_hub>=0.24", "pymoo>=0.6.1", "scipy>=1.11", "matplotlib>=3.8", "pyarrow>=15", "kaggle>=2.0"]
 
 [tool.uv]
 # Groups are always requested explicitly (`uv sync --group dev`, Docker build arg).
