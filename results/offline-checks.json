@@ -1,0 +1,73 @@
+{
+  "share_of_evaluated_masks_le10": {
+    "nsga2": 0.47766747474747473,
+    "nsga2_seeded": 0.25525777777777775
+  },
+  "mc_noise_per_estimate": {
+    "necessity": 0.2164639307697747,
+    "sufficiency": 0.3642859642742527
+  },
+  "spread_by_size_bin": {
+    "0-10": {
+      "necessity": {
+        "spread": 0.46565346040948197,
+        "spread_over_noise": 2.1511826878203495
+      },
+      "sufficiency": {
+        "spread": 0.43485296457783634,
+        "spread_over_noise": 1.1937132012323628
+      }
+    },
+    "10-25": {
+      "necessity": {
+        "spread": 0.7814368258317654,
+        "spread_over_noise": 3.6100094045824243
+      },
+      "sufficiency": {
+        "spread": 0.7180367941815401,
+        "spread_over_noise": 1.971080043152489
+      }
+    },
+    "25-50": {
+      "necessity": {
+        "spread": 0.9608174510366407,
+        "spread_over_noise": 4.438695387355507
+      },
+      "sufficiency": {
+        "spread": 0.9177172419739283,
+        "spread_over_noise": 2.519222072698428
+      }
+    },
+    "50-75": {
+      "necessity": {
+        "spread": 0.9149442090320737,
+        "spread_over_noise": 4.226774436638981
+      },
+      "sufficiency": {
+        "spread": 0.9586949330377552,
+        "spread_over_noise": 2.631709774895422
+      }
+    },
+    "75-100": {
+      "necessity": {
+        "spread": 0.6823591136903685,
+        "spread_over_noise": 3.152299375068208
+      },
+      "sufficiency": {
+        "spread": 0.7319146931992075,
+        "spread_over_noise": 2.0091762103910913
+      }
+    }
+  },
+  "smallest_size_with_ps_ge_half": {
+    "instances": 99,
+    "never": 0,
+    "median": 6.0,
+    "quartiles": [
+      2.0,
+      12.0
+    ],
+    "share_le10": 0.696969696969697,
+    "median_relative": 0.09090909090909091
+  }
+}
