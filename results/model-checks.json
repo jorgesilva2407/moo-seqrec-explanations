@@ -1,0 +1,44 @@
+{
+  "zvuk": {
+    "sasrec": {
+      "hr@10": 0.3378,
+      "ndcg@10": 0.2497
+    },
+    "sasrec_shuffled": {
+      "hr@10": 0.0968,
+      "ndcg@10": 0.0565
+    },
+    "popularity": {
+      "hr@10": 0.0192,
+      "ndcg@10": 0.0099
+    },
+    "last_item_transitions": {
+      "hr@10": 0.2898,
+      "ndcg@10": 0.2009
+    },
+    "shuffle_drop_ndcg@10": 0.7737,
+    "users": 30000,
+    "model": "AbyssWanderer/sasrec-zvuk/final/zvuk-h256-l3-d0.1/best.pt"
+  },
+  "ml-20m": {
+    "sasrec": {
+      "hr@10": 0.2934,
+      "ndcg@10": 0.1793
+    },
+    "sasrec_shuffled": {
+      "hr@10": 0.1078,
+      "ndcg@10": 0.0555
+    },
+    "popularity": {
+      "hr@10": 0.048,
+      "ndcg@10": 0.0248
+    },
+    "last_item_transitions": {
+      "hr@10": 0.1699,
+      "ndcg@10": 0.102
+    },
+    "shuffle_drop_ndcg@10": 0.6905,
+    "users": 30000,
+    "model": "AbyssWanderer/sasrec-ml20m/fp32/best.pt"
+  }
+}
