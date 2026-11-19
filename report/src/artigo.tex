@@ -27,7 +27,13 @@
 %% com \input, um \bottomrule logo depois do arquivo dá "Misplaced \noalign".
 \makeatletter
 \newcommand{\tabela}[1]{\@@input tabelas/#1.tex }
+%% Números citados no texto: \val{chave}, definidos em tabelas/numeros.tex (gerado a partir de
+%% ../../results/*.json). Uma chave inexistente é erro de compilação, não texto em branco.
+\newcommand{\valdef}[2]{\expandafter\def\csname val@#1\endcsname{#2}}
+\newcommand{\val}[1]{\ifcsname val@#1\endcsname\csname val@#1\endcsname\else
+  \PackageError{numeros}{valor '#1' nao definido em tabelas/numeros.tex}{}\fi}
 \makeatother
+\input{tabelas/numeros}
 \newcommand{\HVp}{HV$_{\le 10}$}  % hipervolume das máscaras com no máximo 10 posições
 
 \begin{document}
@@ -43,21 +49,17 @@
   \country{Brasil}}
 
 \begin{abstract}
-Dado um recomendador sequencial e um item recomendado, buscamos subconjuntos do
-histórico do usuário que explicam a recomendação: substituir esses itens por
-itens neutros tira o item da lista (necessidade), e mantê-los basta para
-sustentá-lo (suficiência). Formulamos a busca como um problema de três
-objetivos (necessidade, suficiência e tamanho) sobre uma máscara binária das
-posições do histórico, com os dois primeiros estimados por Monte Carlo, e a
-resolvemos com o NSGA-II. Em 99 instâncias do MovieLens-20M com um SASRec, sob
-o mesmo orçamento de consultas ao modelo, o NSGA-II obtém o maior hipervolume
-entre explicações pequenas (até 10 itens), à frente de um guloso escalarizado,
-de um algoritmo genético de objetivo único e do GECE. Quando máscaras de
-qualquer tamanho contam, o guloso supera o NSGA-II; semear a população inicial
-com um ranking por ablação individual inverte esse resultado, ao custo de uma
-perda pequena nas explicações pequenas. Necessidade e suficiência conflitam
-pouco em máscaras grandes e bem mais nas pequenas, e uma explicação pequena
-raramente é suficiente.
+Explicamos uma recomendação sequencial por conjuntos de posições do histórico
+que são necessários (trocá-los tira o item da lista), suficientes (mantê-los
+basta) e pequenos, e buscamos a frente de Pareto desses três objetivos com
+algoritmos evolutivos multiobjetivo, estimando necessidade e suficiência por
+Monte Carlo. Em dois recomendadores SASRec (MovieLens-20M e Zvuk) e sob o mesmo
+orçamento de consultas ao modelo, os algoritmos baseados em dominância de
+Pareto (NSGA-II, NSGA-III, SMS-EMOA) são os melhores para explicações de até 10
+itens, à frente do MOEA/D, de um algoritmo genético escalarizado, de um guloso,
+de valores de Shapley e do GECE. Em todos os tamanhos, métodos que percorrem
+todos os tamanhos vencem, a menos que o NSGA-II seja semeado com um ranking por
+ablação. Necessidade e suficiência conflitam nas explicações pequenas.
 \end{abstract}
 
 \maketitle
@@ -72,5 +74,8 @@ raramente é suficiente.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{referencias}
+
+\appendix
+\input{secoes/apendice}
 
 \end{document}

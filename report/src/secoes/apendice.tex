@@ -1,0 +1,122 @@
+%% ---- Apêndice A: treino dos recomendadores ------------------------------------
+\section{Treino dos recomendadores}
+\label{ap:treino}
+
+Os recomendadores explicados são o objeto do estudo, não a contribuição, mas
+as explicações só fazem sentido se eles aprenderam padrões sequenciais. Este
+apêndice descreve como foram treinados e verificados.
+
+\subsection{Arquitetura e treino comuns}
+
+Nos dois conjuntos usamos o SASRec~\cite{kang2018sasrec} implementado em
+PyTorch, treinado com entropia cruzada sobre todos os itens, como propõem
+Klenitskiy e Vasilev~\cite{klenitskiy2023turning}, em vez da amostragem de um
+negativo do artigo original: Adam com taxa $10^{-3}$, lotes de 128 usuários,
+comprimento máximo 128, uma cabeça de atenção, \emph{embeddings} de saída
+compartilhados com os de entrada, precisão fp32 e corte de gradiente em norma
+1. A divisão é \emph{leave-one-out} (último item para teste, penúltimo para
+validação) e a avaliação usa ranking completo sobre o catálogo, excluindo os
+itens que o usuário já consumiu~\cite{krichene2020sampled}. O treino para
+quando o NDCG@10 de validação não melhora por um número fixo de épocas.
+
+\subsection{MovieLens-20M}
+
+Usamos as interações com filtro 5-core iterativo (138\,493 usuários, 18\,345
+filmes, 19{,}98 milhões de interações) e a configuração de Klenitskiy e
+Vasilev para esse conjunto: 2 camadas e dimensão 256, com paciência de 10
+épocas. O melhor modelo é o da época \val{train.ml.best}
+(\val{train.ml.epochs} épocas no total), com HR@10 de \val{train.ml.test.hr} e
+NDCG@10 de \val{train.ml.test.ndcg} no teste, próximo do que aqueles autores
+reportam ($0{,}298$ e $0{,}183$, com comprimento 200).
+
+\subsection{Zvuk}
+
+\paragraph{Dados.}
+O Zvuk~\cite{shevchenko2024zvuk} é um registro de cerca de 245 milhões de
+audições de 1{,}5 milhão de faixas, publicado no Kaggle sob licença CC BY 4.0.
+Contamos como audição uma reprodução de pelo menos 30 segundos (cerca de 40\%
+das reproduções são pulos de poucos segundos) e mantemos só a primeira audição
+de cada par (usuário, faixa), porque a tarefa explicada, como no MovieLens,
+recomenda itens ainda não consumidos. Mantemos as 50\,000 faixas ouvidas pelo
+maior número de usuários, porque o treino com entropia cruzada e cada consulta
+do verificador custam proporcionalmente ao catálogo; aplicamos o filtro 5-core
+e sorteamos 100\,000 usuários, o que deixa 13{,}2 milhões de interações (cerca
+de 132 por usuário).
+
+\paragraph{Busca de hiperparâmetros.}
+Não há uma configuração publicada para este protocolo, então fizemos uma busca
+em duas rodadas em torno da configuração do MovieLens, variando os três
+parâmetros que mais pesam no SASRec com entropia cruzada: dimensão
+$\{128,256\}$, camadas $\{2,3\}$ e \emph{dropout} $\{0{,}1;0{,}2;0{,}3\}$, com
+taxa de aprendizado, tamanho de lote e comprimento fixos. Na primeira rodada as
+12 configurações treinam por 8 épocas; na segunda, as três melhores pelo
+NDCG@10 de validação continuam do ponto em que pararam até convergir (no máximo
+40 épocas, paciência de 5). Escolhemos o modelo de maior NDCG@10 de validação
+(Tabela~\ref{tab:busca-zvuk}). As configurações vão de
+\val{train.zv.search.min} a \val{train.zv.search.max} na primeira rodada, e as
+três finalistas terminam a \val{train.zv.final.spread} umas das outras: a busca
+chega a um platô, e não a um pico frágil. O modelo escolhido (dimensão 256,
+3 camadas, \emph{dropout} $0{,}1$) para na época \val{train.zv.best}, com
+NDCG@10 de \val{train.zv.test.ndcg} e HR@10 de \val{train.zv.test.hr} no
+teste.
+
+\begin{table}[t]
+\caption{Busca de hiperparâmetros do SASRec no Zvuk. Rodada 1: NDCG@10 de
+validação após 8 épocas. Rodada 2 (as três melhores): épocas treinadas (melhor
+época), NDCG@10 de validação e de teste. Em negrito, o modelo escolhido.}
+\label{tab:busca-zvuk}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}rrcccccc@{}}
+\toprule
+ & & & Rodada 1 & \multicolumn{3}{c}{Rodada 2} \\
+\cmidrule(lr){4-4}\cmidrule(l){5-7}
+Dim. & Cam. & \emph{Dropout} & Val. & Épocas & Val. & Teste \\
+\midrule
+\tabela{busca-zvuk}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Números publicados.}
+Há resultados do SASRec no Zvuk na literatura, com NDCG@10 em torno de
+$0{,}06$ a $0{,}09$~\cite{zhelnin2025largecatalog}, mas eles usam outro
+protocolo: catálogo completo de centenas de milhares de faixas, audições
+repetidas e divisão temporal global. Catálogo menor, só primeiras audições e
+\emph{leave-one-out} elevam muito o NDCG@10, de modo que os números não são
+comparáveis, e nenhum trabalho que conhecemos usa o nosso protocolo.
+
+\subsection{Os modelos aprenderam padrões sequenciais?}
+
+Para um estudo de explicações, o recomendador não precisa ser o melhor
+publicado, e sim usar a ordem do histórico. Verificamos isso nos dois modelos
+com \val{model.users} usuários de teste sorteados
+(Tabela~\ref{tab:modelos}), comparando o SASRec com a popularidade, com as
+transições a partir do último item (com que frequência cada item seguiu o
+último item do usuário nas sequências de treino) e consigo mesmo com os
+históricos embaralhados, o teste de Klenitskiy et
+al.~\cite{klenitskiy2026patterns}.
+
+\begin{table}[t]
+\caption{Verificação dos recomendadores: NDCG@10 / HR@10 no teste
+(\val{model.users} usuários sorteados, ranking completo).}
+\label{tab:modelos}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & MovieLens-20M & Zvuk \\
+\midrule
+\tabela{modelos}
+\bottomrule
+\end{tabular}
+\end{table}
+
+Os dois modelos superam as duas linhas de base com folga. Embaralhar o
+histórico tira \val{model.ml.drop}\% do NDCG@10 no MovieLens e
+\val{model.zv.drop}\% no Zvuk: os dois usam a ordem, e o do Zvuk depende dela
+ao menos tanto quanto o do MovieLens, cuja receita vem da literatura. No Zvuk,
+porém, as transições do último item já são fortes (o SASRec as supera em
+\val{model.zv.margin}\%, contra \val{model.ml.margin}\% no MovieLens): o sinal
+desse conjunto está concentrado no item mais recente, o que explica
+explicações ainda mais concentradas no fim do histórico e um guloso mais fraco
+em todos os tamanhos (Seção~\ref{sec:robustez}).

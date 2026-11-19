@@ -99,6 +99,33 @@ máscaras, entre essas, que a própria sobrevivência do NSGA-II manteria
 usual. Essa variante foi proposta depois da comparação principal e é
 reportada à parte (Seção~\ref{sec:semeado}).
 
+\paragraph{Variante só com $(N,C)$.}
+Para medir o que o objetivo de suficiência acrescenta, a variante
+\textbf{NSGA-II só $(N,C)$} usa os mesmos operadores, mas a seleção vê apenas
+$\hat N$ e $C$. Sua frente continua sendo tirada das três quantidades de tudo o
+que ela avaliou, e por isso é comparável às demais (Seção~\ref{sec:valor-s}).
+
+\subsection{Outros algoritmos multiobjetivo}
+\label{sec:outros-moea}
+
+Com os mesmos operadores, a mesma inicialização esparsa e o mesmo reparo,
+usamos três outros algoritmos da pymoo~\cite{blank2020pymoo}:
+\begin{itemize}
+  \item \textbf{NSGA-III}~\cite{deb2014nsga3}, com direções de referência de
+        Das--Dennis e população igual ao número de direções;
+  \item \textbf{SMS-EMOA}~\cite{beume2007smsemoa}, que gera uma população inteira
+        de filhos por passo (para que cada consulta ao modelo seja um lote) e
+        descarta os de menor contribuição ao hipervolume;
+  \item \textbf{MOEA/D}~\cite{zhang2007moead}, na variante que gera uma geração
+        por passo, com decomposição de Tchebycheff ou PBI e vizinhança de 20
+        subproblemas. Como as decomposições comparam valores absolutos dos
+        objetivos e $C$ é duas ordens de grandeza maior que $\hat N$ e $\hat S$,
+        os objetivos são divididos pelos seus valores na máscara cheia (e $C$
+        por $n$) antes de chegar ao algoritmo, como no AG escalarizado.
+\end{itemize}
+Cada um recebeu um pequeno ajuste nos mesmos usuários de ajuste do NSGA-II, com
+o mesmo critério (Seção~\ref{sec:ajuste}).
+
 \subsection{Linhas de base}
 \label{sec:base}
 
@@ -110,14 +137,25 @@ frente é o conjunto não dominado de tudo o que avaliaram.
         objetivos, cada um dividido pelo seu valor na máscara cheia ($N$, $S$)
         ou por $n$ ($C$). O orçamento é dividido igualmente entre 10 vetores de
         pesos (reticulado do simplex), uma execução por vetor, com população
-        20. É o controle que separa o efeito de ser evolutivo do efeito de ser
-        multiobjetivo.
+        20. Ele controla os operadores, mas não só a escalarização: também
+        divide o orçamento em execuções curtas. O MOEA/D, que escalariza com
+        uma população compartilhada e o orçamento inteiro, separa os dois
+        efeitos (Seção~\ref{sec:moea}).
   \item \textbf{Guloso}: sobre $\hat N + \hat S$ normalizados, inclui uma
         posição por vez a partir da máscara vazia e, com o que sobra do
         orçamento, remove uma por vez a partir da cheia.
   \item \textbf{Ranking por ablação}: avalia cada posição sozinha e depois os
         conjuntos das $k$ melhores posições por $\hat N$ e por $\hat S$, para
         todo $k$.
+  \item \textbf{Shapley}: estimativa por amostragem de
+        permutações~\cite{strumbelj2014shapley} do valor de Shapley de cada
+        posição, para $\hat N$ e $\hat S$ ao mesmo tempo. A máscara vazia é
+        avaliada uma vez (o valor do conjunto vazio, que não entra na frente);
+        cada permutação avalia seus $n$ prefixos, o que dá a contribuição
+        marginal de todas as posições; as permutações seguem até restarem $2n$
+        avaliações, gastas nos conjuntos das $k$ posições de maior valor por
+        $\hat N$ e por $\hat S$. É a referência de atribuição para comparar com
+        os métodos de busca.
   \item \textbf{Recência} e \textbf{similaridade}: as $k$ posições mais
         recentes, ou os $k$ itens mais semelhantes a $v$, para todo $k$.
   \item \textbf{Aleatório}: subconjuntos de tamanho uniforme em $1..n$.
@@ -132,5 +170,7 @@ frente é o conjunto não dominado de tudo o que avaliaram.
         em que ela difere do histórico, e avaliamos esses conjuntos com o
         nosso verificador. Essa implementação para no primeiro contrafactual
         válido; a variante \textbf{GECE com reinícios} a reinicia até gastar o
-        orçamento inteiro.
+        orçamento inteiro. Como descartamos os itens que o GECE insere, que são
+        parte da sua resposta, a comparação é ilustrativa e não de igual para
+        igual: o GECE responde a outra pergunta.
 \end{itemize}

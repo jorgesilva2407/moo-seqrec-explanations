@@ -1,5 +1,6 @@
-"""Build the article's figures (report/src/figuras/*.pdf) and table bodies (report/src/tabelas/*.tex)
-from the committed result files (results/*.json) and report/dados/exemplo.json.
+"""Build the article's figures (report/src/figuras/*.pdf), table bodies (report/src/tabelas/*.tex) and
+the numbers quoted in the prose (report/src/tabelas/numeros.tex, used as \\val{key}) from the committed
+result files (results/*.json) and report/dados/exemplo.json. Nothing in the article is typed by hand.
 
     uv run --group explain python report/scripts/figuras.py        (or: just report-figures)
 """
@@ -7,6 +8,7 @@ from the committed result files (results/*.json) and report/dados/exemplo.json.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import matplotlib
@@ -21,13 +23,19 @@ RESULTS = REPORT.parent / "results"
 FIGURES = REPORT / "src" / "figuras"
 TABLES = REPORT / "src" / "tabelas"
 
+POST_HOC = r"$^\dagger$"
 NAMES = {
     "nsga2": "NSGA-II",
-    "nsga2_seeded": "NSGA-II semeado$^\dagger$",
-    "scalar_ga@main-sga-p25-d4": "AG escalarizado (25, 15)$^\dagger$",
-    "scalar_ga@main-sga-p10-d2": "AG escalarizado (10, 6)$^\dagger$",
-    "greedy": "Guloso",
+    "nsga2_seeded": "NSGA-II semeado" + POST_HOC,
+    "nsga2_nc": r"NSGA-II só $(N,C)$" + POST_HOC,
+    "smsemoa": "SMS-EMOA" + POST_HOC,
+    "nsga3": "NSGA-III" + POST_HOC,
+    "moead": "MOEA/D" + POST_HOC,
+    "shapley": "Shapley (amostragem)" + POST_HOC,
     "scalar_ga": "AG escalarizado (20, 10)",
+    "scalar_ga@main-sga-p25-d4": "AG escalarizado (25, 15)" + POST_HOC,
+    "scalar_ga@main-sga-p10-d2": "AG escalarizado (10, 6)" + POST_HOC,
+    "greedy": "Guloso",
     "ablation": "Ranking por ablação",
     "gece_restarts": "GECE com reinícios",
     "gece": "GECE",
@@ -36,7 +44,9 @@ NAMES = {
     "similarity": "Similaridade",
     "enumeration": r"Enumeração ($|X|\le 2$)",
 }
-# One colour and one marker per method, the same in every figure (colour is never the only cue).
+SHORT = {"nsga2_seeded": "NSGA-II semeado", "scalar_ga": "AG escalarizado", "smsemoa": "SMS-EMOA", "shapley": "Shapley",
+         "nsga3": "NSGA-III", "moead": "MOEA/D", "nsga2_nc": "NSGA-II só (N,C)"}
+# One colour, marker and dash per method, the same in every figure (colour is never the only cue).
 STYLE = {
     "nsga2": ("#2a78d6", "o", "-"),
     "greedy": ("#eb6834", "s", "--"),
@@ -44,9 +54,13 @@ STYLE = {
     "gece_restarts": ("#eda100", "D", ":"),
     "ablation": ("#e87ba4", "v", "--"),
     "nsga2_seeded": ("#008300", "P", "-"),
+    "smsemoa": ("#6250d6", "X", "-"),
+    "shapley": ("#e34948", "*", ":"),
 }
 INK, MUTED, GRID = "#1a1a19", "#6b6a63", "#e4e3dd"
 COLUMN = 3.33  # width of one acmart sigconf column, in inches
+REPORTS = {"ml": "final-ml20m-method.json", "rd": "final-redraw-method.json", "zv": "final-zvuk-method.json",
+           "za": "final-zvuk-alt-method.json"}
 
 plt.rcParams.update({
     "font.family": "serif", "font.size": 7.5, "axes.labelsize": 7.5, "legend.fontsize": 6.5,
@@ -56,6 +70,8 @@ plt.rcParams.update({
     "grid.linewidth": 0.5, "lines.linewidth": 1.3, "lines.markersize": 3.5, "legend.frameon": False,
     "pdf.fonttype": 42, "savefig.bbox": "tight", "savefig.pad_inches": 0.02,
 })
+
+VALUES: dict[str, str] = {}
 
 
 def load(name: str) -> dict:
@@ -68,8 +84,31 @@ def num(value: float, digits: int = 3) -> str:
     return f"{value:.{digits}f}".replace(".", "{,}")
 
 
+def signed(value: float, digits: int = 3) -> str:
+    return ("+" if value >= 0 else "$-$") + num(abs(value), digits)
+
+
 def thousands(value: float) -> str:
     return f"{value:,.0f}".replace(",", r"\,")
+
+
+def pvalue(p: float) -> str:
+    """0,023 / 3,3x10^-5 / <10^-15, wrapped in \\ensuremath so it works inside $p=...$ and in tables."""
+    if p >= 1e-3:
+        return num(p, 3)
+    if p < 1e-15:
+        return r"\ensuremath{<10^{-15}}"
+    exponent = math.floor(math.log10(p))
+    return rf"\ensuremath{{{num(p / 10**exponent, 1)}\times10^{{{exponent}}}}}"  # works in and out of math
+
+
+def key(name: str) -> str:
+    """Method ids as macro keys (no underscores or @)."""
+    return name.replace("scalar_ga@main-sga-", "sga-").replace("_", "-")
+
+
+def val(name: str, text: str) -> None:
+    VALUES[name] = text
 
 
 def write_table(name: str, rows: list[list[str]]) -> None:
@@ -78,15 +117,167 @@ def write_table(name: str, rows: list[list[str]]) -> None:
     (TABLES / name).write_text("%% Gerado por report/scripts/figuras.py; não editar.\n" + body + "\n", encoding="utf-8")
 
 
-def plot(ax, x, y, method: str, **kw) -> None:
-    colour, marker, line = STYLE[method]
-    ax.plot(x, y, color=colour, marker=marker, linestyle=line, label=NAMES[method], **kw)
-
-
 def save(fig, name: str) -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIGURES / name)
     plt.close(fig)
+
+
+# ---------------------------------------------------------------- numbers quoted in the prose
+
+
+def report_values() -> None:
+    """Per report (ml, rd, zv, za): every method's summary, every paired test against the best label
+    and every extra pair; keys like ml.nsga2.hvle, ml.pair.smsemoa.nsga2.le.wins."""
+    for tag, file in REPORTS.items():
+        data = load(file)
+        for method, row in data["summary"].items():
+            k = f"{tag}.{key(method)}"
+            val(f"{k}.hv", num(row["hv_mean"]))
+            val(f"{k}.hvle", num(row["hv_le10_mean"]))
+            val(f"{k}.front", num(row["front_size"], 1))
+            val(f"{k}.passes", thousands(row["passes"]))
+            for field, short in (("igd_plus_mean", "igd"), ("igd_plus_le10_mean", "igdle"), ("hv_le10_nc_mean", "hvlenc")):
+                if field in row:
+                    val(f"{k}.{short}", num(row[field], 3))
+            q = data["quality"].get(method)
+            if q:
+                for stat in ("best_pn", "best_ps", "recency", "valid"):
+                    val(f"{k}.{stat.replace('best_', '')}", num(q[stat], 2))
+        val(f"{tag}.instances", str(next(iter(data["summary"].values()))["instances"]))
+        for region, short in (("wilcoxon_hv", "all"), ("wilcoxon_small", "le")):
+            best = data[region]["best"]
+            val(f"{tag}.best.{short}", key(best))
+            for other, t in data[region]["against"].items():
+                test_values(f"{tag}.vs.{short}.{key(best)}.{key(other)}", t)
+        for pair, fields in data.get("pairs", {}).items():
+            a, b = pair.split(",")
+            for field, t in fields.items():
+                test_values(f"{tag}.pair.{key(a)}.{key(b)}.{'all' if field == 'hv' else 'le'}", t)
+        popularity = data.get("small_hv_by_target_popularity", {}).get("nsga2")
+        if popularity:
+            for band, v in zip(("low", "mid", "high"), popularity):
+                val(f"{tag}.nsga2.pop.{band}", num(v, 2))
+
+
+STAGE_REPORTS = {"tn": "tuning-stage.json", "sg": "scalar-ga-tuning-stage.json", "op": "nsga2-operators-stage.json",
+                 "mt": "new-moea-tuning-stage.json"}
+
+
+def stage_values() -> None:
+    """Tuning-type reports (--by stage): every stage's summary and tests against the best stage;
+    keys like tn.tune-p25-m10.hv and tn.vs.all.tune-p25-m10.tune-p100-m10.wins."""
+    for tag, file in STAGE_REPORTS.items():
+        data = load(file)
+        for stage, row in data["summary"].items():
+            val(f"{tag}.{stage}.hv", num(row["hv_mean"]))
+            val(f"{tag}.{stage}.hvle", num(row["hv_le10_mean"]))
+        for region, short in (("wilcoxon_hv", "all"), ("wilcoxon_small", "le")):
+            best = data[region]["best"]
+            for other, t in data[region]["against"].items():
+                test_values(f"{tag}.vs.{short}.{best}.{other}", t)
+        values = sorted(row["hv_le10_mean"] for row in data["summary"].values())
+        val(f"{tag}.hvle.min", num(values[0], 2))
+        val(f"{tag}.hvle.second", num(values[1], 2))
+        val(f"{tag}.hvle.max", num(values[-1], 2))
+
+
+def test_values(prefix: str, t: dict) -> None:
+    val(f"{prefix}.wins", str(t["wins"]))
+    val(f"{prefix}.losses", str(t["losses"]))
+    val(f"{prefix}.n", str(t["instances"]))
+    val(f"{prefix}.p", pvalue(t.get("p_holm", t["p"])))
+    if "mean_diff" in t:
+        val(f"{prefix}.diff", signed(t["mean_diff"]))
+        val(f"{prefix}.ci", f"[{signed(t['ci95'][0])}; {signed(t['ci95'][1])}]")
+        val(f"{prefix}.r", signed(t["rank_biserial"], 2))
+
+
+def other_values() -> None:
+    corr = load("final-ml20m-method.json")["objective_correlation"]
+    val("corr.overall", num(corr["overall"], 2))
+    val("corr.size1", num(corr["size_1"], 2))
+    val("corr.size2", num(corr["size_2"], 2))
+    for (label, v), name in zip(corr["by_size"].items(), ("b1", "b2", "b3", "b4", "b5")):
+        val(f"corr.{name}", num(v, 2))
+    m100 = load("conflict-m100.json")
+    for size in (1, 2):
+        for m in (10, 100):
+            val(f"m100.size{size}.m{m}", num(m100[f"size_{size}"][f"M={m}"]["mean"], 2))
+    checks = load("offline-checks.json")
+    share = checks["share_of_evaluated_masks_le10"]
+    val("seedcost.nsga2", num(100 * share["nsga2"], 0))
+    val("seedcost.seeded", num(100 * share["nsga2_seeded"], 0))
+    ps = checks["smallest_size_with_ps_ge_half"]
+    val("psmin.median", num(ps["median"], 0))
+    val("psmin.q1", num(ps["quartiles"][0], 0))
+    val("psmin.q3", num(ps["quartiles"][1], 0))
+    val("psmin.le10", num(100 * ps["share_le10"], 0))
+    val("psmin.rel", num(100 * ps["median_relative"], 0))
+    val("psmin.never", str(ps["never"]))
+    bands = checks["spread_by_size_bin"]
+    for b, name in zip(bands, ("b1", "b2", "b3", "b4", "b5")):
+        val(f"snr.{name}.n", num(bands[b]["necessity"]["spread_over_noise"], 1))
+        val(f"snr.{name}.s", num(bands[b]["sufficiency"]["spread_over_noise"], 1))
+    exact = load("exact-front-n16.json")
+    val("exact.instances", str(exact["instances"]))
+    val("exact.front", num(exact["exact_front_size_mean"], 0))
+    val("exact.masks", thousands(exact["config"]["masks"]))
+    for method, per in exact["summary"].items():
+        for c, v in per.items():
+            val(f"exact.{key(method)}.{c}.hv", num(100 * v["hv_ratio_mean"], 1))
+            val(f"exact.{key(method)}.{c}.found", num(100 * v["front_found_mean"], 0))
+    gece = load("gece-returned.json")["gece"]
+    val("gece.queries", num(gece["queries_mean"], 0))
+    val("gece.single", num(100 * gece["returned_single_position_share"], 0))
+    val("gece.pn", num(gece["returned_pn_mean"], 2))
+    val("gece.necessary", num(100 * gece["returned_pn_above_half_share"], 0))
+    val("gece.valid", str(gece["valid"]))
+    val("gece.jobs", str(gece["jobs"]))
+    models = load("model-checks.json")
+    for ds, short in (("ml-20m", "ml"), ("zvuk", "zv")):
+        m = models[ds]
+        for method in ("sasrec", "sasrec_shuffled", "popularity", "last_item_transitions"):
+            val(f"model.{short}.{key(method)}", num(m[method]["ndcg@10"], 3))
+        val(f"model.{short}.drop", num(100 * m["shuffle_drop_ndcg@10"], 0))
+        val(f"model.{short}.margin", num(100 * (m["sasrec"]["ndcg@10"] / m["last_item_transitions"]["ndcg@10"] - 1), 0))
+    val("model.users", thousands(models["zvuk"]["users"]))
+    training = load("sasrec-training.json")
+    ml = training["ml-20m"]
+    val("train.ml.test.hr", num(ml["test"]["hr@10"], 3))
+    val("train.ml.test.ndcg", num(ml["test"]["ndcg@10"], 3))
+    val("train.ml.best", str(ml["best_epoch"]))
+    val("train.ml.epochs", str(ml["epochs_run"]))
+    selected = training["zvuk-final"][training["zvuk-selected"]]
+    val("train.zv.test.hr", num(selected["test"]["hr@10"], 3))
+    val("train.zv.test.ndcg", num(selected["test"]["ndcg@10"], 3))
+    val("train.zv.val.ndcg", num(selected["val"]["ndcg@10"], 3))
+    val("train.zv.best", str(selected["best_epoch"]))
+    val("train.zv.epochs", str(selected["epochs_run"]))
+    search = training["zvuk-search"]
+    values = sorted(r["val"]["ndcg@10"] for r in search.values())
+    val("train.zv.search.min", num(values[0], 3))
+    val("train.zv.search.max", num(values[-1], 3))
+    finals = sorted(r["val"]["ndcg@10"] for r in training["zvuk-final"].values())
+    val("train.zv.final.spread", num(finals[-1] - finals[0], 3))
+    tuning = load("new-moea-tuning-stage.json")["summary"]
+    for stage, row in tuning.items():
+        val(f"tune.{stage}.hv", num(row["hv_mean"]))
+        val(f"tune.{stage}.hvle", num(row["hv_le10_mean"]))
+    small = load("new-moea-tuning-stage.json")["wilcoxon_small"]
+    if "tune-p25-m10" in small["against"]:
+        test_values(f"tune.vs.le.{small['best']}.nsga2", small["against"]["tune-p25-m10"])
+        val("tune.best.le", small["best"])
+    seeded = load("nsga2-seeded-tuning-stage.json")
+    for region, short in (("wilcoxon_hv", "all"), ("wilcoxon_small", "le")):
+        t = next(iter(seeded[region]["against"].values()))
+        test_values(f"seedtune.{short}", t)
+
+
+def write_values() -> None:
+    lines = ["%% Gerado por report/scripts/figuras.py; não editar. Uso no texto: \\val{chave}."]
+    lines += [rf"\valdef{{{k}}}{{{v}}}" for k, v in sorted(VALUES.items())]
+    (TABLES / "numeros.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------- figures
@@ -94,14 +285,13 @@ def save(fig, name: str) -> None:
 
 def convergence() -> None:
     """Hypervolume along the search: masks of at most 10 positions (left) and of every size (right)."""
-    data = load("main-final-method.json")
-    short = {"nsga2_seeded": "NSGA-II semeado", "scalar_ga": "AG escalarizado"}
-    fig, axes = plt.subplots(1, 2, figsize=(COLUMN, 1.75), sharex=True)
-    for axis, key, title in ((axes[0], "convergence_le10", r"$|X|\leq 10$"), (axes[1], "convergence_all", "todos os tamanhos")):
-        for method in ("nsga2", "nsga2_seeded", "greedy", "ablation", "scalar_ga"):
+    data = load("final-ml20m-method.json")
+    fig, axes = plt.subplots(1, 2, figsize=(COLUMN, 1.85), sharex=True)
+    for axis, k, title in ((axes[0], "convergence_le10", r"$|X|\leq 10$"), (axes[1], "convergence_all", "todos os tamanhos")):
+        for method in ("nsga2", "nsga2_seeded", "smsemoa", "greedy", "shapley", "scalar_ga"):
             colour, marker, line = STYLE[method]
-            axis.plot(data[key]["checkpoints"], data[key]["curves"][method], color=colour, marker=marker, linestyle=line,
-                      markersize=2.6, linewidth=1.1, label=short.get(method, NAMES[method]))
+            axis.plot(data[k]["checkpoints"], data[k]["curves"][method], color=colour, marker=marker, linestyle=line,
+                      markersize=2.6, linewidth=1.1, label=SHORT.get(method, NAMES[method]))
         axis.set_xscale("log")
         axis.set_xlabel("máscaras avaliadas")
         axis.set_title(title, fontsize=7)
@@ -138,7 +328,7 @@ def example_front() -> None:
 
 
 def correlation() -> None:
-    data = load("main-final-method.json")["objective_correlation"]
+    data = load("final-ml20m-method.json")["objective_correlation"]
     labels = ["0–10", "10–25", "25–50", "50–75", "75–100"]
     values = list(data["by_size"].values())
     fig, ax = plt.subplots(figsize=(COLUMN, 1.6))
@@ -156,30 +346,102 @@ def correlation() -> None:
 
 
 def methods_table() -> None:
-    data = load("main-final-method.json")
+    data = load("final-ml20m-method.json")
     summary, quality = data["summary"], data["quality"]
     order = sorted(summary, key=lambda m: -summary[m]["hv_le10_mean"])
-    best_all = max(summary[m]["hv_mean"] for m in order)
-    best_small = max(summary[m]["hv_le10_mean"] for m in order)
-    bold = lambda value, best: rf"\textbf{{{num(value)}}}" if value == best else num(value)  # noqa: E731
+    best = {f: max(summary[m][f] for m in order) for f in ("hv_mean", "hv_le10_mean")}
+    best_igd = min(summary[m]["igd_plus_le10_mean"] for m in order)
+    cell = lambda m, f: rf"\textbf{{{num(summary[m][f])}}}" if summary[m][f] == best[f] else num(summary[m][f])  # noqa: E731
+    igd = lambda m: rf"\textbf{{{num(summary[m]['igd_plus_le10_mean'])}}}" if summary[m]["igd_plus_le10_mean"] == best_igd else num(summary[m]["igd_plus_le10_mean"])  # noqa: E731
     write_table("metodos.tex", [
-        [NAMES[m], bold(summary[m]["hv_le10_mean"], best_small), bold(summary[m]["hv_mean"], best_all),
-         num(summary[m]["front_size"], 1), thousands(summary[m]["passes"]),
-         num(quality[m]["best_pn"], 2), num(quality[m]["best_ps"], 2)]
+        [NAMES[m], cell(m, "hv_le10_mean"), cell(m, "hv_mean"), igd(m), num(summary[m]["front_size"], 1),
+         thousands(summary[m]["passes"]), num(quality[m]["best_pn"], 2), num(quality[m]["best_ps"], 2)]
         for m in order
     ])
 
 
-def grid_table(name: str, source: str, rows: list, columns: list, key) -> None:
+PAIRS = [  # (a, b, region): a is better than b in that region (as reported)
+    ("smsemoa", "nsga2", "le"), ("nsga3", "nsga2", "le"), ("nsga2", "moead", "le"), ("moead", "nsga2", "all"),
+    ("nsga2", "scalar_ga", "le"), ("moead", "scalar_ga", "all"), ("scalar_ga", "moead", "le"),
+    ("nsga2", "nsga2_nc", "all"), ("nsga2", "nsga2_nc", "le"),
+    ("greedy", "nsga2", "all"), ("nsga2", "greedy", "le"),
+    ("nsga2_seeded", "greedy", "all"), ("nsga2", "nsga2_seeded", "le"),
+    ("shapley", "nsga2", "all"), ("nsga2", "shapley", "le"),
+]
+
+
+def pairs_table() -> None:
+    pairs = load("final-ml20m-method.json")["pairs"]
+    rows = []
+    for a, b, region in PAIRS:
+        t, flip = pairs.get(f"{a},{b}"), False
+        if t is None:
+            t, flip = pairs[f"{b},{a}"], True
+        t = t["hv" if region == "all" else "hv_le10"]
+        wins, diff, lo, hi, r = t["wins"], t["mean_diff"], t["ci95"][0], t["ci95"][1], t["rank_biserial"]
+        if flip:
+            wins, diff, lo, hi, r = t["losses"], -diff, -hi, -lo, -r
+        rows.append([f"{SHORT.get(a, NAMES[a].replace(POST_HOC, ''))} $>$ {SHORT.get(b, NAMES[b].replace(POST_HOC, ''))}",
+                     r"\HVp" if region == "le" else "HV", f"{wins}/{t['instances']}",
+                     f"{signed(diff)} [{signed(lo)}; {signed(hi)}]", signed(r, 2), pvalue(t["p_holm"])])
+    write_table("pares.tex", rows)
+
+
+ROBUST_METHODS = ("nsga2", "nsga2_seeded", "smsemoa", "moead", "greedy", "ablation", "scalar_ga")
+
+
+def robustness_table() -> None:
+    data = {tag: load(file)["summary"] for tag, file in REPORTS.items()}
+    rows = []
+    for method in ROBUST_METHODS:
+        row = [SHORT.get(method, NAMES[method].replace(POST_HOC, ""))]
+        for field in ("hv_le10_mean", "hv_mean"):
+            for tag in ("ml", "rd", "zv", "za"):
+                summary = data[tag]
+                if method not in summary:
+                    row.append("--")
+                    continue
+                v = summary[method][field]
+                top = max(summary[m][field] for m in ROBUST_METHODS if m in summary)
+                row.append(rf"\textbf{{{num(v)}}}" if v == top else num(v))
+        rows.append(row)
+    write_table("robustez.tex", rows)
+
+
+def exact_front_table() -> None:
+    data = load("exact-front-n16.json")
+    rows = []
+    for method in ("smsemoa", "nsga2", "nsga3", "moead", "greedy", "random"):
+        per = data["summary"][method]
+        rows.append([SHORT.get(method, NAMES[method].replace(POST_HOC, ""))] +
+                    [f"{num(100 * per[c]['hv_ratio_mean'], 1)} / {num(100 * per[c]['front_found_mean'], 0)}"
+                     for c in ("250", "500", "1000", "2500")])
+    write_table("exata.tex", rows)
+
+
+def moea_tuning_table() -> None:
+    summary = load("new-moea-tuning-stage.json")["summary"]
+    labels = [
+        ("tune-p25-m10", "NSGA-II (pop.\\ 25, referência)"),
+        ("tune-smsemoa-p25", "SMS-EMOA, pop.\\ 25"), ("tune-smsemoa-p50", "SMS-EMOA, pop.\\ 50"),
+        ("tune-nsga3-p5", "NSGA-III, 21 direções"), ("tune-nsga3-p6", "NSGA-III, 28 direções"),
+        ("tune-moead-tch-p5", "MOEA/D Tchebycheff, 21"), ("tune-moead-tch-p6", "MOEA/D Tchebycheff, 28"),
+        ("tune-moead-pbi-p5", "MOEA/D PBI, 21"), ("tune-moead-pbi-p6", "MOEA/D PBI, 28"),
+    ]
+    write_table("moea-ajuste.tex", [[label, num(summary[k]["hv_mean"]), num(summary[k]["hv_le10_mean"])]
+                                    for k, label in labels])
+
+
+def grid_table(name: str, source: str, rows: list, columns: list, keyf) -> None:
     """Rows x columns of configurations: HV (all masks) block, then HV<=10 block; best of each block in bold."""
     summary = load(source)["summary"]
     blocks = []
     for field in ("hv_mean", "hv_le10_mean"):
-        best = max(summary[key(r, c)][field] for r, _ in rows for c, _ in columns)
+        best = max(summary[keyf(r, c)][field] for r, _ in rows for c, _ in columns)
         blocks.append((field, best))
     cell = lambda v, best: rf"\textbf{{{num(v)}}}" if v == best else num(v)  # noqa: E731
     write_table(name, [
-        [label] + [cell(summary[key(r, c)][field], best) for field, best in blocks for c, _ in columns]
+        [label] + [cell(summary[keyf(r, c)][field], best) for field, best in blocks for c, _ in columns]
         for r, label in rows
     ])
 
@@ -195,20 +457,32 @@ def operators_table() -> None:
         ("op-init-uniform", "Inicialização uniforme"),
     ]
     write_table("operadores.tex", [
-        [label, num(summary[key]["hv_le10_mean"]), num(summary[key]["hv_mean"]), num(summary[key]["front_size"], 1)]
-        for key, label in labels
+        [label, num(summary[k]["hv_le10_mean"]), num(summary[k]["hv_mean"]), num(summary[k]["front_size"], 1)]
+        for k, label in labels
     ])
+    for k, _ in labels:
+        val(f"op.{k}.hvle", num(summary[k]["hv_le10_mean"]))
+        val(f"op.{k}.hv", num(summary[k]["hv_mean"]))
 
 
 def ablation_table() -> None:
-    summary = load("background-ablation.json")["summary"]
+    data = load("background-ablation.json")
+    summary = data["summary"]
     fills = (("main", "popularidade"), ("abl-users", "outros usuários"), ("abl-padding", r"\emph{padding}"))
     rows = []
     for method in ("nsga2", "greedy", "ablation", "scalar_ga"):
         for i, (stage, label) in enumerate(fills):
             row = summary[f"{stage}:{method}"]
-            rows.append([NAMES[method] if i == 0 else "", label, num(row["hv_le10_mean"]), num(row["hv_mean"])])
+            rows.append([SHORT.get(method, NAMES[method]) if i == 0 else "", label, num(row["hv_le10_mean"]), num(row["hv_mean"])])
     write_table("ablacao.tex", rows)
+    for name, v in data["overlap"].items():
+        val({"main seeds 0-1 vs 2-4": "overlap.seeds", "main vs abl-users": "overlap.users",
+             "main vs abl-padding": "overlap.padding", "abl-users vs abl-padding": "overlap.userspadding"}[name], num(v, 2))
+    t = data["tests"]
+    val("abl.users.nsga2.all.mainbetter", str(t["hv|nsga2|abl-users"]["main_better"]))
+    val("abl.users.nsga2.le.mainbetter", str(t["hv_le10|nsga2|abl-users"]["main_better"]))
+    val("abl.padding.min.mainbetter", str(min(t[f"{f}|{m}|abl-padding"]["main_better"] for f in ("hv", "hv_le10")
+                                              for m in ("nsga2", "greedy", "ablation", "scalar_ga"))))
 
 
 def example_table() -> None:
@@ -216,27 +490,51 @@ def example_table() -> None:
         example = json.load(f)
     escape = lambda text: text.replace("&", r"\&")  # noqa: E731
     write_table("exemplo.tex", [[str(p), escape(example["history"][p - 1])] for p in example["explanation"]["positions"]])
+    e, single = example["explanation"], example["best_single"]
+    val("ex.pn", num(e["PN"], 2))
+    val("ex.ps", num(e["PS"], 2))
+    val("ex.pnpct", num(100 * e["PN"], 0))
+    val("ex.pspct", num(100 * e["PS"], 0))
+    val("ex.single.pnpct", num(100 * single["PN"], 0))
+    val("ex.single.pspct", num(100 * single["PS"], 0))
+    val("ex.n", str(example["n"]))
 
 
-def exact_front_table() -> None:
-    data = load("exact-front-n12.json")
-    pct = lambda v: num(100 * v, 1)  # noqa: E731
+def training_tables() -> None:
+    training = load("sasrec-training.json")
+    search, final = training["zvuk-search"], training["zvuk-final"]
+    order = sorted(search, key=lambda n: -search[n]["val"]["ndcg@10"])
     rows = []
-    for c, row in data["summary"]["nsga2"].items():
-        other = data["summary"]["random"][c]
-        share = num(100 * int(c) / data["config"]["masks"], 0)
-        rows.append([thousands(int(c)), share, pct(row["hv_ratio_mean"]), pct(row["front_found_mean"]),
-                     pct(other["hv_ratio_mean"]), pct(other["front_found_mean"])])
-    write_table("exata.tex", rows)
+    for name in order:
+        r = search[name]
+        f = final.get(name)
+        cells = [str(r["hidden_size"]), str(r["num_layers"]), num(r["dropout"], 1), num(r["val"]["ndcg@10"])]
+        cells += ([f"{f['epochs_run']} ({f['best_epoch']})", num(f["val"]["ndcg@10"]), num(f["test"]["ndcg@10"])]
+                  if f else ["--", "--", "--"])
+        if name == training["zvuk-selected"]:
+            cells = [rf"\textbf{{{c}}}" for c in cells]
+        rows.append(cells)
+    write_table("busca-zvuk.tex", rows)
+    models = load("model-checks.json")
+    labels = (("sasrec", "SASRec"), ("last_item_transitions", "Transições do último item"),
+              ("popularity", "Popularidade"), ("sasrec_shuffled", "SASRec, históricos embaralhados"))
+    write_table("modelos.tex", [[label] + [f"{num(models[ds][m]['ndcg@10'])} / {num(models[ds][m]['hr@10'])}"
+                                           for ds in ("ml-20m", "zvuk")] for m, label in labels])
 
 
 def main() -> None:
+    report_values()
+    stage_values()
+    other_values()
     exact_front_table()
     example_table()
     convergence()
     example_front()
     correlation()
     methods_table()
+    pairs_table()
+    robustness_table()
+    moea_tuning_table()
     pops, ms = [(p, str(p)) for p in (25, 50, 100, 200)], [(m, str(m)) for m in (5, 10, 20)]
     grid_table("ajuste.tex", "tuning-stage.json", pops, ms, lambda p, m: f"tune-p{p}-m{m}")
     weights = [(d, w) for d, w in ((2, "6"), (3, "10"), (4, "15"))]
@@ -244,7 +542,9 @@ def main() -> None:
     grid_table("escalar.tex", "scalar-ga-tuning-stage.json", spops, weights, lambda p, d: f"sga-p{p}-d{d}")
     operators_table()
     ablation_table()
-    print(f"figures in {FIGURES}, tables in {TABLES}")
+    training_tables()
+    write_values()
+    print(f"figures in {FIGURES}, tables in {TABLES}, {len(VALUES)} values")
 
 
 if __name__ == "__main__":

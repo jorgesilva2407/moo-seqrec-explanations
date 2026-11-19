@@ -27,6 +27,17 @@ escalar e devolvem uma única resposta; este trabalho mantém o acesso apenas a
 escores, como o GECE, mas trata os critérios como um vetor e devolve uma
 frente de Pareto.
 
+\paragraph{Algoritmos evolutivos multiobjetivo.}
+O NSGA-II~\cite{deb2002nsga2} seleciona por ordenação não dominada e
+aglomeração; o NSGA-III~\cite{deb2014nsga3} troca a aglomeração por nichos em
+torno de direções de referência; o SMS-EMOA~\cite{beume2007smsemoa} descarta o
+indivíduo de menor contribuição ao hipervolume; e o MOEA/D~\cite{zhang2007moead}
+decompõe o problema em subproblemas escalares (somas ponderadas ou
+Tchebycheff), cada um com um vizinho na população. Os três primeiros selecionam
+por dominância de Pareto; o MOEA/D, por escalarização com uma população
+compartilhada. Usamos os quatro para separar o efeito de ser multiobjetivo do
+efeito de escalarizar (Seção~\ref{sec:moea}).
+
 \paragraph{Necessidade, suficiência e frentes de Pareto.}
 As probabilidades de necessidade e de suficiência vêm de
 Pearl~\cite{pearl2009causality} e foram usadas em recomendação pelo

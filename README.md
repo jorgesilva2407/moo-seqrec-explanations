@@ -220,8 +220,10 @@ just report-check      # fail on undefined references/citations; overfull boxes 
 just report-clean
 ```
 
-Numbers quoted in the running text of `src/secoes/resultados.tex` were copied from `results/*.json`;
-after re-running an experiment, regenerate the tables and re-check those sentences.
+Every number in the article's prose is a `\val{key}` macro and every table body is generated:
+`report/scripts/figuras.py` writes `src/tabelas/numeros.tex` and `src/tabelas/*.tex` from `results/*.json`,
+so `just report-figures` after re-running an experiment updates the whole article. An unknown key
+is a compile error, not a blank.
 
 ### Reproducing the results
 
@@ -327,6 +329,7 @@ datasets' `explanations`, `<data>` = processed data directories):
 | `exact-front-n16.json` | downloaded from `exact-front/` in the ML-20M dataset (written by the GPU run above) |
 | `offline-checks.json` | `uv run --group explain python report/scripts/verificacoes.py <ml>` (needs `main` and `bench/`) |
 | `conflict-m100.json` | `uv run --group explain python report/scripts/conflito_m100.py --processed <data>/processed --device mps` (~1 h on an M2) |
+| `sasrec-training.json` (appendix tables) | `uv run --group explain python report/scripts/treinos.py` (reads both model repos on the Hub) |
 | `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
 
 ## 12. References and credits

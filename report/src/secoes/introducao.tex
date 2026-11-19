@@ -20,31 +20,35 @@ peso da soma, fixado antes da busca.
 Neste trabalho tratamos o problema como multiobjetivo. A busca é sobre uma
 máscara binária das posições do histórico, o modelo é consultado apenas por
 seus escores, e a saída é uma frente de Pareto de (necessidade, suficiência,
-tamanho), aproximada pelo NSGA-II~\cite{deb2002nsga2}. O recomendador explicado
-é um SASRec~\cite{kang2018sasrec} treinado no MovieLens-20M; ele é o objeto da
-explicação, não a contribuição.
+tamanho), aproximada por algoritmos evolutivos multiobjetivo, a começar pelo
+NSGA-II~\cite{deb2002nsga2}. Os recomendadores explicados são dois
+SASRec~\cite{kang2018sasrec}, treinados no MovieLens-20M e no Zvuk (música);
+eles são o objeto da explicação, não a contribuição, e seu treino está no
+Apêndice~\ref{ap:treino}.
 
 As contribuições são:
 \begin{itemize}
   \item uma formulação com necessidade e suficiência separadas, estimadas por
         intervenções repetidas com fundos fixos, o que torna a aptidão
         determinística (Seções~\ref{sec:formulacao} e~\ref{sec:mc});
-  \item uma comparação sob o mesmo orçamento de consultas ao modelo entre o
-        NSGA-II, um algoritmo genético de objetivo único com os mesmos
-        operadores, um guloso, quatro heurísticas, a enumeração exata de
+  \item uma comparação sob o mesmo orçamento de consultas ao modelo entre
+        quatro algoritmos multiobjetivo (NSGA-II, NSGA-III, SMS-EMOA e MOEA/D),
+        um algoritmo genético de objetivo único com os mesmos operadores, um
+        guloso, valores de Shapley, quatro heurísticas, a enumeração exata de
         conjuntos pequenos e o GECE (Seção~\ref{sec:resultados});
-  \item um estudo dos operadores do NSGA-II, duas ablações da distribuição de
-        fundo e uma variante do NSGA-II com população inicial semeada por um
-        ranking por ablação.
+  \item estudos de operadores, de uma população inicial semeada, do valor do
+        objetivo de suficiência e da distribuição de fundo, uma verificação
+        contra a frente exata e a replicação em um segundo conjunto de
+        instâncias e em um segundo conjunto de dados.
 \end{itemize}
 
-O resultado principal tem três partes. Entre explicações de até 10 posições, o
-NSGA-II tem o maior hipervolume e supera o guloso em 71 das 99 instâncias.
-Quando máscaras de qualquer tamanho contam, o guloso e até um ranking por
-ablação individual, que usa 5\% do orçamento, ficam à frente do NSGA-II. A
-variante semeada, proposta depois de ver esses resultados, passa a ser a melhor
-em todos os tamanhos e supera o guloso em 66 das 99 instâncias, mas perde um
-pouco para o NSGA-II original nas explicações pequenas. A hipótese da proposta,
-de que a vantagem do NSGA-II estaria na cobertura do compromisso com o tamanho,
-vale portanto sem ressalvas só na região de explicações pequenas, que é a
-região de interesse.
+O resultado tem três partes. Entre explicações de até 10 posições, os
+algoritmos baseados em dominância de Pareto (NSGA-II, NSGA-III e SMS-EMOA) são
+os melhores métodos; o MOEA/D, que decompõe o problema em somas ponderadas, e o
+algoritmo genético escalarizado ficam muito atrás. Quando máscaras de qualquer
+tamanho contam, métodos que percorrem todos os tamanhos (guloso, Shapley)
+superam o NSGA-II, e semear a população inicial com um ranking por ablação
+inverte esse resultado ao custo de uma perda pequena nas explicações pequenas.
+Necessidade e suficiência conflitam nas explicações pequenas, e esse conflito
+não é ruído de estimação. Os três resultados se repetem em 99 instâncias novas
+e no Zvuk.
