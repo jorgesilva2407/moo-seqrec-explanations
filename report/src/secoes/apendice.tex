@@ -79,12 +79,13 @@ Dim. & Cam. & \emph{Dropout} & Val. & Épocas & Val. & Teste \\
 \end{table}
 
 \paragraph{Números publicados.}
-Há resultados do SASRec no Zvuk na literatura, com NDCG@10 em torno de
-$0{,}06$ a $0{,}09$~\cite{zhelnin2025largecatalog}, mas eles usam outro
-protocolo: catálogo completo de centenas de milhares de faixas, audições
-repetidas e divisão temporal global. Catálogo menor, só primeiras audições e
-\emph{leave-one-out} elevam muito o NDCG@10, de modo que os números não são
-comparáveis, e nenhum trabalho que conhecemos usa o nosso protocolo.
+Zhelnin et al.~\cite{zhelnin2025largecatalog} reportam NDCG@10 de $0{,}080$
+a $0{,}094$ para o SASRec treinado com variantes da entropia cruzada no Zvuk,
+com o catálogo inteiro (centenas de milhares de faixas) e divisão temporal
+global. Nosso protocolo usa um catálogo de 50\,000 faixas, só a primeira
+audição de cada faixa e \emph{leave-one-out}, escolhas que elevam muito o
+NDCG@10; os números não são comparáveis, e não conhecemos trabalho que use o
+nosso protocolo.
 
 \subsection{Os modelos aprenderam padrões sequenciais?}
 

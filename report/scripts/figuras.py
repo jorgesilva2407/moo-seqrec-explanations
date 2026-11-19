@@ -1,6 +1,7 @@
 """Build the article's figures (report/src/figuras/*.pdf), table bodies (report/src/tabelas/*.tex) and
-the numbers quoted in the prose (report/src/tabelas/numeros.tex, used as \\val{key}) from the committed
-result files (results/*.json) and report/dados/exemplo.json. Nothing in the article is typed by hand.
+the result numbers quoted in the prose (report/src/tabelas/numeros.tex, used as \\val{key}) from the
+committed result files (results/*.json) and report/dados/exemplo.json. Fixed facts of the setup (dataset
+sizes, budgets, grids) are written in the text; every measured number comes from here.
 
     uv run --group explain python report/scripts/figuras.py        (or: just report-figures)
 """
@@ -219,6 +220,23 @@ def other_values() -> None:
     for b, name in zip(bands, ("b1", "b2", "b3", "b4", "b5")):
         val(f"snr.{name}.n", num(bands[b]["necessity"]["spread_over_noise"], 1))
         val(f"snr.{name}.s", num(bands[b]["sufficiency"]["spread_over_noise"], 1))
+    rescored = load("ps-rescored.json")
+    val("psre.search", num(rescored["search_ps_mean"], 2))
+    val("psre.eval", num(rescored["eval_ps_mean"], 2))
+    val("psre.kept", num(100 * rescored["share_still_sufficient"], 0))
+    val("psre.keptle", num(100 * rescored["share_still_sufficient_le10"], 0))
+    for name, file in (("ml", "bench-ml20m.json"), ("zv", "bench-zvuk.json")):
+        bench = load(file)
+        agreement = bench["agreement_with_reference"]["10"]
+        val(f"bench.{name}.n", num(agreement["necessity_spearman"], 2))
+        val(f"bench.{name}.s", num(agreement["sufficiency_spearman"], 2))
+        val(f"bench.{name}.speed", thousands(1000 * round(max(v["passes_per_second"] or 0 for v in bench["throughput"].values()) / 1000)))
+    zvuk_conflict = RESULTS / "conflict-m100-zvuk.json"
+    if zvuk_conflict.exists():
+        zc = load(zvuk_conflict.name)
+        for size in (1, 2):
+            for m in (10, 100):
+                val(f"m100zv.size{size}.m{m}", num(zc[f"size_{size}"][f"M={m}"]["mean"], 2))
     exact = load("exact-front-n16.json")
     val("exact.instances", str(exact["instances"]))
     val("exact.front", num(exact["exact_front_size_mean"], 0))
@@ -463,6 +481,7 @@ def operators_table() -> None:
     for k, _ in labels:
         val(f"op.{k}.hvle", num(summary[k]["hv_le10_mean"]))
         val(f"op.{k}.hv", num(summary[k]["hv_mean"]))
+    val("op.nocross.drop", num(summary["tune-p25-m10"]["hv_le10_mean"] - summary["op-no-crossover"]["hv_le10_mean"], 2))
 
 
 def ablation_table() -> None:

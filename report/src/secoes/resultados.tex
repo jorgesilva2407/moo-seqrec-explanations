@@ -38,20 +38,25 @@ máscaras pequenas, a variação de $\hat S$ entre máscaras é apenas
 reavaliamos todas as máscaras de uma posição e 300 de duas por instância com
 os 100 fundos independentes: a correlação passa de \val{m100.size1.m10} para
 \val{m100.size1.m100} (uma posição) e de \val{m100.size2.m10} para
-\val{m100.size2.m100} (duas). Com dez vezes mais fundos ela muda pouco e fica
-longe da das máscaras médias; o conflito entre necessidade e suficiência nas
-explicações pequenas é real, e mantivemos os três objetivos.
+\val{m100.size2.m100} (duas). No Zvuk, com o mesmo teste nas 45 instâncias,
+ela passa de \val{m100zv.size1.m10} para \val{m100zv.size1.m100} e de
+\val{m100zv.size2.m10} para \val{m100zv.size2.m100}. Com dez vezes mais fundos
+ela muda pouco e fica longe da das máscaras médias, nos dois conjuntos; o
+conflito entre necessidade e suficiência nas explicações pequenas é real, e
+mantivemos os três objetivos.
 
 O conflito tem uma causa visível nas probabilidades. Entre máscaras de até 10
 posições, os métodos de busca encontram alguma com $\widehat{\PN}$ perto de 1,
 mas a maior $\widehat{\PS}$ que guardam na frente fica perto de
-\val{ml.nsga2.ps} (Tabela~\ref{tab:metodos}). Não é um teto imposto pela
-definição: em todas as instâncias alguma máscara avaliada atinge
-$\widehat{\PS}\ge0{,}5$, e a menor delas tem mediana de \val{psmin.median}
-posições (quartis \val{psmin.q1} e \val{psmin.q3}), ou \val{psmin.rel}\% do
-histórico; em \val{psmin.le10}\% das instâncias ela tem até 10 posições.
-Máscaras suficientes e pequenas existem, mas costumam ser dominadas por
-máscaras um pouco maiores e mais fortes nos dois objetivos.
+\val{ml.nsga2.ps} (Tabela~\ref{tab:metodos}). Nos fundos de busca, alguma
+máscara avaliada atinge $\widehat{\PS}\ge0{,}5$ em todas as instâncias, e a
+menor delas tem mediana de \val{psmin.median} posições. Mas essas máscaras são
+as melhores entre milhares, escolhidas com os mesmos 10 fundos que as medem:
+reavaliadas nos 100 fundos independentes, sua $\widehat{\PS}$ média cai de
+\val{psre.search} para \val{psre.eval}, e só \val{psre.kept}\% continuam com
+$\widehat{\PS}\ge0{,}5$. Explicações pequenas e suficientes são, portanto,
+genuinamente raras; o teto de $\widehat{\PS}$ nas frentes reflete tanto a
+definição de suficiência (Seção~\ref{sec:ablacao}) quanto as explicações.
 
 \subsection{Ajuste dos algoritmos}
 \label{sec:ajuste}
@@ -200,8 +205,8 @@ popularidade do alvo (\val{ml.nsga2.pop.low}, \val{ml.nsga2.pop.mid} e
 \val{ml.nsga2.pop.high} nos tercis de baixa, média e alta popularidade).
 
 \begin{table*}[t]
-\caption{Comparações pareadas escolhidas de antemão (99 instâncias do conjunto
-principal). ``A $>$ B'': A é melhor que B na métrica indicada; Vitórias: em
+\caption{Comparações pareadas escolhidas para responder a perguntas específicas
+(99 instâncias do conjunto principal). ``A $>$ B'': A é melhor que B na métrica indicada; Vitórias: em
 quantas instâncias; Diferença: média de A $-$ B com intervalo de 95\% por
 \emph{bootstrap} sobre instâncias; $r$: correlação bisserial de postos
 pareada; $p$: teste de Wilcoxon com correção de Holm sobre todos os pares da
@@ -308,7 +313,7 @@ A Tabela~\ref{tab:operadores} isola cada escolha. A inicialização esparsa é a
 que mais importa: com inicialização uniforme (metade dos bits ligados), o
 \HVp{} cai de \val{op.tune-p25-m10.hvle} para \val{op.op-init-uniform.hvle},
 porque a busca gasta o orçamento descendo de máscaras grandes. Retirar o
-cruzamento custa cerca de $0{,}10$ de \HVp{} e quase nada de HV. A taxa de
+cruzamento custa \val{op.nocross.drop} de \HVp{} e quase nada de HV. A taxa de
 mutação é um compromisso: $0{,}5/n$ ganha um pouco nas máscaras pequenas
 (melhor em \val{op.vs.le.op-mut0.5.tune-p25-m10.wins} de 30 usuários,
 $p=\val{op.vs.le.op-mut0.5.tune-p25-m10.p}$) e perde no HV geral (pior em
@@ -462,9 +467,11 @@ o SMS-EMOA é o melhor no \HVp{} (supera o NSGA-II em
 (supera o guloso em \val{zv.pair.nsga2-seeded.greedy.all.wins} de 45). No Zvuk
 o guloso não supera o NSGA-II no HV, provavelmente porque nesse conjunto o
 último item concentra a maior parte do sinal (Apêndice~\ref{ap:treino}). Com o
-\textbf{segundo melhor modelo} da busca de hiperparâmetros, a ordem dos métodos
-é a mesma nos dois critérios: as conclusões não dependem de qual dos modelos
-praticamente empatados escolhemos.
+\textbf{segundo melhor modelo} da busca de hiperparâmetros, em 15 instâncias, o
+melhor método de cada região é o mesmo (o SMS-EMOA no \HVp{}, o NSGA-II semeado
+no HV) e os algoritmos baseados em dominância continuam acima do guloso, do AG
+escalarizado e do ranking por ablação nas explicações pequenas; a ordem do meio
+da tabela muda, e 15 instâncias não bastam para resolvê-la.
 
 \subsection{Um exemplo}
 

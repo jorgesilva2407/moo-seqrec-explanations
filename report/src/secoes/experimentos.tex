@@ -34,8 +34,8 @@ Cada execução de cada método recebe $10^5$ passadas do SASRec. Com $M=10$,
 isso são 5\,000 máscaras; máscaras repetidas não são cobradas. A reavaliação
 com $M'=100$ fundos fica fora do orçamento. Para o GECE, o custo é o número de
 sequências que ele consulta. Com $M=10$ a ordenação das máscaras concorda com a
-de 200 fundos (Spearman de $0{,}97$ em $\hat N$ e $0{,}94$ em $\hat S$ no
-MovieLens, $0{,}98$ e $0{,}99$ no Zvuk).
+de 200 fundos (Spearman de \val{bench.ml.n} em $\hat N$ e \val{bench.ml.s} em
+$\hat S$ no MovieLens, \val{bench.zv.n} e \val{bench.zv.s} no Zvuk).
 
 \paragraph{Métricas.}
 A métrica principal é o hipervolume~\cite{zitzler1999spea} da frente
@@ -58,8 +58,9 @@ Métodos estocásticos rodam com 5 sementes no conjunto principal e 3 nos
 demais. A unidade de análise é a instância: fazemos a média das sementes dentro
 de cada instância e comparamos métodos pelo teste de Wilcoxon pareado
 bilateral. Há duas famílias de comparações, cada uma com correção de Holm: a do
-melhor método contra cada um dos demais, e a de pares escolhidos de antemão
-para responder a perguntas específicas (Tabela~\ref{tab:pares}). Para cada par
+melhor método contra cada um dos demais, e a de pares escolhidos
+para responder a perguntas específicas, definidos depois das execuções
+(Tabela~\ref{tab:pares}). Para cada par
 reportamos também a diferença média com intervalo de 95\% por
 \emph{bootstrap} sobre instâncias e a correlação bisserial de postos pareada,
 que vai de $-1$ a $+1$.
@@ -75,7 +76,8 @@ foi escolhido nos usuários de ajuste.
 
 \paragraph{Execução.}
 Um escalonador avança muitas execuções em paralelo e envia as máscaras de
-todas elas em um único lote à GPU, o que rende de 10 a 20 mil passadas por
-segundo em uma RTX~A4000. Todos os experimentos, incluindo o treino dos
+todas elas em um único lote à GPU, o que rende até \val{bench.ml.speed}
+passadas por segundo em uma RTX~A4000 no MovieLens e \val{bench.zv.speed} no
+Zvuk, cujo catálogo é maior. Todos os experimentos, incluindo o treino dos
 recomendadores, custaram menos de seis dólares em GPUs alugadas; o código, os resultados e as instruções para
 reproduzi-los estão no repositório do projeto.

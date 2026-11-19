@@ -220,7 +220,8 @@ just report-check      # fail on undefined references/citations; overfull boxes 
 just report-clean
 ```
 
-Every number in the article's prose is a `\val{key}` macro and every table body is generated:
+Every measured number in the article's prose is a `\val{key}` macro (fixed facts of the setup, such as
+dataset sizes, budgets and grids, are written in the text) and every table body is generated:
 `report/scripts/figuras.py` writes `src/tabelas/numeros.tex` and `src/tabelas/*.tex` from `results/*.json`,
 so `just report-figures` after re-running an experiment updates the whole article. An unknown key
 is a compile error, not a blank.
@@ -330,6 +331,9 @@ datasets' `explanations`, `<data>` = processed data directories):
 | `offline-checks.json` | `uv run --group explain python report/scripts/verificacoes.py <ml>` (needs `main` and `bench/`) |
 | `conflict-m100.json` | `uv run --group explain python report/scripts/conflito_m100.py --processed <data>/processed --device mps` (~1 h on an M2) |
 | `sasrec-training.json` (appendix tables) | `uv run --group explain python report/scripts/treinos.py` (reads both model repos on the Hub) |
+| `conflict-m100-zvuk.json` | `uv run --group explain python report/scripts/conflito_m100.py --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --per-stratum 15 --out conflict-m100-zvuk.json --device mps` (~40 min on an M2) |
+| `ps-rescored.json` | `uv run --group explain python report/scripts/ps_reavaliado.py <ml> --processed <data>/processed --device mps` |
+| `bench-ml20m.json`, `bench-zvuk.json` | copies of `bench/` from the two datasets (written by `explain-bench`) |
 | `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
 
 ## 12. References and credits

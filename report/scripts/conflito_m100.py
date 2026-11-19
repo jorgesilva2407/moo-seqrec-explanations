@@ -6,6 +6,8 @@ reports the Spearman correlation between N-hat and S-hat among masks of each siz
 correlation of small masks rises a lot with M', most of the apparent conflict was noise.
 
     uv run --group explain python report/scripts/conflito_m100.py --processed <data-dir>/processed [--device mps]
+    (Zvuk: --processed <data-dir>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk
+     --hub-file final/zvuk-h256-l3-d0.1/best.pt --per-stratum 15 --out conflict-m100-zvuk.json)
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ from seqrec.explain.scheduler import _padded
 from seqrec.explain.verifier import Verifier
 from seqrec.models.loader import load_from_hub
 
-OUT = Path(__file__).resolve().parents[2] / "results" / "conflict-m100.json"
+RESULTS = Path(__file__).resolve().parents[2] / "results"
 
 
 def spearman(a: np.ndarray, b: np.ndarray) -> float:
@@ -36,11 +38,15 @@ def main() -> None:
     parser.add_argument("--processed", type=Path, required=True)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--pairs", type=int, default=300, help="two-position masks sampled per instance")
+    parser.add_argument("--hub-repo", default="AbyssWanderer/sasrec-ml20m")
+    parser.add_argument("--hub-file", default="fp32/best.pt")
+    parser.add_argument("--per-stratum", type=int, default=33, help="size of the main set (Zvuk: 15)")
+    parser.add_argument("--out", default="conflict-m100.json", help="file name under results/")
     args = parser.parse_args()
 
-    scorer = load_from_hub("AbyssWanderer/sasrec-ml20m", "fp32/best.pt", device=torch.device(args.device))
+    scorer = load_from_hub(args.hub_repo, args.hub_file, device=torch.device(args.device))
     histories, popularity = load_histories(args.processed), load_popularity(args.processed)
-    instances, _ = build_instances(histories, scorer, popularity, 33, 0, m=10, k=10)  # the main set
+    instances, _ = build_instances(histories, scorer, popularity, args.per_stratum, 0, m=10, k=10)  # the main set
     embeddings = scorer.item_embeddings()
     verifiers = {m: Verifier(scorer, instances, draw_backgrounds(instances, popularity, embeddings, m, 0, stream), k=10)
                  for m, stream in ((10, SEARCH_STREAM), (100, EVAL_STREAM))}
@@ -64,7 +70,7 @@ def main() -> None:
     out = {f"size_{size}": {f"M={m}": {"mean": float(np.nanmean(v)), "median": float(np.nanmedian(v))} for m, v in per.items()}
            for size, per in result.items()}
     out["instances"] = len(instances)
-    with open(OUT, "w", encoding="utf-8") as f:
+    with open(RESULTS / args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
     print(json.dumps(out, indent=1))
 

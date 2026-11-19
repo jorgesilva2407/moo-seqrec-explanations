@@ -1,0 +1,9 @@
+{
+  "instances": 99,
+  "median_size": 6.0,
+  "search_ps_mean": 0.5707070767277419,
+  "eval_ps_mean": 0.3816162347793579,
+  "share_still_sufficient": 0.2828282828282828,
+  "share_still_sufficient_le10": 0.34782608695652173,
+  "instances_le10": 69
+}

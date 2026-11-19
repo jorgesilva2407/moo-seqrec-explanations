@@ -1,0 +1,96 @@
+{
+  "checkpoint_id": "e37b97aa9645",
+  "device": "NVIDIA RTX A4000",
+  "instances": {
+    "strata": [
+      {
+        "bounds": [
+          30,
+          49
+        ],
+        "eligible": 26559,
+        "proposed": 20,
+        "discarded": 0,
+        "kept": 10
+      },
+      {
+        "bounds": [
+          50,
+          99
+        ],
+        "eligible": 32179,
+        "proposed": 20,
+        "discarded": 0,
+        "kept": 10
+      },
+      {
+        "bounds": [
+          100,
+          128
+        ],
+        "eligible": 51866,
+        "proposed": 20,
+        "discarded": 0,
+        "kept": 10
+      }
+    ],
+    "seed": 0,
+    "m": 40,
+    "k": 10
+  },
+  "masks": 6000,
+  "throughput": {
+    "512": {
+      "passes_per_second": 20370.649360710002,
+      "peak_gpu_gib": 0.5417928695678711
+    },
+    "1024": {
+      "passes_per_second": 20204.629492936565,
+      "peak_gpu_gib": 1.0267953872680664
+    },
+    "2048": {
+      "passes_per_second": 20052.030080257893,
+      "peak_gpu_gib": 2.078474521636963
+    },
+    "4096": {
+      "passes_per_second": 19677.881359076317,
+      "peak_gpu_gib": 4.180030345916748
+    },
+    "8192": {
+      "passes_per_second": 19201.153125246638,
+      "peak_gpu_gib": 8.302508354187012
+    }
+  },
+  "best_chunk": 512,
+  "margin_std": {
+    "necessity": 0.6845190525054932,
+    "sufficiency": 1.1519733667373657
+  },
+  "necessity_sufficiency_spearman": 0.8990086752168804,
+  "agreement_with_reference": {
+    "5": {
+      "necessity_spearman": 0.9461792044801121,
+      "sufficiency_spearman": 0.9127120678016952,
+      "pn_abs_error": 0.10829833894968033,
+      "ps_abs_error": 0.04221416637301445
+    },
+    "10": {
+      "necessity_spearman": 0.9658439460986527,
+      "sufficiency_spearman": 0.9395874396859923,
+      "pn_abs_error": 0.07541833072900772,
+      "ps_abs_error": 0.031927499920129776
+    },
+    "20": {
+      "necessity_spearman": 0.9785335633390838,
+      "sufficiency_spearman": 0.9634756868921724,
+      "pn_abs_error": 0.05667000263929367,
+      "ps_abs_error": 0.024947499856352806
+    },
+    "40": {
+      "necessity_spearman": 0.986718117952949,
+      "sufficiency_spearman": 0.9771514787869698,
+      "pn_abs_error": 0.04124583303928375,
+      "ps_abs_error": 0.019741665571928024
+    }
+  }
+}
