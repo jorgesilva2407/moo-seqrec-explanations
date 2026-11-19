@@ -278,6 +278,57 @@ changes with the set of methods or stages in the report (for example `main-metho
 given the seeds on one device type; results from a different GPU or from MPS can differ in the
 last digits. `exact-front.json` and the worked example were produced on a laptop (MPS).
 
+### Round 2 (response to the review): what was run and how to reproduce it
+
+Launch scripts for every vast.ai machine of this round are in `vast/round2/` (offer ids and template
+hashes in them are specific to that day and account: search fresh offers and create a template with
+`just vast-template <image tag>`). Images: `sha-b185f3d` (first machines) and `sha-d7c46c6` (adds
+`six`, needed by the Kaggle CLI; everything later). Run the launchers from bash, not zsh.
+
+**ML-20M** (results in `AbyssWanderer/moo-seqrec-explanations-ml20m`):
+
+| Stage(s) | What |
+|---|---|
+| `tune-moead-{tch,pbi}-p{5,6}`, `tune-nsga3-p{5,6}`, `tune-smsemoa-p{25,50}` | held-out tuning of the new MOEAs (selection by total HV): MOEA/D Tchebicheff 5 partitions, NSGA-III 6, SMS-EMOA population 50 |
+| `main` (methods `nsga2_nc`, `shapley`, `moead`, `nsga3`, `smsemoa`) | the new methods on the 99 main instances, 5 seeds |
+| `redraw` | `--instance-set redraw`: 99 new instances disjoint from main and tuning users; nsga2, nsga2_seeded, greedy, ablation, scalar_ga, 3 seeds |
+| `redraw-moea` | SMS-EMOA and MOEA/D on the redrawn set |
+| `exact-front/exact-front-n16.json` | `just exact-front --length 16 --methods nsga2 random greedy moead nsga3 smsemoa` (GPU) |
+
+**Zvuk** (data: Kaggle `alexxl/zvuk-dataset`, CC BY 4.0, Shevchenko et al. KDD 2024; needs
+`KAGGLE_API_TOKEN`; results in `AbyssWanderer/moo-seqrec-explanations-zvuk`, models in
+`AbyssWanderer/sasrec-zvuk`):
+
+1. Preprocessing: `just prepare-data --dataset zvuk --processed-name processed_zvuk --max-items 50000
+   --max-users 100000` (listens >= 30 s, first listen per user and track, 50k most-listened tracks,
+   5-core, 100k users) -> 100,000 users, 50,000 items, 13,237,170 interactions, data hash
+   `1943379b600c...`; shared as `processed/processed_zvuk` in the Zvuk dataset (`just fetch-processed`).
+2. SASRec search (full CE, fp32, grad clip 1.0, lr 1e-3, batch 128, length 128, 1 head): round 1 =
+   hidden {128, 256} x layers {2, 3} x dropout {0.1, 0.2, 0.3}, 8 epochs each (`search/<run>` in the
+   model repo, with `last.pt`); round 2 = the three best by validation NDCG@10 resumed with
+   `train --resume --extend-epochs 40` (patience 5) to `final/<run>`. Selected: `final/zvuk-h256-l3-d0.1`
+   (best validation NDCG@10 0.2686; test NDCG@10 0.2471, HR@10 0.3344).
+3. `explain-bench` on that model (`bench/` in the Zvuk dataset), then stages `main` (nsga2,
+   nsga2_seeded, greedy, ablation, scalar_ga) and `main-sms` (SMS-EMOA) on 45 instances (15 per
+   stratum), 3 seeds, three shards; check of robustness to the model choice: stages `alt-model` and
+   `alt-model-sms` with `final/zvuk-h256-l3-d0.2` on 15 instances.
+
+**Local analyses** (laptop; write `results/*.json`; `<ml>` / `<zv>` = local copies of the two
+datasets' `explanations`, `<data>` = processed data directories):
+
+| File in `results/` | Command |
+|---|---|
+| `final-ml20m-method.json` (+ convergence plots) | `just explain-report --stages main main-sga-p25-d4 main-sga-p10-d2 --by method --tag-stages --full --name final-ml20m R --pairs nsga2,smsemoa nsga2,nsga3 nsga2,moead nsga2,scalar_ga moead,scalar_ga smsemoa,scalar_ga nsga2,nsga2_nc nsga2,shapley shapley,ablation nsga2_seeded,greedy nsga2_seeded,nsga2 greedy,nsga2 smsemoa,greedy nsga2_seeded,smsemoa nsga2,scalar_ga@main-sga-p25-d4 nsga2,scalar_ga@main-sga-p10-d2 nsga2_seeded,scalar_ga@main-sga-p10-d2 smsemoa,scalar_ga@main-sga-p25-d4` |
+| `final-redraw-method.json` | `just explain-report --stages redraw redraw-moea --by method --name final-redraw R --pairs nsga2_seeded,greedy nsga2_seeded,nsga2 greedy,nsga2 nsga2,smsemoa nsga2,scalar_ga moead,scalar_ga` |
+| `final-zvuk-method.json` | `just explain-report --stages main main-sms --by method --full --name final-zvuk --results-repo AbyssWanderer/moo-seqrec-explanations-zvuk --pairs nsga2_seeded,greedy nsga2_seeded,nsga2 greedy,nsga2 nsga2,smsemoa nsga2,scalar_ga` |
+| `final-zvuk-alt-method.json` | `just explain-report --stages alt-model alt-model-sms --by method --name final-zvuk-alt --results-repo AbyssWanderer/moo-seqrec-explanations-zvuk` |
+| `new-moea-tuning-stage.json` | `just explain-report --by stage --name new-moea-tuning R --stages tune-p25-m10 tune-moead-tch-p5 tune-moead-tch-p6 tune-moead-pbi-p5 tune-moead-pbi-p6 tune-nsga3-p5 tune-nsga3-p6 tune-smsemoa-p25 tune-smsemoa-p50` |
+| `nsga2-seeded-tuning-stage.json` | (round 1) `just explain-report --by stage --full --name nsga2-seeded-tuning R --stages tune-p25-m10 tune-seeded` |
+| `exact-front-n16.json` | downloaded from `exact-front/` in the ML-20M dataset (written by the GPU run above) |
+| `offline-checks.json` | `uv run --group explain python report/scripts/verificacoes.py <ml>` (needs `main` and `bench/`) |
+| `conflict-m100.json` | `uv run --group explain python report/scripts/conflito_m100.py --processed <data>/processed --device mps` (~1 h on an M2) |
+| `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
+
 ## 12. References and credits
 
 The model, loss and hyperparameters follow A. Klenitskiy and A. Vasilev, "Turning Dross Into Gold Loss:
