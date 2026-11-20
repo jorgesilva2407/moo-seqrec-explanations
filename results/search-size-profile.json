@@ -1,0 +1,44 @@
+{
+  "nsga2": {
+    "jobs": 495,
+    "share_evaluated_le10": 0.47766747474747473,
+    "median_relative_size_evaluated": 0.1752775013446808,
+    "share_front_le10": 0.30646243494040476,
+    "median_size_first_21": 4.8929290771484375
+  },
+  "smsemoa": {
+    "jobs": 495,
+    "share_evaluated_le10": 0.5310618181818182,
+    "median_relative_size_evaluated": 0.16508740186691284,
+    "share_front_le10": 0.33982523203069986,
+    "median_size_first_21": 4.901010036468506
+  },
+  "nsga3": {
+    "jobs": 495,
+    "share_evaluated_le10": 0.5928686868686869,
+    "median_relative_size_evaluated": 0.15628591179847717,
+    "share_front_le10": 0.4198782979795038,
+    "median_size_first_21": 4.907070636749268
+  },
+  "moead": {
+    "jobs": 495,
+    "share_evaluated_le10": 0.10423959595959595,
+    "median_relative_size_evaluated": 0.3506917357444763,
+    "share_front_le10": 0.12228784017801854,
+    "median_size_first_21": 4.923232555389404
+  },
+  "scalar_ga": {
+    "jobs": 495,
+    "share_evaluated_le10": 0.3868195116007988,
+    "median_relative_size_evaluated": 0.21437899768352509,
+    "share_front_le10": 0.2496842445691331,
+    "median_size_first_21": 4.852525234222412
+  },
+  "nsga2_seeded": {
+    "jobs": 495,
+    "share_evaluated_le10": 0.25525777777777775,
+    "median_relative_size_evaluated": 0.3168807327747345,
+    "share_front_le10": 0.20608143432898623,
+    "median_size_first_21": 1.0
+  }
+}

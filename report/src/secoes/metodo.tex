@@ -115,7 +115,9 @@ usamos três outros algoritmos da pymoo~\cite{blank2020pymoo}:
         Das--Dennis e população igual ao número de direções;
   \item \textbf{SMS-EMOA}~\cite{beume2007smsemoa}, que gera uma população inteira
         de filhos por passo (para que cada consulta ao modelo seja um lote) e
-        descarta os de menor contribuição ao hipervolume;
+        descarta os de menor contribuição ao hipervolume, calculada com os
+        objetivos normalizados pelos extremos da população corrente e ponto de
+        referência 11 nessas unidades (padrão da pymoo);
   \item \textbf{MOEA/D}~\cite{zhang2007moead}, na variante que gera uma geração
         por passo, com decomposição de Tchebycheff ou PBI e vizinhança de 20
         subproblemas. Como as decomposições comparam valores absolutos dos

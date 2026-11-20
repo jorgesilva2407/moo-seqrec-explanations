@@ -44,11 +44,13 @@ As contribuições são:
 
 O resultado tem três partes. Entre explicações de até 10 posições, os
 algoritmos baseados em dominância de Pareto (NSGA-II, NSGA-III e SMS-EMOA) são
-os melhores métodos; o MOEA/D, que decompõe o problema em subproblemas escalares, e o
-algoritmo genético escalarizado ficam muito atrás. Quando máscaras de qualquer
-tamanho contam, métodos que percorrem todos os tamanhos (guloso, Shapley)
-superam o NSGA-II, e semear a população inicial com um ranking por ablação
-inverte esse resultado ao custo de uma perda pequena nas explicações pequenas.
-Necessidade e suficiência conflitam nas explicações pequenas, nos dois
-conjuntos de dados, e esse conflito não é ruído de estimação. A comparação
-entre métodos se repete em 99 instâncias novas e no Zvuk.
+os melhores métodos no MovieLens-20M; o MOEA/D, que decompõe o problema em
+subproblemas escalares, e o algoritmo genético escalarizado ficam muito atrás.
+Quando máscaras de qualquer tamanho contam, o guloso e os valores de Shapley,
+que percorrem todos os tamanhos, superam o NSGA-II no MovieLens (no Zvuk, não),
+e semear a população inicial com um ranking por ablação faz o NSGA-II vencer
+também ali, ao custo de uma perda pequena nas explicações pequenas. Por fim,
+necessidade e suficiência não são redundantes: buscar só por necessidade e
+tamanho perde as máscaras suficientes sem ganhar nada nos outros dois
+objetivos. A comparação dos métodos centrais se repete em 99 instâncias novas e
+no Zvuk.

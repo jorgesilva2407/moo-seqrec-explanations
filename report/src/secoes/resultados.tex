@@ -8,7 +8,7 @@ Salvo indicação, os resultados são do MovieLens-20M, nas 99 instâncias do
 conjunto principal; a Seção~\ref{sec:robustez} repete as comparações centrais
 no conjunto novo de instâncias e no Zvuk.
 
-\subsection{Necessidade e suficiência conflitam?}
+\subsection{Necessidade e suficiência são redundantes?}
 \label{sec:conflito}
 
 Para responder sem o viés de uma busca, usamos as máscaras das linhas de base
@@ -42,8 +42,11 @@ os 100 fundos independentes: a correlação passa de \val{m100.size1.m10} para
 ela passa de \val{m100zv.size1.m10} para \val{m100zv.size1.m100} e de
 \val{m100zv.size2.m10} para \val{m100zv.size2.m100}. Com dez vezes mais fundos
 ela muda pouco e fica longe da das máscaras médias, nos dois conjuntos; o
-conflito entre necessidade e suficiência nas explicações pequenas é real, e
-mantivemos os três objetivos.
+conflito entre necessidade e suficiência nas explicações pequenas é real. Uma
+correlação de 0,4 a 0,6 é uma concordância apenas moderada: os dois objetivos
+não ordenam as máscaras pequenas da mesma forma, mas também não são opostos. A
+evidência mais direta de que vale manter os três objetivos está na
+Seção~\ref{sec:valor-s}.
 
 O conflito tem uma causa visível nas probabilidades. Entre máscaras de até 10
 posições, os métodos de busca encontram alguma com $\widehat{\PN}$ perto de 1,
@@ -77,7 +80,9 @@ sacrifica a região pequena.
 \begin{table}[t]
 \caption{Ajuste do NSGA-II nos 30 usuários de ajuste: hipervolume de todas as
 máscaras (HV) e das máscaras com até 10 posições (\HVp{}), por tamanho da
-população e número de fundos $M$. Em negrito, o melhor valor de cada bloco.}
+população e número de fundos $M$. Em negrito, o melhor valor de cada bloco.
+Valores normalizados dentro desta tabela, não comparáveis com os de outras
+tabelas.}
 \label{tab:ajuste}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -92,55 +97,12 @@ População & $M=5$ & $10$ & $20$ & $M=5$ & $10$ & $20$ \\
 \end{tabular}
 \end{table}
 
-Os outros três algoritmos receberam um ajuste menor, com o mesmo critério
-(Tabela~\ref{tab:moea-ajuste}): SMS-EMOA com população 50, NSGA-III com 28
-direções e MOEA/D com decomposição de Tchebycheff e 21 direções. Já nos
-usuários de ajuste aparecia o padrão da comparação principal: o NSGA-II tem o
-maior HV, o SMS-EMOA o maior \HVp{} (melhor que o NSGA-II em
-\val{mt.vs.le.tune-smsemoa-p50.tune-p25-m10.wins} dos 30 usuários,
-$p=\val{mt.vs.le.tune-smsemoa-p50.tune-p25-m10.p}$), e o MOEA/D fica muito
-atrás nas máscaras pequenas, sobretudo com PBI.
-
-\begin{table}[t]
-\caption{Ajuste dos outros algoritmos multiobjetivo nos 30 usuários de ajuste
-(3 sementes); a primeira linha é o NSGA-II escolhido acima.}
-\label{tab:moea-ajuste}
-\small
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Configuração & HV & \HVp \\
-\midrule
-\tabela{moea-ajuste}
-\bottomrule
-\end{tabular}
-\end{table}
-
-Para que a comparação não dependa de uma configuração ruim da linha de base,
-o AG escalarizado também foi ajustado: população em $\{10,25,50\}$ e número de
-vetores de pesos em $\{6,10,15\}$ (Tabela~\ref{tab:escalar}). Nenhuma
-configuração vence nos dois critérios, e os dois blocos da tabela variam em
-sentidos opostos: populações pequenas com poucos vetores têm o maior HV, mas o
-pior \HVp{}, e população 25 com 15 vetores tem o maior \HVp{} e um HV bem
-menor. Na comparação principal entram a configuração padrão (população 20, 10
-vetores) e a melhor de cada critério.
-
-\begin{table}[t]
-\caption{Ajuste do AG escalarizado nos 30 usuários de ajuste: HV e \HVp{}, por
-população e número de vetores de pesos. Em negrito, o melhor valor de cada
-bloco.}
-\label{tab:escalar}
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lcccccc@{}}
-\toprule
- & \multicolumn{3}{c}{HV} & \multicolumn{3}{c}{\HVp} \\
-\cmidrule(lr){2-4}\cmidrule(l){5-7}
-População & 6 & 10 & 15 & 6 & 10 & 15 \\
-\midrule
-\tabela{escalar}
-\bottomrule
-\end{tabular}
-\end{table}
+Os outros três algoritmos e o AG escalarizado também foram ajustados nos
+mesmos usuários e com o mesmo critério, com menos configurações
+(Apêndice~\ref{ap:complementares}): SMS-EMOA com população 50, NSGA-III com 28
+direções, MOEA/D com decomposição de Tchebycheff e 21 direções, e, para o AG
+escalarizado, além da configuração padrão (população 20, 10 vetores), a melhor
+de cada critério.
 
 \subsection{Comparação entre métodos}
 
@@ -185,7 +147,8 @@ pequenas mas consistentes. O NSGA-II (\val{ml.nsga2.hvle}) supera o guloso em
 \val{ml.greedy.igdle} para o guloso).
 
 \paragraph{Todas as máscaras.}
-No HV sem limite de tamanho a ordem se inverte: o guloso supera o NSGA-II em
+No HV sem limite de tamanho a ordem se inverte no MovieLens (no Zvuk, não;
+Seção~\ref{sec:robustez}): o guloso supera o NSGA-II em
 \val{ml.pair.greedy.nsga2.all.wins} das 99 instâncias, e o Shapley em
 \val{ml.pair.nsga2.shapley.all.losses}. O ranking por ablação fica perto do
 guloso usando \val{ml.ablation.passes} passadas, menos de 5\% do orçamento. A
@@ -237,11 +200,22 @@ do AG escalarizado não mudam o quadro: a que tem o maior HV (população 10, 6
 vetores) perde para o NSGA-II no \HVp{} em todas as instâncias, e a de maior
 \HVp{} (população 25, 15 vetores) perde em
 \val{ml.pair.nsga2.sga-p25-d4.le.wins} de 99. A vantagem nas explicações
-pequenas vem, portanto, da seleção por dominância de Pareto, e não apenas de
-manter uma população com o orçamento inteiro. Uma explicação provável, que não
-testamos, é que as decomposições em pesos fixos espalham a população pelos
-compromissos entre objetivos de escalas muito diferentes, enquanto a dominância
-preserva qualquer máscara pequena que não seja dominada.
+pequenas não vem apenas de manter uma população com o orçamento inteiro, e a
+explicação mais simples é a seleção por dominância de Pareto. O isolamento é só
+parcial: o MOEA/D também difere do NSGA-II na vizinhança de acasalamento, na
+regra de substituição e na normalização dos objetivos.
+
+O uso do orçamento mostra o que acontece com o MOEA/D. Ele parte da mesma
+população esparsa (mediana de \val{size.moead.first} posições na primeira
+geração, como os demais), mas só \val{size.moead.le10}\% das máscaras que
+avalia têm até 10 posições, contra \val{size.nsga2.le10}\% no NSGA-II e
+\val{size.smsemoa.le10}\% no SMS-EMOA; a máscara mediana que ele avalia cobre
+\val{size.moead.median}\% do histórico (\val{size.nsga2.median}\% no NSGA-II).
+Com vetores de pesos espalhados uniformemente no simplex, a maior parte das
+direções favorece $N$ e $S$, que melhoram com o tamanho, e a população migra
+para máscaras grandes. Pesos concentrados no tamanho provavelmente ajudariam o
+MOEA/D nas explicações pequenas; não testamos, e o resultado deve ser lido como
+o do MOEA/D com pesos uniformes, uma configuração possivelmente desfavorável.
 
 \subsection{NSGA-II semeado}
 \label{sec:semeado}
@@ -290,35 +264,17 @@ outros dois objetivos: medido só na projeção $(N,C)$ das máscaras de até 10
 posições, o hipervolume das duas variantes é praticamente igual
 (\val{ml.nsga2.hvlenc} contra \val{ml.nsga2-nc.hvlenc}). Ou seja, o terceiro
 objetivo não piora as explicações em necessidade e tamanho, e acrescenta as
-máscaras suficientes que a busca só por $(N,C)$ não guarda.
+máscaras suficientes que a busca só por $(N,C)$ não guarda. Essa é a
+justificativa mais forte para o terceiro objetivo.
 
-\subsection{Operadores do NSGA-II}
-\label{sec:operadores}
-
-\begin{table}[t]
-\caption{Estudo dos operadores do NSGA-II nos 30 usuários de ajuste. Cada
-linha muda um único elemento da configuração ajustada.}
-\label{tab:operadores}
-\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-Variante & \HVp & HV & Frente \\
-\midrule
-\tabela{operadores}
-\bottomrule
-\end{tabular}
-\end{table}
-
-A Tabela~\ref{tab:operadores} isola cada escolha. A inicialização esparsa é a
-que mais importa: com inicialização uniforme (metade dos bits ligados), o
-\HVp{} cai de \val{op.tune-p25-m10.hvle} para \val{op.op-init-uniform.hvle},
-porque a busca gasta o orçamento descendo de máscaras grandes. Retirar o
-cruzamento custa \val{op.nocross.drop} de \HVp{} e quase nada de HV. A taxa de
-mutação é um compromisso: $0{,}5/n$ ganha um pouco nas máscaras pequenas
-(melhor em \val{op.vs.le.op-mut0.5.tune-p25-m10.wins} de 30 usuários,
-$p=\val{op.vs.le.op-mut0.5.tune-p25-m10.p}$) e perde no HV geral (pior em
-\val{op.vs.all.tune-p25-m10.op-mut0.5.wins} de 30); taxas maiores pioram os
-dois. Mantivemos $1/n$.
+\paragraph{Estudos complementares.}
+Dois estudos estão no Apêndice~\ref{ap:complementares}. No dos operadores, a
+inicialização esparsa é a escolha que mais pesa (sem ela o \HVp{} cai de
+\val{op.tune-p25-m10.hvle} para \val{op.op-init-uniform.hvle}), seguida do
+cruzamento. Nas ablações da distribuição de fundo, explicações encontradas com
+trechos de históricos de outros usuários continuam boas com fundos de
+popularidade, mas as encontradas removendo itens (\emph{padding}) não se
+transferem para a substituição.
 
 \subsection{Verificação contra a frente exata}
 \label{sec:exata}
@@ -385,42 +341,6 @@ dos casos, o contrafactual do GECE depende do item específico que ele inseriu,
 e não da posição editada. Isso não é um defeito do GECE, que responde a outra
 pergunta (``que edição muda a recomendação?''); mostra que as duas formulações
 não são intercambiáveis, e por isso tratamos essa comparação como ilustrativa.
-
-\subsection{Ablações da distribuição de fundo}
-\label{sec:ablacao}
-
-Repetimos a busca com dois outros preenchimentos: trechos contíguos do
-histórico de outros usuários, mais plausíveis que itens independentes, e
-\emph{padding}, em que as posições são simplesmente removidas. Em ambos os
-casos as frentes são reavaliadas com os fundos de popularidade da comparação
-principal: a pergunta é se explicações encontradas com outro preenchimento
-continuam boas (Tabela~\ref{tab:ablacao}).
-
-\begin{table}[t]
-\caption{Ablação do preenchimento usado na busca. Todas as frentes são
-reavaliadas com fundos de popularidade.}
-\label{tab:ablacao}
-\small
-\begin{tabular}{@{}llcc@{}}
-\toprule
-Método & Preenchimento na busca & \HVp & HV \\
-\midrule
-\tabela{ablacao}
-\bottomrule
-\end{tabular}
-\end{table}
-
-Com trechos de outros usuários, os resultados se mantêm: as frentes são tão
-boas quanto as da busca original ou ligeiramente melhores, e a ordem dos
-métodos na região pequena é a mesma. Com \emph{padding}, todos os métodos
-pioram em pelo menos \val{abl.padding.min.mainbetter} das 99 instâncias.
-Explicações encontradas removendo itens não se transferem para a substituição:
-remover desloca a sequência e muda as posições de todos os itens anteriores, o
-que é uma intervenção diferente. As posições escolhidas confirmam a leitura: a
-similaridade do cosseno entre as frequências de seleção de cada posição é
-\val{overlap.seeds} entre sementes da busca original, \val{overlap.users}
-entre a original e a de outros usuários, e \val{overlap.padding} entre a
-original e a de \emph{padding}.
 
 \subsection{Robustez: outras instâncias e outro conjunto de dados}
 \label{sec:robustez}

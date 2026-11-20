@@ -79,8 +79,9 @@ Dim. & Cam. & \emph{Dropout} & Val. & Épocas & Val. & Teste \\
 \end{table}
 
 \paragraph{Números publicados.}
-Zhelnin et al.~\cite{zhelnin2025largecatalog} reportam NDCG@10 de $0{,}080$
-a $0{,}094$ para o SASRec treinado com variantes da entropia cruzada no Zvuk,
+Zhelnin et al.~\cite{zhelnin2025largecatalog} reportam, para o SASRec no Zvuk,
+NDCG@10 de $0{,}080$ com entropia cruzada completa e de $0{,}094$ com a sua
+versão escalável (CCE),
 com o catálogo inteiro (centenas de milhares de faixas) e divisão temporal
 global. Nosso protocolo usa um catálogo de 50\,000 faixas, só a primeira
 audição de cada faixa e \emph{leave-one-out}, escolhas que elevam muito o
@@ -121,3 +122,132 @@ porém, as transições do último item já são fortes (o SASRec as supera em
 desse conjunto está concentrado no item mais recente, o que explica
 explicações ainda mais concentradas no fim do histórico e um guloso mais fraco
 em todos os tamanhos (Seção~\ref{sec:robustez}).
+
+
+%% ---- Apêndice B: estudos complementares ---------------------------------------
+\section{Estudos complementares}
+\label{ap:complementares}
+
+Este apêndice reúne os ajustes dos demais algoritmos, o estudo dos operadores
+do NSGA-II e as ablações da distribuição de fundo, resumidos no texto
+principal. Todos os hipervolumes são normalizados dentro de cada tabela e não
+são comparáveis entre tabelas.
+
+\subsection{Ajuste dos demais algoritmos}
+
+Os outros três algoritmos receberam um ajuste menor, com o mesmo critério
+(Tabela~\ref{tab:moea-ajuste}): SMS-EMOA com população 50, NSGA-III com 28
+direções e MOEA/D com decomposição de Tchebycheff e 21 direções. Já nos
+usuários de ajuste aparecia o padrão da comparação principal: o NSGA-II tem o
+maior HV, o SMS-EMOA o maior \HVp{} (melhor que o NSGA-II em
+\val{mt.vs.le.tune-smsemoa-p50.tune-p25-m10.wins} dos 30 usuários,
+$p=\val{mt.vs.le.tune-smsemoa-p50.tune-p25-m10.p}$), e o MOEA/D fica muito
+atrás nas máscaras pequenas, sobretudo com PBI.
+
+\begin{table}[t]
+\caption{Ajuste dos outros algoritmos multiobjetivo nos 30 usuários de ajuste
+(3 sementes); a primeira linha é o NSGA-II escolhido na Seção~\ref{sec:ajuste}.
+Os valores são normalizados dentro desta tabela: o mesmo NSGA-II tem outro
+\HVp{} na Tabela~\ref{tab:ajuste}.}
+\label{tab:moea-ajuste}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Configuração & HV & \HVp \\
+\midrule
+\tabela{moea-ajuste}
+\bottomrule
+\end{tabular}
+\end{table}
+
+Para que a comparação não dependa de uma configuração ruim da linha de base,
+o AG escalarizado também foi ajustado: população em $\{10,25,50\}$ e número de
+vetores de pesos em $\{6,10,15\}$ (Tabela~\ref{tab:escalar}). Nenhuma
+configuração vence nos dois critérios, e os dois blocos da tabela variam em
+sentidos opostos: populações pequenas com poucos vetores têm o maior HV, mas o
+pior \HVp{}, e população 25 com 15 vetores tem o maior \HVp{} e um HV bem
+menor. Na comparação principal entram a configuração padrão (população 20, 10
+vetores) e a melhor de cada critério.
+
+\begin{table}[t]
+\caption{Ajuste do AG escalarizado nos 30 usuários de ajuste: HV e \HVp{}, por
+população e número de vetores de pesos. Em negrito, o melhor valor de cada
+bloco.}
+\label{tab:escalar}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+ & \multicolumn{3}{c}{HV} & \multicolumn{3}{c}{\HVp} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+População & 6 & 10 & 15 & 6 & 10 & 15 \\
+\midrule
+\tabela{escalar}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Operadores do NSGA-II}
+\label{sec:operadores}
+
+\begin{table}[t]
+\caption{Estudo dos operadores do NSGA-II nos 30 usuários de ajuste. Cada
+linha muda um único elemento da configuração ajustada. Valores normalizados
+dentro desta tabela.}
+\label{tab:operadores}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Variante & \HVp & HV & Frente \\
+\midrule
+\tabela{operadores}
+\bottomrule
+\end{tabular}
+\end{table}
+
+A Tabela~\ref{tab:operadores} isola cada escolha. A inicialização esparsa é a
+que mais importa: com inicialização uniforme (metade dos bits ligados), o
+\HVp{} cai de \val{op.tune-p25-m10.hvle} para \val{op.op-init-uniform.hvle},
+porque a busca gasta o orçamento descendo de máscaras grandes. Retirar o
+cruzamento custa \val{op.nocross.drop} de \HVp{} e quase nada de HV. A taxa de
+mutação é um compromisso: $0{,}5/n$ ganha um pouco nas máscaras pequenas
+(melhor em \val{op.vs.le.op-mut0.5.tune-p25-m10.wins} de 30 usuários,
+$p=\val{op.vs.le.op-mut0.5.tune-p25-m10.p}$) e perde no HV geral (pior em
+\val{op.vs.all.tune-p25-m10.op-mut0.5.wins} de 30); taxas maiores pioram os
+dois. Mantivemos $1/n$.
+
+\subsection{Ablações da distribuição de fundo}
+\label{sec:ablacao}
+
+Repetimos a busca com dois outros preenchimentos: trechos contíguos do
+histórico de outros usuários, mais plausíveis que itens independentes, e
+\emph{padding}, em que as posições são simplesmente removidas. Em ambos os
+casos as frentes são reavaliadas com os fundos de popularidade da comparação
+principal: a pergunta é se explicações encontradas com outro preenchimento
+continuam boas (Tabela~\ref{tab:ablacao}).
+
+\begin{table}[t]
+\caption{Ablação do preenchimento usado na busca. Todas as frentes são
+reavaliadas com fundos de popularidade.}
+\label{tab:ablacao}
+\small
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Método & Preenchimento na busca & \HVp & HV \\
+\midrule
+\tabela{ablacao}
+\bottomrule
+\end{tabular}
+\end{table}
+
+Com trechos de outros usuários, os resultados se mantêm: as frentes são tão
+boas quanto as da busca original ou ligeiramente melhores, e a ordem dos
+métodos na região pequena é a mesma. Com \emph{padding}, todos os métodos
+pioram em pelo menos \val{abl.padding.min.mainbetter} das 99 instâncias.
+Explicações encontradas removendo itens não se transferem para a substituição:
+remover desloca a sequência e muda as posições de todos os itens anteriores, o
+que é uma intervenção diferente. As posições escolhidas confirmam a leitura: a
+similaridade do cosseno entre as frequências de seleção de cada posição é
+\val{overlap.seeds} entre sementes da busca original, \val{overlap.users}
+entre a original e a de outros usuários, e \val{overlap.padding} entre a
+original e a de \emph{padding}.

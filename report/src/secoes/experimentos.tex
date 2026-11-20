@@ -51,7 +51,12 @@ Reportamos também o IGD+~\cite{ishibuchi2015igdplus} das máscaras de até 10
 posições, medido contra a frente não dominada da união de todos os métodos na
 instância (menor é melhor), o tamanho da frente, a maior $\widehat{\PN}$ e a
 maior $\widehat{\PS}$ entre máscaras de até 10 posições, e a posição relativa
-média dos itens escolhidos ($0$ = mais antigo, $1$ = mais recente).
+média dos itens escolhidos ($0$ = mais antigo, $1$ = mais recente). Duas
+ressalvas sobre as métricas: o SMS-EMOA seleciona pela contribuição ao
+hipervolume, a mesma grandeza usada para avaliá-lo (mas seu HV de todas as
+máscaras fica abaixo do do NSGA-II, de modo que a vantagem não é automática), e
+o IGD+, medido contra a união das frentes, favorece os métodos que mais
+contribuem para essa união.
 
 \paragraph{Protocolo estatístico.}
 Métodos estocásticos rodam com 5 sementes no conjunto principal e 3 nos

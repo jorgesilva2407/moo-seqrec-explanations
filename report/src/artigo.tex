@@ -53,13 +53,15 @@ Explicamos uma recomendação sequencial por conjuntos de posições do históri
 que são necessários (trocá-los tira o item da lista), suficientes (mantê-los
 basta) e pequenos, e buscamos a frente de Pareto desses três objetivos com
 algoritmos evolutivos multiobjetivo, estimando necessidade e suficiência por
-Monte Carlo. Em dois recomendadores SASRec (MovieLens-20M e Zvuk) e sob o mesmo
-orçamento de consultas ao modelo, os algoritmos baseados em dominância de
-Pareto (NSGA-II, NSGA-III, SMS-EMOA) são os melhores para explicações de até 10
-itens, à frente do MOEA/D, de um algoritmo genético escalarizado, de um guloso,
-de valores de Shapley e do GECE. Em todos os tamanhos, métodos que percorrem
-todos os tamanhos vencem, a menos que o NSGA-II seja semeado com um ranking por
-ablação. Necessidade e suficiência conflitam nas explicações pequenas.
+Monte Carlo. No MovieLens-20M, sob o mesmo orçamento de consultas a um SASRec,
+os algoritmos baseados em dominância de Pareto (NSGA-II, NSGA-III, SMS-EMOA)
+são os melhores para explicações de até 10 itens, à frente do MOEA/D, de um
+algoritmo genético escalarizado, de um guloso, de valores de Shapley e do GECE;
+em todos os tamanhos, o guloso e o Shapley superam o NSGA-II, a menos que ele
+seja semeado com um ranking por ablação. A comparação dos métodos centrais se
+repete em 99 instâncias novas e em um segundo conjunto de dados (Zvuk), onde o
+NSGA-II também supera o guloso em todos os tamanhos. Incluir a suficiência como
+objetivo não piora as explicações em necessidade e tamanho.
 \end{abstract}
 
 \maketitle

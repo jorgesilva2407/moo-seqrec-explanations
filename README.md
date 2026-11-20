@@ -334,6 +334,7 @@ datasets' `explanations`, `<data>` = processed data directories):
 | `conflict-m100-zvuk.json` | `uv run --group explain python report/scripts/conflito_m100.py --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --per-stratum 15 --out conflict-m100-zvuk.json --device mps` (~40 min on an M2) |
 | `ps-rescored.json` | `uv run --group explain python report/scripts/ps_reavaliado.py <ml> --processed <data>/processed --device mps` |
 | `bench-ml20m.json`, `bench-zvuk.json` | copies of `bench/` from the two datasets (written by `explain-bench`) |
+| `search-size-profile.json` | `uv run --group explain python report/scripts/diagnostico_moead.py <ml>` (where each search spends its budget by mask size) |
 | `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
 
 ## 12. References and credits

@@ -6,11 +6,13 @@ A proposta previa que uma busca multiobjetivo cobriria uma frente mais ampla
 que o mesmo orçamento gasto em buscas escalarizadas. Entre explicações
 pequenas isso se confirmou contra todas as linhas de base e nos três cenários
 da Seção~\ref{sec:robustez},
-e o MOEA/D mostrou que a vantagem vem da seleção por dominância, não só de usar
-uma população com o orçamento inteiro. Em todos os tamanhos, os algoritmos
-evolutivos, que concentram a busca nas máscaras pequenas, perdem para métodos
-que percorrem todos os tamanhos; só a variante semeada, posterior à comparação
-principal, vence ali. O risco apontado na proposta, de $N$ e $S$ serem quase
+e o MOEA/D indica que a vantagem vem da seleção por dominância, não só de usar
+uma população com o orçamento inteiro, embora esse isolamento seja parcial. Em
+todos os tamanhos, no MovieLens, os algoritmos evolutivos, que concentram a
+busca nas máscaras pequenas, perdem para métodos que percorrem todos os
+tamanhos; só a variante semeada, posterior à comparação principal, vence ali.
+No Zvuk, cujo sinal está concentrado no último item, o NSGA-II já vence o
+guloso também em todos os tamanhos. O risco apontado na proposta, de $N$ e $S$ serem quase
 redundantes, se confirmou nas máscaras grandes e é o que torna os métodos
 simples tão fortes ali; nas pequenas, o conflito resistiu a dez vezes mais
 fundos.
@@ -36,7 +38,13 @@ decididos, mas não deixam de ser escolhas feitas com conhecimento dos
 resultados. (vii)~Ao mapear o GECE para posições, descartamos os itens que ele
 inseriu, que são parte da sua resposta. (viii)~No Zvuk, os números do
 recomendador não são comparáveis aos publicados, que usam outro protocolo
-(Apêndice~\ref{ap:treino}).
+(Apêndice~\ref{ap:treino}). (ix)~O esforço de ajuste foi desigual: 12
+configurações para o NSGA-II e de duas a quatro para os demais algoritmos. Isso
+desfavorece os outros algoritmos, mas, como os três melhores diferem por menos
+de $0{,}01$ de \HVp{}, o ajuste poderia mudar a ordem entre eles. O MOEA/D só
+foi testado com pesos uniformes, e a robustez em outras instâncias e no Zvuk
+cobre apenas os métodos centrais (NSGA-III, Shapley e GECE não foram
+repetidos).
 
 \section{Conclusão}
 
@@ -50,12 +58,13 @@ de uma decomposição em subproblemas escalares, de um algoritmo genético de
 objetivo único com os mesmos operadores, de um guloso, de valores de Shapley e
 do GECE; a inicialização esparsa e o cruzamento são os operadores que mais
 pesam nessa região. Para máscaras de qualquer tamanho, métodos que percorrem
-todos os tamanhos são melhores que o NSGA-II original, e semear a população
+todos os tamanhos são melhores que o NSGA-II original no MovieLens, e semear a população
 inicial com um ranking por ablação torna o NSGA-II o melhor também ali, com uma
 perda pequena nas explicações pequenas. Os dois objetivos de efeito conflitam
 nas explicações pequenas, onde uma explicação necessária é fácil de achar e uma
-suficiente é rara. A comparação entre métodos se repete em instâncias novas e
-em um segundo conjunto de dados.
+suficiente é rara, e incluir a suficiência como objetivo não custa nada em
+necessidade e tamanho. A comparação dos métodos centrais se repete em
+instâncias novas e em um segundo conjunto de dados.
 
 Como trabalho futuro, o mais direto é uma semeadura que não custe nada nas
 explicações pequenas (por exemplo, semear só com máscaras pequenas ou manter

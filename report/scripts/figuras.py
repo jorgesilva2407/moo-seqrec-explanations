@@ -237,6 +237,10 @@ def other_values() -> None:
         for size in (1, 2):
             for m in (10, 100):
                 val(f"m100zv.size{size}.m{m}", num(zc[f"size_{size}"][f"M={m}"]["mean"], 2))
+    for method, row in load("search-size-profile.json").items():
+        val(f"size.{key(method)}.le10", num(100 * row["share_evaluated_le10"], 0))
+        val(f"size.{key(method)}.median", num(100 * row["median_relative_size_evaluated"], 0))
+        val(f"size.{key(method)}.first", num(row["median_size_first_21"], 1))
     exact = load("exact-front-n16.json")
     val("exact.instances", str(exact["instances"]))
     val("exact.front", num(exact["exact_front_size_mean"], 0))
