@@ -1,8 +1,101 @@
-# seqrec: SASRec (full cross-entropy) on MovieLens-20M
+# Counterfactual explanations for a sequential recommender by multi-objective evolutionary search
+
+Black-box counterfactual explanations for a sequential recommender (SASRec): given a user's history
+and a recommended item, an evolutionary search over masks of the history finds the trade-off
+between **necessity** (erasing the masked items removes the recommendation), **sufficiency** (the
+masked items alone keep it) and **size** (fewer items).
+
+Course mini-project for Natural Computing (PPGCC-UFMG). It is not a publication.
+[Full article (in Portuguese)](report/build/artigo.pdf)
+
+## Main findings
+
+All comparisons use the same budget of 10^5 SASRec passes per search. Hypervolumes (HV) are
+normalised per instance over the methods being compared, so they can only be compared within one
+table. "HV ≤10" counts only explanations of up to 10 items.
+
+- **Small explanations: Pareto-based MOEAs win.** On 99 MovieLens-20M instances, HV ≤10 is 0.925
+  for SMS-EMOA, 0.921 for NSGA-III and 0.915 for NSGA-II. Next come greedy (0.905), Shapley values
+  (0.876), the scalarised GA in its default configuration (0.813), GECE with restarts (0.777) and
+  MOEA/D (0.680). The lead over greedy is small but consistent: NSGA-II beats it on 70 of 99 instances. GECE edits items rather
+  than masking positions, so it answers a different question, and that comparison is only
+  illustrative.
+- **Across all sizes, the simple baselines beat plain NSGA-II on MovieLens.** In HV over all mask
+  sizes, greedy beats NSGA-II on 81/99 instances and Shapley beats it on 72/99. Seeding NSGA-II with
+  the ablation ranking makes it the best method there (HV 1.103; it beats greedy on 66/99), at a
+  small cost on small explanations (plain NSGA-II is better on 72/99 in HV ≤10). On Zvuk, greedy
+  does not beat NSGA-II over all sizes (19/45).
+- **The comparison of the main methods holds on new instances and on a second dataset.** This was
+  checked on 99 new MovieLens-20M instances (disjoint users) and on 45 Zvuk instances. SMS-EMOA is
+  the best on small explanations (it beats NSGA-II on 84/99 and 37/45), NSGA-II beats greedy there
+  too (63/99 and 35/45), and seeded NSGA-II has the best HV over all sizes. With the second-best Zvuk model (15 instances),
+  the best method in each region is unchanged, but the order in the middle of the table moves.
+  Shapley, NSGA-III and GECE were not re-run in these settings, and MOEA/D was not run on Zvuk.
+- **Keeping sufficiency as an objective costs nothing in necessity or size.** On the
+  (necessity, size) projection of masks of up to 10 items, three-objective NSGA-II and an NSGA-II
+  that optimises only those two objectives reach the same HV (0.998 vs 0.997). The three-objective
+  front also keeps the sufficient masks.
+- **Engineering.** A scheduler runs many searches at once and batches their queries into shared GPU
+  calls. On an RTX A4000 the benchmark measures about 20,000 SASRec passes/s on MovieLens-20M
+  (13,000 on Zvuk). Every step is a `just` recipe, and the GPU stages run in a Docker image on rented vast.ai GPUs.
+- **SASRec reproduction.** The full cross-entropy SASRec+ recipe on MovieLens-20M reaches test
+  HR@10 0.2944 and NDCG@10 0.1806. The paper reports about 0.298 and 0.183 with maximum length 200,
+  while this project uses 128. The Zvuk model reaches test HR@10 0.3344 and NDCG@10 0.2471.
+
+SASRec runs (full ranking over the catalog; the explanations use the fp32 checkpoint):
+
+| run | seed | epochs (best) | val HR@10 | val NDCG@10 | test HR@10 | test NDCG@10 | checkpoint id |
+|-----|------|---------------|-----------|-------------|------------|--------------|---------------|
+| fp32 | 42 | 49 | 0.3272 | 0.1988 | 0.2944 | 0.1806 | `e37b97aa9645` |
+
+Explanation results are in `results/` and in the article (`report/`).
+
+## Method in brief
+
+An instance is a user history together with a target item that SASRec ranks
+in its top K = 10. A mask selects positions of the history. Necessity replaces the selected
+positions with background items, and sufficiency keeps only the selected positions on a
+background. Each intervention costs one SASRec pass and gives the margin of the target over the
+K-th other candidate. The model is used only as a black box that returns scores. Margins are
+averaged over sampled backgrounds, and the final fronts are re-scored on 100 independent
+backgrounds. NSGA-II, NSGA-III, SMS-EMOA, MOEA/D, a scalarised GA and the baselines (greedy,
+ablation ranking, Shapley sampling, recency, similarity, random, enumeration and GECE) all run
+behind one ask/tell protocol with the same pass budget, and the fronts are compared by hypervolume
+and IGD+. Definitions, tuning, statistical tests and limitations are in the
+[full article (in Portuguese)](report/build/artigo.pdf). The PDF is tracked in the repository, and
+`just report` rebuilds it.
+
+## Repository layout
+
+```
+src/seqrec/          Python package: CLI and commands, data prep, SASRec model and loader, training, explanations (explain/)
+tests/               unit tests (just test)
+results/             JSON reports and convergence plots that the article's tables and figures read
+report/              course article (LaTeX, Portuguese): sources, generated tables and figures, analysis scripts, built PDF
+vast/                vast.ai onstart script and the launch scripts of the additional experiments
+.github/workflows/   manual Docker build that pushes the image to GHCR
+justfile, Dockerfile, pyproject.toml, uv.lock   task recipes, image and dependencies
+```
+
+## Reproducing
+
+**The trained models and result datasets on Hugging Face (`AbyssWanderer/*`) are private.** Outside
+readers can read the code and the results, but they cannot download the checkpoints or the raw
+search outputs. That means every command below that downloads from the Hub (`HF_TOKEN`,
+`--results-repo`, `R`) will fail for them. Without access you can still:
+
+- read `results/*.json`, which holds the reported results;
+- rebuild the article's tables, figures and PDF from those files with `just report-figures`;
+- run the tests (`just test`);
+- train your own SASRec on MovieLens-20M, which `prepare-data` downloads.
+
+Zvuk data also needs a Kaggle token.
+
+### The `seqrec` package: SASRec (full cross-entropy) on MovieLens-20M
 
 PyTorch implementation of the SASRec+ recipe (Klenitskiy & Vasilev, RecSys 2023) trained with
 full cross-entropy over all items, packaged in a Docker image for training on vast.ai.
-Every repeatable task is a `just` recipe (`just --list`). The trained model is explained in §11
+Every repeatable task is a `just` recipe (`just --list`). The trained model is explained in "Explanations" below
 (counterfactual explanations by NSGA-II over history masks), which also says how to reproduce the
 results and build the course article.
 
@@ -12,7 +105,7 @@ Reproduction target: the paper reports ML-20M SASRec+ HR@10 about 0.298 and NDCG
 Layout: `src/seqrec/{paths,cli}.py`, `commands/` (one module per command), `data/`, `models/`
 (`sasrec.py`, `loader.py`), `training/`, `tests/`, `justfile`, `Dockerfile`, `.github/workflows/docker.yml`.
 
-## 1. Install just (written for just 1.40; the `[group]` attribute needs 1.27 or newer)
+### Install just (written for just 1.40; the `[group]` attribute needs 1.27 or newer)
 
 - macOS: `brew install just`
 - any OS with Rust/cargo: `cargo install just`
@@ -22,9 +115,11 @@ Layout: `src/seqrec/{paths,cli}.py`, `commands/` (one module per command), `data
 machine, inside the container). Override variables on the command line, e.g.
 `just tag=v0.1.0 docker-build` or `just --set run_name my-run train`.
 
-## 2. One-time repository setup
+### One-time repository setup
 
-Edit `image` and `repo_url` at the top of the `justfile` (replace `OWNER/REPO`, lowercase), then:
+`image` and `repo_url` at the top of the `justfile` point to this repository (`ghcr.io/jorgesilva2407/moo-seqrec-explanations`,
+`github.com/jorgesilva2407/moo-seqrec-explanations`). For your own copy, edit them (your
+`OWNER/REPO`, lowercase), then:
 
 ```
 just lock                 # creates uv.lock (commit it: the Docker build uses --frozen)
@@ -39,27 +134,27 @@ git push -u origin main
 `.gitignore` excludes `.venv`, caches, `data/`, `outputs/`, `workspace/`, `pulled/`, checkpoints
 (`*.pt`), `*.npz` and `*.zip` (anchored at the repository root, so `src/seqrec/data/` is tracked).
 
-## 3. Watch CI and publish the package
+### Watch CI and publish the package
 
 The `docker` workflow runs **only manually** (no push, tag or pull-request triggers): start it with
 `just ci-build main` or from the Actions tab ("Run workflow"), then watch it with `gh run watch`. It builds the image and pushes
-`ghcr.io/OWNER/REPO` (tags `latest` and `sha-<short>`). The package appears under the repository's
+`ghcr.io/jorgesilva2407/moo-seqrec-explanations` (tags `latest` and `sha-<short>`). The package appears under the repository's
 "Packages" sidebar. Either make it public (package page, Package settings, Change visibility) or
 keep it private and give vast.ai registry credentials (user, plus a personal access token with
 `read:packages`). `just push-image-info` prints the URLs and these steps.
 
-## 4. Release
+### Release
 
 ```
 just release v0.1.0       # checks a clean tree, asks to confirm, tags and pushes
 ```
 
 The tag push does not build anything. Run `just ci-build v0.1.0` to build it; that publishes
-`ghcr.io/OWNER/REPO:0.1.0` and `:sha-<short>`. (`latest` is only set when the build runs on `main`.)
+`ghcr.io/jorgesilva2407/moo-seqrec-explanations:0.1.0` and `:sha-<short>`. (`latest` is only set when the build runs on `main`.)
 
-## 5. Create the vast.ai instance
+### Create the vast.ai instance
 
-Use the image `ghcr.io/OWNER/REPO:<tag>` as a custom template/image with:
+Use the image `ghcr.io/jorgesilva2407/moo-seqrec-explanations:<tag>` as a custom template/image with:
 
 - an NVIDIA GPU with at least 16 GB of memory (24 GB preferred);
 - a host whose driver supports CUDA 12.6 or newer (the image is built on CUDA 12.6.3 with the
@@ -71,7 +166,7 @@ Exact UI labels may differ; check the vast.ai documentation. To use another CUDA
 `pytorch-cuXXX` index name and URL in `pyproject.toml` and the `CUDA_IMAGE` tag in the `Dockerfile`
 together, then `just lock`.
 
-## 6. On the instance (over SSH)
+### On the instance (over SSH)
 
 New shells start in `/opt/seqrec` (where the `justfile` lives); otherwise `cd /opt/seqrec`.
 
@@ -113,7 +208,7 @@ To use a zip you downloaded yourself: put it at `/workspace/data/raw/ml-20m.zip`
 with `best.pt`, `last.pt`, `config.json`, `metrics.csv`, `train.log`, `final_metrics.json`.
 `just clean-smoke` removes only the smoke outputs (after confirmation).
 
-## 7. Evaluate and use the loader
+### Evaluate and use the loader
 
 ```
 just evaluate /workspace/outputs/runs/<run-name>/best.pt
@@ -133,7 +228,7 @@ print(scorer.num_items, scorer.max_length, scorer.padding_id, scorer.checkpoint_
 
 `just test` runs the save/load round-trip test (also on CPU).
 
-## 8. Before destroying the instance
+### Before destroying the instance
 
 The instance disk disappears with the instance. From your laptop:
 
@@ -141,12 +236,12 @@ The instance disk disappears with the instance. From your laptop:
 just pull-run <host> <ssh-port> <run-name>     # rsync to ./pulled/<run-name>/ (+ data_meta.json)
 ```
 
-## 9. Rebuilding after a code change
+### Rebuilding after a code change
 
 Commit, `git push`, run `just ci-build main` and wait for the Actions run to finish, then on the instance
 pull the new tag (stop and recreate the instance from the new tag; keep the `/workspace` volume).
 
-## 10. Extending the project
+### Extending the project
 
 To add a command (for example an explanation runner): create `src/seqrec/commands/<name>.py` with
 `add_arguments(parser)` and `run(args)`, and add one line to `COMMANDS` in `cli.py`. Add a matching
@@ -158,7 +253,7 @@ added to `paths.py`. Add its dependencies as a separate uv group in `pyproject.t
 `--build-arg DEPENDENCY_GROUPS="dev explain"` (`just groups="dev explain" docker-build`; for CI add the
 arg under `build-args` in the workflow).
 
-## 11. Explanations
+### Explanations
 
 `src/seqrec/explain/` holds the counterfactual-explanation part and needs the `explain` dependency
 group: `instances.py` (sampling of (history, target) pairs), `backgrounds.py` (the fills, fixed per
@@ -195,7 +290,7 @@ Unattended on vast.ai: `just vast-template sha-xxxxxxx` creates a template whose
 (default: the benchmark), e.g. `--env '-e SASREC_JOB=explain-run+--stage+main+--shard+0/4'` on
 `vastai create instance` (`+` stands for a space and `,` separates jobs: vast.ai drops values with spaces). The log is uploaded to `logs/` in the dataset when the job ends.
 
-### Article
+#### Article
 
 `report/` holds the course article (Portuguese, ACM format: `acmart` with `sigconf,nonacm`, the class
 that ships with MacTeX/TeX Live, so no template files are vendored).
@@ -226,7 +321,7 @@ dataset sizes, budgets and grids, are written in the text) and every table body 
 so `just report-figures` after re-running an experiment updates the whole article. An unknown key
 is a compile error, not a blank.
 
-### Reproducing the results
+#### Reproducing the results
 
 Fixed inputs: checkpoint `fp32/best.pt` of `AbyssWanderer/sasrec-ml20m` (checkpoint id `e37b97aa9645`),
 processed data with hash `806838bcc2ea…` (`just prepare-data`; `explain-run` warns if the hash differs),
@@ -281,7 +376,10 @@ changes with the set of methods or stages in the report (for example `main-metho
 given the seeds on one device type; results from a different GPU or from MPS can differ in the
 last digits. `exact-front.json` and the worked example were produced on a laptop (MPS).
 
-### Round 2 (response to the review): what was run and how to reproduce it
+### Additional experiments: what was run and how to reproduce it
+
+These experiments followed reviewer feedback on the course article (referred to as "round 2" in
+scripts and stage names).
 
 Launch scripts for every vast.ai machine of this round are in `vast/round2/` (offer ids and template
 hashes in them are specific to that day and account: search fresh offers and create a template with
@@ -337,7 +435,7 @@ datasets' `explanations`, `<data>` = processed data directories):
 | `search-size-profile.json` | `uv run --group explain python report/scripts/diagnostico_moead.py <ml>` (where each search spends its budget by mask size) |
 | `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
 
-## 12. References and credits
+## References and credits
 
 The model, loss and hyperparameters follow A. Klenitskiy and A. Vasilev, "Turning Dross Into Gold Loss:
 is BERT4Rec really better than SASRec?" (RecSys 2023, arXiv 2309.07602), and the original SASRec by
@@ -368,13 +466,3 @@ evaluation details; no code was copied from it.
   year    = {2015}
 }
 ```
-
-## 13. Results
-
-SASRec runs (full ranking over the catalog; the explanations use the fp32 checkpoint):
-
-| run | seed | epochs (best) | val HR@10 | val NDCG@10 | test HR@10 | test NDCG@10 | checkpoint id |
-|-----|------|---------------|-----------|-------------|------------|--------------|---------------|
-| fp32 | 42 | 49 | 0.3272 | 0.1988 | 0.2944 | 0.1806 | `e37b97aa9645` |
-
-Explanation results are in `results/` and in the article (`report/`).
