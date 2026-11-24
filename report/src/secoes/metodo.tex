@@ -13,8 +13,8 @@ seus 50 vizinhos mais próximos no espaço de \emph{embeddings} (similaridade do
 cosseno) nem os itens que o próprio usuário consumiu, para que um
 preenchimento ``neutro'' não devolva evidência a favor de $v$. O fundo
 representa um histórico qualquer, sem relação com $v$, e essa escolha define o
-que ``suficiente'' significa; por isso a testamos com duas ablações
-(Seção~\ref{sec:ablacao}).
+que ``suficiente'' significa; duas ablações dessa escolha estão no
+Apêndice~\ref{sec:ablacao}.
 
 \paragraph{Estimadores.}
 Para cada instância $(s,v)$ sorteamos uma única vez $M$ fundos, de
@@ -84,10 +84,9 @@ NSGA-II~\cite{deb2002nsga2} da pymoo~\cite{blank2020pymoo} com:
   \item eliminação de indivíduos duplicados.
 \end{itemize}
 A frente devolvida é o conjunto não dominado de \emph{todas} as máscaras que a
-execução avaliou, e não apenas a população final. O tamanho da população e $M$
-foram ajustados em usuários separados dos de avaliação
-(Seção~\ref{sec:ajuste}), e cada escolha de operador foi testada isoladamente
-(Seção~\ref{sec:operadores}).
+execução avaliou, e não apenas a população final. A população (25) e $M$ (10)
+foram ajustados em usuários separados dos de avaliação, e cada operador foi
+testado isoladamente (Apêndice~\ref{ap:ajuste}).
 
 \paragraph{Variante semeada.}
 O ranking por ablação individual (Seção~\ref{sec:base}) converge muito rápido
@@ -96,14 +95,13 @@ esse ranking gasta (cada posição sozinha e depois as $k$ melhores posições p
 $\hat N$ e por $\hat S$, no máximo $3n$ máscaras). A população inicial são as
 máscaras, entre essas, que a própria sobrevivência do NSGA-II manteria
 (ordenação não dominada e aglomeração); o restante do orçamento é o NSGA-II
-usual. Essa variante foi proposta depois da comparação principal e é
-reportada à parte (Seção~\ref{sec:semeado}).
+usual.
 
 \paragraph{Variante só com $(N,C)$.}
 Para medir o que o objetivo de suficiência acrescenta, a variante
 \textbf{NSGA-II só $(N,C)$} usa os mesmos operadores, mas a seleção vê apenas
 $\hat N$ e $C$. Sua frente continua sendo tirada das três quantidades de tudo o
-que ela avaliou, e por isso é comparável às demais (Seção~\ref{sec:valor-s}).
+que ela avaliou, e por isso é comparável às demais.
 
 \subsection{Outros algoritmos multiobjetivo}
 \label{sec:outros-moea}
@@ -125,8 +123,8 @@ usamos três outros algoritmos da pymoo~\cite{blank2020pymoo}:
         os objetivos são divididos pelos seus valores na máscara cheia (e $C$
         por $n$) antes de chegar ao algoritmo, como no AG escalarizado.
 \end{itemize}
-Cada um recebeu um pequeno ajuste nos mesmos usuários de ajuste do NSGA-II, com
-o mesmo critério (Seção~\ref{sec:ajuste}).
+Cada um recebeu um ajuste menor nos mesmos usuários de ajuste do NSGA-II
+(Apêndice~\ref{ap:ajuste}).
 
 \subsection{Linhas de base}
 \label{sec:base}
@@ -140,9 +138,9 @@ frente é o conjunto não dominado de tudo o que avaliaram.
         ou por $n$ ($C$). O orçamento é dividido igualmente entre 10 vetores de
         pesos (reticulado do simplex), uma execução por vetor, com população
         20. Ele controla os operadores, mas não só a escalarização: também
-        divide o orçamento em execuções curtas. O MOEA/D, que escalariza com
+        divide o orçamento em execuções curtas; o MOEA/D, que escalariza com
         uma população compartilhada e o orçamento inteiro, separa os dois
-        efeitos (Seção~\ref{sec:moea}).
+        efeitos.
   \item \textbf{Guloso}: sobre $\hat N + \hat S$ normalizados, inclui uma
         posição por vez a partir da máscara vazia e, com o que sobra do
         orçamento, remove uma por vez a partir da cheia.
@@ -164,15 +162,10 @@ frente é o conjunto não dominado de tudo o que avaliaram.
   \item \textbf{Enumeração}: todas as máscaras com uma ou duas posições, sem
         limite de orçamento, como referência exata para $|X|\le2$.
   \item \textbf{GECE}~\cite{scarcelli2025gece}, pela implementação do
-        TRACE~\cite{kim2026trace}, sem alterações de código e com seus
-        parâmetros padrão (população 100, taxa de mutação $0{,}1$). A condição
-        de validade passada a ele é a nossa: $v$ sair do top-10 dos candidatos,
-        com no máximo 10 posições editadas. Como o GECE edita a sequência,
-        mapeamos cada sequência que ele consulta para o conjunto de posições
-        em que ela difere do histórico, e avaliamos esses conjuntos com o
-        nosso verificador. Essa implementação para no primeiro contrafactual
-        válido; a variante \textbf{GECE com reinícios} a reinicia até gastar o
-        orçamento inteiro. Como descartamos os itens que o GECE insere, que são
-        parte da sua resposta, a comparação é ilustrativa e não de igual para
-        igual: o GECE responde a outra pergunta.
+        TRACE~\cite{kim2026trace}, sem alterações e com a nossa condição de
+        validade ($v$ fora do top-10, no máximo 10 posições editadas); cada
+        sequência que ele consulta vira o conjunto de posições em que difere
+        do histórico. A variante \textbf{com reinícios} o repete até gastar o
+        orçamento. Como o GECE também escolhe os itens inseridos, que
+        descartamos, a comparação é ilustrativa (Apêndice~\ref{ap:gece}).
 \end{itemize}

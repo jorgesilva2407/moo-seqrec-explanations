@@ -5,10 +5,14 @@
 \label{sec:resultados}
 
 Salvo indicação, os resultados são do MovieLens-20M, nas 99 instâncias do
-conjunto principal; a Seção~\ref{sec:robustez} repete as comparações centrais
-no conjunto novo de instâncias e no Zvuk.
+conjunto principal. A Figura~\ref{fig:principal}, na página~\pageref{fig:principal}, resume as três partes da
+tese: o conflito entre necessidade e suficiência (a), a vantagem dos
+algoritmos baseados em dominância nas explicações pequenas e sua repetição em
+outros dados (b) e o custo nulo, em média, de manter a suficiência como
+objetivo (c).
 
-\subsection{Necessidade e suficiência são redundantes?}
+
+\subsection{Necessidade e suficiência conflitam nas explicações pequenas}
 \label{sec:conflito}
 
 Para responder sem o viés de uma busca, usamos as máscaras das linhas de base
@@ -17,276 +21,236 @@ correlação de Spearman entre $\hat N$ e $\hat S$ \emph{entre máscaras do mesm
 tamanho}, para descontar o efeito do tamanho. Ignorando o tamanho, a correlação
 é \val{corr.overall}: máscaras maiores são melhores nos dois objetivos. Com o
 tamanho fixo, ela cai para \val{corr.size1} em máscaras de uma posição e
-\val{corr.size2} nas de duas. A Figura~\ref{fig:correlacao} mostra a correlação
-por faixa de tamanho: ela sobe de \val{corr.b1} nas máscaras com até 10\% do
-histórico para \val{corr.b3} entre 25\% e 75\%, e volta a \val{corr.b5} nas
-maiores.
+\val{corr.size2} nas de duas; por faixa (Figura~\ref{fig:principal}a), sobe de
+\val{corr.b1} nas máscaras com até 10\% do histórico para \val{corr.b3} entre
+25\% e 50\%.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{correlacao}
-\caption{Correlação de Spearman entre $\hat N$ e $\hat S$ entre máscaras de
-mesmo tamanho, por faixa de tamanho relativo (média sobre as 99 instâncias).
-Valores altos indicam que os dois objetivos ordenam as máscaras da mesma forma.}
-\label{fig:correlacao}
-\end{figure}
-
-Uma correlação baixa entre estimativas ruidosas poderia ser só ruído. Nas
-máscaras pequenas, a variação de $\hat S$ entre máscaras é apenas
-\val{snr.b1.s} vezes o desvio de uma estimativa com 10 fundos (contra
-\val{snr.b1.n} para $\hat N$), o que torna a dúvida legítima. Por isso
-reavaliamos todas as máscaras de uma posição e 300 de duas por instância com
-os 100 fundos independentes: a correlação passa de \val{m100.size1.m10} para
+Uma correlação baixa entre estimativas ruidosas poderia ser só ruído: nas
+máscaras pequenas, a variação de $\hat S$ entre máscaras é só \val{snr.b1.s}
+vezes o desvio de uma estimativa com 10 fundos. Por isso reavaliamos todas as
+máscaras de uma posição e 300 de duas por instância com os 100 fundos
+independentes. A correlação passa de \val{m100.size1.m10} para
 \val{m100.size1.m100} (uma posição) e de \val{m100.size2.m10} para
-\val{m100.size2.m100} (duas). No Zvuk, com o mesmo teste nas 45 instâncias,
-ela passa de \val{m100zv.size1.m10} para \val{m100zv.size1.m100} e de
-\val{m100zv.size2.m10} para \val{m100zv.size2.m100}. Com dez vezes mais fundos
-ela muda pouco e fica longe da das máscaras médias, nos dois conjuntos; o
-conflito entre necessidade e suficiência nas explicações pequenas é real. Uma
-correlação de 0,4 a 0,6 é uma concordância apenas moderada: os dois objetivos
-não ordenam as máscaras pequenas da mesma forma, mas também não são opostos. A
-evidência mais direta de que vale manter os três objetivos está na
-Seção~\ref{sec:valor-s}.
+\val{m100.size2.m100} (duas); no Zvuk, de \val{m100zv.size1.m10} para
+\val{m100zv.size1.m100} e de \val{m100zv.size2.m10} para
+\val{m100zv.size2.m100}. Com dez vezes mais fundos ela muda pouco e fica longe
+da das máscaras médias. É uma concordância moderada, não uma oposição: os dois
+objetivos ordenam as máscaras pequenas de formas diferentes, mas não
+contrárias. A evidência mais direta de que vale manter os dois está na
+Seção~\ref{sec:valor-s}. Máscaras pequenas e suficientes são, além disso,
+raras (Apêndice~\ref{ap:metricas}).
 
-O conflito tem uma causa visível nas probabilidades. Entre máscaras de até 10
-posições, os métodos de busca encontram alguma com $\widehat{\PN}$ perto de 1,
-mas a maior $\widehat{\PS}$ que guardam na frente fica perto de
-\val{ml.nsga2.ps} (Tabela~\ref{tab:metodos}). Nos fundos de busca, alguma
-máscara avaliada atinge $\widehat{\PS}\ge0{,}5$ em todas as instâncias, e a
-menor delas tem mediana de \val{psmin.median} posições. Mas essas máscaras são
-as melhores entre milhares, escolhidas com os mesmos 10 fundos que as medem:
-reavaliadas nos 100 fundos independentes, sua $\widehat{\PS}$ média cai de
-\val{psre.search} para \val{psre.eval}, e só \val{psre.kept}\% continuam com
-$\widehat{\PS}\ge0{,}5$. Explicações pequenas e suficientes são, portanto,
-genuinamente raras; o teto de $\widehat{\PS}$ nas frentes reflete tanto a
-definição de suficiência (Seção~\ref{sec:ablacao}) quanto as explicações.
-
-\subsection{Ajuste dos algoritmos}
-\label{sec:ajuste}
-
-Nos 30 usuários de ajuste, variamos a população do NSGA-II em
-$\{25,50,100,200\}$ e $M$ em $\{5,10,20\}$, sempre com $10^5$ passadas e 3
-sementes (Tabela~\ref{tab:ajuste}). Com o orçamento fixo, população e $M$
-maiores significam menos gerações, e o HV cai nas duas direções. Escolhemos
-população 25 e $M=10$ pelo HV. Ela é melhor que população 100 com $M=10$ em
-\val{tn.vs.all.tune-p25-m10.tune-p100-m10.wins} dos 30 usuários
-($p=\val{tn.vs.all.tune-p25-m10.tune-p100-m10.p}$); a diferença para população
-50 com $M=10$ não é significativa
-($p=\val{tn.vs.all.tune-p25-m10.tune-p50-m10.p}$). O bloco do \HVp{} quase não
-distingue as configurações (entre \val{tn.hvle.second} e \val{tn.hvle.max},
-exceto \val{tn.hvle.min} no pior canto), de modo que a escolha pelo HV não
-sacrifica a região pequena.
+\subsection{Comparação planejada}
+\label{sec:planejada}
 
 \begin{table}[t]
-\caption{Ajuste do NSGA-II nos 30 usuários de ajuste: hipervolume de todas as
-máscaras (HV) e das máscaras com até 10 posições (\HVp{}), por tamanho da
-população e número de fundos $M$. Em negrito, o melhor valor de cada bloco.
-Valores normalizados dentro desta tabela, não comparáveis com os de outras
-tabelas.}
-\label{tab:ajuste}
+\caption{Comparação planejada (99 instâncias do MovieLens-20M, frentes
+reavaliadas em $M'=100$ fundos independentes), ordenada pelo \HVp{}. Passadas:
+consultas ao SASRec usadas pela busca. AG escalarizado: (população, vetores de
+pesos). A normalização inclui as frentes da Tabela~\ref{tab:posteriores}, de
+modo que os valores das duas tabelas são comparáveis. Em negrito, o melhor
+valor desta tabela.}
+\label{tab:planejada}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lcccccc@{}}
+\begin{tabular}{@{}lcccr@{}}
 \toprule
- & \multicolumn{3}{c}{HV} & \multicolumn{3}{c}{\HVp} \\
-\cmidrule(lr){2-4}\cmidrule(l){5-7}
-População & $M=5$ & $10$ & $20$ & $M=5$ & $10$ & $20$ \\
+Método & \HVp & HV & Frente & Passadas \\
 \midrule
-\tabela{ajuste}
+\tabela{metodos-plan}
 \bottomrule
 \end{tabular}
 \end{table}
 
-Os outros três algoritmos e o AG escalarizado também foram ajustados nos
-mesmos usuários e com o mesmo critério, com menos configurações
-(Apêndice~\ref{ap:complementares}): SMS-EMOA com população 50, NSGA-III com 28
-direções, MOEA/D com decomposição de Tchebycheff e 21 direções, e, para o AG
-escalarizado, além da configuração padrão (população 20, 10 vetores), a melhor
-de cada critério.
-
-\subsection{Comparação entre métodos}
-
-\begin{table*}[t]
-\caption{Comparação nas 99 instâncias do conjunto principal (MovieLens-20M),
-com frentes reavaliadas em $M'=100$ fundos independentes, ordenada pelo \HVp{}.
-\HVp{}: hipervolume das máscaras com até 10 posições; HV: de todas as máscaras;
-IGD+: distância à frente da união de todos os métodos, máscaras de até 10
-posições (menor é melhor). Passadas: consultas ao SASRec usadas pela busca. PN
-e PS: média da maior $\widehat{\PN}$ e da maior $\widehat{\PS}$ entre máscaras
-de até 10 posições. AG escalarizado: (população, vetores de pesos).
-$\dagger$: experimentos posteriores à comparação principal.}
-\label{tab:metodos}
-\footnotesize
-\begin{tabular}{@{}lccccrcc@{}}
-\toprule
-Método & \HVp & HV & IGD+ & Tamanho da frente & Passadas & PN & PS \\
-\midrule
-\tabela{metodos}
-\bottomrule
-\end{tabular}
-\end{table*}
-
-A Tabela~\ref{tab:metodos} resume a comparação e a Tabela~\ref{tab:pares}
-traz os testes pareados que sustentam o texto. A busca aleatória, o GECE sem
-reinícios e a similaridade com o alvo ocupam o fim da tabela; a similaridade é
-a pior no \HVp{}: os itens mais parecidos com $v$ no espaço de
-\emph{embeddings} não são os que o sustentam. O quadro dos métodos de busca
-muda conforme a região da frente.
-
-\paragraph{Explicações pequenas.}
-No \HVp{}, os três algoritmos baseados em dominância são os melhores: o
-SMS-EMOA (\val{ml.smsemoa.hvle}) supera o NSGA-II em
-\val{ml.pair.nsga2.smsemoa.le.losses} das 99 instâncias, e o NSGA-III
-(\val{ml.nsga3.hvle}) em \val{ml.pair.nsga2.nsga3.le.losses}, com diferenças
-pequenas mas consistentes. O NSGA-II (\val{ml.nsga2.hvle}) supera o guloso em
-\val{ml.pair.greedy.nsga2.le.losses}, o Shapley em
-\val{ml.pair.nsga2.shapley.le.wins}, o AG escalarizado em
-\val{ml.pair.nsga2.scalar-ga.le.wins} e o MOEA/D em
-\val{ml.pair.nsga2.moead.le.wins}. O IGD+ ordena os métodos da mesma forma
-(\val{ml.smsemoa.igdle} para o SMS-EMOA, \val{ml.nsga2.igdle} para o NSGA-II,
-\val{ml.greedy.igdle} para o guloso).
+A Tabela~\ref{tab:planejada} traz os métodos previstos na proposta. Nas
+explicações pequenas, o NSGA-II (\HVp{} de \val{ml.nsga2.hvle}) é o melhor
+deles: supera o guloso em \val{ml.pair.greedy.nsga2.le.losses} das 99
+instâncias e o AG escalarizado, que usa os mesmos operadores, em
+\val{ml.pair.nsga2.scalar-ga.le.wins} (Tabela~\ref{tab:pares}). A busca
+aleatória, o GECE e a similaridade com o alvo ocupam o fim da tabela. O GECE
+sempre encontra um contrafactual válido (\val{gece.valid} de \val{gece.jobs}
+execuções), mas para depois de \val{gece.queries} consultas em média; com
+reinícios até o orçamento completo, fica perto da linha de base de recência
+(Apêndice~\ref{ap:gece}).
 
 \paragraph{Todas as máscaras.}
-No HV sem limite de tamanho a ordem se inverte no MovieLens (no Zvuk, não;
-Seção~\ref{sec:robustez}): o guloso supera o NSGA-II em
-\val{ml.pair.greedy.nsga2.all.wins} das 99 instâncias, e o Shapley em
-\val{ml.pair.nsga2.shapley.all.losses}. O ranking por ablação fica perto do
-guloso usando \val{ml.ablation.passes} passadas, menos de 5\% do orçamento. A
-razão é estrutural: esses métodos percorrem todos os tamanhos de $1$ a $n$,
-enquanto os algoritmos evolutivos, com inicialização esparsa, concentram a
-busca nas máscaras pequenas. Como $\hat N$ e $\hat S$ concordam nas máscaras
-grandes (Seção~\ref{sec:conflito}), ali uma ordenação das posições já basta.
-
-\paragraph{Recência.}
-Os itens escolhidos pelo NSGA-II em máscaras pequenas têm posição relativa
-média de \val{ml.nsga2.recency}: as explicações se concentram no fim do
-histórico, como o GECE já havia observado~\cite{scarcelli2025gece}. Ainda
-assim, tomar apenas as $k$ posições mais recentes rende \HVp{} de
-\val{ml.recency.hvle}, bem abaixo dos métodos de busca: a recência indica onde
-procurar, mas não quais itens escolher. O \HVp{} do NSGA-II varia pouco com a
-popularidade do alvo (\val{ml.nsga2.pop.low}, \val{ml.nsga2.pop.mid} e
-\val{ml.nsga2.pop.high} nos tercis de baixa, média e alta popularidade).
+No HV, a métrica prevista na proposta, a ordem se inverte: o guloso supera o NSGA-II em
+\val{ml.pair.greedy.nsga2.all.wins} das 99 instâncias, e o ranking por
+ablação fica perto dele usando \val{ml.ablation.passes} passadas, menos de 5\%
+do orçamento. A razão é estrutural: esses métodos percorrem todos os tamanhos
+de $1$ a $n$, enquanto o NSGA-II, com inicialização esparsa, concentra a busca
+nas máscaras pequenas. Como $\hat N$ e $\hat S$ concordam nas máscaras grandes,
+ali uma ordenação das posições já basta.
 
 \begin{table*}[t]
-\caption{Comparações pareadas escolhidas para responder a perguntas específicas
-(99 instâncias do conjunto principal). ``A $>$ B'': A é melhor que B na métrica indicada; Vitórias: em
+\caption{Comparações pareadas (99 instâncias do conjunto principal). Acima, pares
+da comparação planejada; abaixo, pares com experimentos posteriores
+($\dagger$). ``A $>$ B'': A é melhor que B na métrica indicada; Vitórias: em
 quantas instâncias; Diferença: média de A $-$ B com intervalo de 95\% por
 \emph{bootstrap} sobre instâncias; $r$: correlação bisserial de postos
-pareada; $p$: teste de Wilcoxon com correção de Holm sobre todos os pares da
-família.}
+pareada; $p$: teste de Wilcoxon com correção de Holm, por métrica, sobre todos
+os pares da família (inclusive alguns não mostrados). Os pares foram definidos
+depois das execuções.}
 \label{tab:pares}
 \footnotesize
 \begin{tabular}{@{}llrlrr@{}}
 \toprule
 Comparação & Métrica & Vitórias & Diferença [IC 95\%] & $r$ & $p$ (Holm) \\
 \midrule
-\tabela{pares}
+\tabela{pares-plan}
+\midrule
+\tabela{pares-pos}
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\subsection{Multiobjetivo ou escalarização?}
-\label{sec:moea}
+\subsection{Experimentos posteriores}
+\label{sec:posteriores}
 
+\begin{table}[t]
+\caption{Experimentos posteriores à comparação planejada ($\dagger$), nas
+mesmas 99 instâncias e com a mesma normalização da
+Tabela~\ref{tab:planejada}; o NSGA-II é repetido como referência. Repetido em:
+cenários da Seção~\ref{sec:robustez} em que o método também rodou. Em negrito,
+o melhor valor desta tabela.}
+\label{tab:posteriores}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccrl@{}}
+\toprule
+Método & \HVp & HV & Frente & Passadas & Repetido em \\
+\midrule
+\tabela{metodos-pos}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Outros algoritmos multiobjetivo.}
+Os três algoritmos baseados em dominância são os melhores nas explicações
+pequenas (Tabela~\ref{tab:posteriores}): o SMS-EMOA (\val{ml.smsemoa.hvle})
+supera o NSGA-II em \val{ml.pair.nsga2.smsemoa.le.losses} das 99 instâncias, e
+o NSGA-III (\val{ml.nsga3.hvle}) em \val{ml.pair.nsga2.nsga3.le.losses}, com
+diferenças pequenas mas consistentes. O MOEA/D, que escalariza, perde para o
+NSGA-II no \HVp{} em \val{ml.pair.nsga2.moead.le.wins} das 99.
+
+\paragraph{Dominância ou escalarização?}
 A comparação com o AG escalarizado tem um confundimento: ele escalariza, mas
-também divide o orçamento em dez execuções curtas. O MOEA/D separa os dois
-efeitos, porque escalariza com uma população compartilhada e o orçamento
-inteiro. No HV de todas as máscaras ele de fato supera o AG escalarizado
-(\val{ml.pair.moead.scalar-ga.all.wins} de 99 instâncias), o que mostra que
-dividir o orçamento custa. Mas nas explicações pequenas o MOEA/D é muito pior
-que o AG escalarizado (perde em \val{ml.pair.moead.scalar-ga.le.losses} de
-99) e que qualquer algoritmo baseado em dominância. As configurações ajustadas
-do AG escalarizado não mudam o quadro: a que tem o maior HV (população 10, 6
-vetores) perde para o NSGA-II no \HVp{} em todas as instâncias, e a de maior
-\HVp{} (população 25, 15 vetores) perde em
-\val{ml.pair.nsga2.sga-p25-d4.le.wins} de 99. A vantagem nas explicações
-pequenas não vem apenas de manter uma população com o orçamento inteiro, e a
-explicação mais simples é a seleção por dominância de Pareto. O isolamento é só
-parcial: o MOEA/D também difere do NSGA-II na vizinhança de acasalamento, na
-regra de substituição e na normalização dos objetivos.
+também divide o orçamento em dez execuções curtas. O MOEA/D escalariza com uma
+população compartilhada e o orçamento inteiro. No HV ele supera o AG
+escalarizado (\val{ml.pair.moead.scalar-ga.all.wins} de 99), o que mostra que
+dividir o orçamento custa; mas no \HVp{} perde para ele em
+\val{ml.pair.moead.scalar-ga.le.losses} de 99. As configurações ajustadas do
+AG escalarizado não mudam o quadro: a de maior \HVp{} (população 25, 15
+vetores) perde para o NSGA-II em \val{ml.pair.nsga2.sga-p25-d4.le.wins} de 99.
+A vantagem nas explicações pequenas não vem apenas de usar o orçamento inteiro
+com uma população, e a explicação mais simples é a seleção por dominância. O
+isolamento é só parcial: o MOEA/D também difere na vizinhança de acasalamento,
+na regra de substituição e na normalização dos objetivos. Além disso, com
+pesos uniformes no simplex, a maioria das direções favorece $N$ e $S$, que
+melhoram com o tamanho: só \val{size.moead.le10}\% das máscaras que o MOEA/D
+avalia têm até 10 posições, contra \val{size.nsga2.le10}\% no NSGA-II. Pesos
+concentrados no tamanho provavelmente o ajudariam; não testamos.
 
-O uso do orçamento mostra o que acontece com o MOEA/D. Ele parte da mesma
-população esparsa (mediana de \val{size.moead.first} posições na primeira
-geração, como os demais), mas só \val{size.moead.le10}\% das máscaras que
-avalia têm até 10 posições, contra \val{size.nsga2.le10}\% no NSGA-II e
-\val{size.smsemoa.le10}\% no SMS-EMOA; a máscara mediana que ele avalia cobre
-\val{size.moead.median}\% do histórico (\val{size.nsga2.median}\% no NSGA-II).
-Com vetores de pesos espalhados uniformemente no simplex, a maior parte das
-direções favorece $N$ e $S$, que melhoram com o tamanho, e a população migra
-para máscaras grandes. Pesos concentrados no tamanho provavelmente ajudariam o
-MOEA/D nas explicações pequenas; não testamos, e o resultado deve ser lido como
-o do MOEA/D com pesos uniformes, uma configuração possivelmente desfavorável.
+\paragraph{Shapley.}
+Os valores de Shapley estimados por amostragem são a melhor referência de
+atribuição: superam o NSGA-II no HV (\val{ml.pair.nsga2.shapley.all.losses}
+de 99), mas perdem no \HVp{} em \val{ml.pair.nsga2.shapley.le.wins} de 99. Uma
+ordenação das posições por contribuição média não acha as combinações pequenas
+que a busca acha.
 
-\subsection{NSGA-II semeado}
+\paragraph{O que o objetivo de suficiência acrescenta.}
+\label{sec:valor-s}
+O NSGA-II com os três objetivos supera a variante que vê só $(N,C)$ em
+\val{ml.pair.nsga2.nsga2-nc.all.wins} das 99 instâncias no HV e em
+\val{ml.pair.nsga2.nsga2-nc.le.wins} no \HVp{}, o que era esperado, porque o
+hipervolume conta $S$. A pergunta relevante é se incluir $S$ custa algo nos
+outros dois objetivos: na projeção $(N,C)$ das máscaras de até 10 posições, o
+hipervolume médio das duas variantes é praticamente igual
+(\val{ml.nsga2.hvlenc} contra \val{ml.nsga2-nc.hvlenc};
+Figura~\ref{fig:principal}c). O terceiro objetivo acrescenta as máscaras
+suficientes sem piorar, em média, necessidade e tamanho. Essa igualdade é uma
+comparação de médias, sem teste pareado, e a variante só $(N,C)$ não foi
+repetida nos outros cenários.
+
+\paragraph{NSGA-II semeado.}
 \label{sec:semeado}
-
 O resultado de todas as máscaras sugere a correção: dar ao NSGA-II, de saída,
 o que o ranking por ablação encontra. Nos usuários de ajuste, a variante
 semeada melhora o HV em \val{seedtune.all.wins} dos 30
 ($p=\val{seedtune.all.p}$) sem diferença significativa no \HVp{}
-($p=\val{seedtune.le.p}$). Nas 99 instâncias ela passa a ter o maior HV
-(\val{ml.nsga2-seeded.hv}): supera o guloso em
-\val{ml.pair.nsga2-seeded.greedy.all.wins}, o Shapley em
-\val{ml.vs.all.nsga2-seeded.shapley.wins} e o NSGA-II original em
-\val{ml.pair.nsga2-seeded.nsga2.all.wins}. Há um custo nas explicações
+($p=\val{seedtune.le.p}$). Nas 99 instâncias ela tem o maior HV
+(\val{ml.nsga2-seeded.hv}) e supera o guloso em
+\val{ml.pair.nsga2-seeded.greedy.all.wins}. Há um custo nas explicações
 pequenas: o NSGA-II original é melhor no \HVp{} em
-\val{ml.pair.nsga2-seeded.nsga2.le.losses} das 99 instâncias (diferença média
-\val{ml.pair.nsga2-seeded.nsga2.le.diff}, IC
-\val{ml.pair.nsga2-seeded.nsga2.le.ci}). A causa é visível no uso do orçamento:
-o NSGA-II original gasta \val{seedcost.nsga2}\% das avaliações em máscaras de
-até 10 posições, e o semeado só \val{seedcost.seeded}\%, porque parte da sua
-população inicial são máscaras grandes. No \HVp{}, a variante semeada e o
-guloso não se distinguem ($p=\val{ml.pair.nsga2-seeded.greedy.le.p}$).
+\val{ml.pair.nsga2-seeded.nsga2.le.losses} das 99 (diferença semeado $-$ original de
+\val{ml.pair.nsga2-seeded.nsga2.le.diff}), porque o semeado gasta só
+\val{seedcost.seeded}\% das avaliações em máscaras de até 10 posições, contra
+\val{seedcost.nsga2}\% do original. No \HVp{}, a variante semeada e o
+guloso não se distinguem ($p=\val{ml.pair.nsga2-seeded.greedy.le.p}$): a
+vantagem dos algoritmos baseados em dominância nas explicações pequenas vale
+para eles sem semeadura. As curvas de convergência estão no
+Apêndice~\ref{ap:convergencia}.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{convergencia}
-\caption{Hipervolume em função do número de máscaras avaliadas (fundos de
-busca, média sobre instâncias e sementes), para máscaras de até 10 posições e
-de todos os tamanhos. O orçamento completo são 5\,000 máscaras.}
-\label{fig:convergencia}
-\end{figure}
+\subsection{Confirmação em instâncias novas e no Zvuk}
+\label{sec:robustez}
 
-A Figura~\ref{fig:convergencia} mostra a busca ao longo do orçamento. O NSGA-II
-semeado parte da curva do ranking por ablação e continua a subir; o NSGA-II
-original e o SMS-EMOA ultrapassam o guloso na região pequena entre mil e
-2\,500 máscaras; o AG escalarizado só se aproxima no fim, quando já rodou a
-maior parte dos seus vetores de pesos.
+\begin{table}[t]
+\caption{Confirmação dos resultados com os métodos centrais: as 99 instâncias
+principais do MovieLens-20M, 99 instâncias novas (usuários disjuntos do
+principal e do ajuste, 3 sementes) e 45 instâncias do Zvuk. Em negrito, o
+melhor valor de cada coluna; os hipervolumes são normalizados em cada cenário e
+não são comparáveis entre colunas. --: não rodado.}
+\label{tab:robustez}
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+ & \multicolumn{3}{c}{\HVp} & \multicolumn{3}{c}{HV} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Método & Princ. & Novo & Zvuk & Princ. & Novo & Zvuk \\
+\midrule
+\tabela{robustez}
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{O que o objetivo de suficiência acrescenta}
-\label{sec:valor-s}
+Os experimentos posteriores foram decididos com conhecimento dos resultados
+principais. Para verificá-los, repetimos os métodos centrais em dados que não
+entraram em nenhuma decisão (Tabela~\ref{tab:robustez} e
+Figura~\ref{fig:principal}b); para os resultados obtidos antes desses dados
+(comparação planejada e NSGA-II semeado), é uma confirmação posterior, e para
+o SMS-EMOA e o MOEA/D, uma replicação simultânea
+(Seção~\ref{sec:posthoc}). No \textbf{conjunto novo} do MovieLens, todas as
+conclusões testadas se mantêm: o SMS-EMOA é o melhor no \HVp{} (supera o NSGA-II
+em \val{rd.pair.nsga2.smsemoa.le.losses} de 99), o NSGA-II supera o guloso em
+\val{rd.pair.greedy.nsga2.le.losses} e o AG escalarizado em
+\val{rd.pair.nsga2.scalar-ga.le.wins}, o MOEA/D perde para o AG escalarizado
+no \HVp{} em \val{rd.pair.moead.scalar-ga.le.losses}, e o NSGA-II semeado é o
+melhor no HV (supera o guloso em \val{rd.pair.nsga2-seeded.greedy.all.wins})
+com a mesma pequena perda no \HVp{} (diferença
+\val{rd.pair.nsga2-seeded.nsga2.le.diff}) e de novo sem se distinguir do
+guloso nessa região ($p=\val{rd.pair.nsga2-seeded.greedy.le.p}$).
 
-O NSGA-II com os três objetivos supera a variante que vê só $(N,C)$ nos dois
-critérios: em \val{ml.pair.nsga2.nsga2-nc.all.wins} das 99 instâncias no HV e
-em \val{ml.pair.nsga2.nsga2-nc.le.wins} no \HVp{}. Isso era esperado, porque
-o hipervolume conta $S$. A pergunta relevante é se incluir $S$ custa algo nos
-outros dois objetivos: medido só na projeção $(N,C)$ das máscaras de até 10
-posições, o hipervolume das duas variantes é praticamente igual
-(\val{ml.nsga2.hvlenc} contra \val{ml.nsga2-nc.hvlenc}). Ou seja, o terceiro
-objetivo não piora as explicações em necessidade e tamanho, e acrescenta as
-máscaras suficientes que a busca só por $(N,C)$ não guarda. Essa é a
-justificativa mais forte para o terceiro objetivo.
+No \textbf{Zvuk}, com outro modelo e outro domínio, o padrão nas explicações
+pequenas se repete: o SMS-EMOA é o melhor no \HVp{} (supera o NSGA-II em
+\val{zv.pair.nsga2.smsemoa.le.losses} de 45), o NSGA-II supera o guloso em
+\val{zv.pair.greedy.nsga2.le.losses} e o AG escalarizado em
+\val{zv.pair.nsga2.scalar-ga.le.wins}, e o NSGA-II semeado tem o maior HV
+(supera o guloso em \val{zv.pair.nsga2-seeded.greedy.all.wins} de 45). Já a
+inversão no HV não se repete: o guloso supera o NSGA-II em só
+\val{zv.pair.greedy.nsga2.all.wins} de 45 instâncias
+($p=\val{zv.pair.greedy.nsga2.all.p}$), provavelmente porque nesse conjunto o
+último item concentra a maior parte do sinal (Apêndice~\ref{ap:treino}). Com
+o segundo melhor modelo do Zvuk, em 15 instâncias, o melhor método de cada
+região é o mesmo (Apêndice~\ref{ap:zvuk-alt}).
 
-\paragraph{Estudos complementares.}
-Dois estudos estão no Apêndice~\ref{ap:complementares}. No dos operadores, a
-inicialização esparsa é a escolha que mais pesa (sem ela o \HVp{} cai de
-\val{op.tune-p25-m10.hvle} para \val{op.op-init-uniform.hvle}), seguida do
-cruzamento. Nas ablações da distribuição de fundo, explicações encontradas com
-trechos de históricos de outros usuários continuam boas com fundos de
-popularidade, mas as encontradas removendo itens (\emph{padding}) não se
-transferem para a substituição.
+A confirmação cobre os métodos centrais. O NSGA-III, o Shapley, a variante só
+$(N,C)$ e o GECE rodaram só no conjunto principal, e as conclusões que dependem
+deles (em particular a da Seção~\ref{sec:valor-s}) continuam sendo de uma
+única amostra.
 
 \subsection{Verificação contra a frente exata}
 \label{sec:exata}
-
-Nos históricos do experimento, a frente verdadeira é desconhecida. Todo
-usuário do MovieLens-20M tem ao menos 19 itens antes do item de teste, de modo
-que nenhum histórico real é curto o bastante para ser enumerado. Para medir o
-quanto as buscas se aproximam da frente exata, usamos como histórico apenas os
-16 itens mais recentes de \val{exact.instances} usuários, com os mesmos
-candidatos, a mesma regra de sorteio do alvo e os mesmos fundos. Isso deixa
-\val{exact.masks} máscaras por instância, todas avaliadas; a frente exata tem
-em média \val{exact.front} máscaras.
 
 \begin{table}[t]
 \caption{Buscas contra a frente exata em \val{exact.instances} históricos de
@@ -304,94 +268,18 @@ Método & 250 & 500 & 1\,000 & 2\,500 \\
 \end{tabular}
 \end{table}
 
-A Tabela~\ref{tab:exata} mostra o resultado. Com 2\,500 máscaras (4\% do
-espaço), os quatro algoritmos multiobjetivo atingem de
-\val{exact.moead.2500.hv}\% a \val{exact.smsemoa.2500.hv}\% do hipervolume
-exato e encontram de \val{exact.moead.2500.found}\% a
-\val{exact.smsemoa.2500.found}\% das máscaras da frente. A busca aleatória com
-o mesmo orçamento encontra só \val{exact.random.2500.found}\% da frente, e o
-guloso, rápido no início, estaciona em \val{exact.greedy.2500.found}\% porque é
-determinístico e termina cedo. Em históricos enumeráveis, portanto, as buscas
-evolutivas convergem para a frente exata com uma fração pequena do espaço.
-Nada garante o mesmo com $n$ até 128, em que o orçamento cobre uma fração
-ínfima de $2^n$.
-
-\subsection{Shapley e GECE}
-
-\paragraph{Shapley.}
-Os valores de Shapley estimados por amostragem são a melhor referência de
-atribuição: superam o ranking por ablação nos dois critérios
-(\val{ml.pair.shapley.ablation.all.wins} de 99 instâncias no HV) e são o
-segundo melhor método no HV de todas as máscaras. Nas explicações pequenas,
-porém, o NSGA-II os supera em \val{ml.pair.nsga2.shapley.le.wins} de 99: uma
-ordenação das posições por contribuição média não acha as combinações pequenas
-que a busca acha.
-
-\paragraph{GECE.}
-Como distribuído no TRACE, o GECE sempre encontra um contrafactual válido
-(\val{gece.valid} de \val{gece.jobs} execuções) e para depois de
-\val{gece.queries} consultas em média; com tão poucas máscaras avaliadas, sua
-frente fica entre as piores. Com reinícios até o orçamento completo, ele sobe
-para perto da linha de base de recência e continua abaixo do AG escalarizado
-padrão no \HVp{}. A resposta que o GECE devolve muda uma única posição em
-\val{gece.single}\% das execuções. Avaliadas com fundos novos, essas posições
-têm $\widehat{\PN}$ média de \val{gece.pn}, e só \val{gece.necessary}\% delas
-são necessárias pelo nosso critério ($\widehat{\PN}>0{,}5$): em mais da metade
-dos casos, o contrafactual do GECE depende do item específico que ele inseriu,
-e não da posição editada. Isso não é um defeito do GECE, que responde a outra
-pergunta (``que edição muda a recomendação?''); mostra que as duas formulações
-não são intercambiáveis, e por isso tratamos essa comparação como ilustrativa.
-
-\subsection{Robustez: outras instâncias e outro conjunto de dados}
-\label{sec:robustez}
-
-\begin{table*}[t]
-\caption{Os métodos centrais em quatro cenários: as 99 instâncias principais
-do MovieLens-20M, 99 instâncias novas (usuários disjuntos do principal e do
-ajuste, 3 sementes), 45 instâncias do Zvuk e 15 instâncias do Zvuk explicadas
-com o segundo melhor modelo da busca de hiperparâmetros. Em negrito, o melhor
-valor de cada coluna entre os métodos listados; os hipervolumes são
-normalizados em cada cenário e não são comparáveis entre colunas. --: não
-rodado.}
-\label{tab:robustez}
-\footnotesize
-\begin{tabular}{@{}lcccccccc@{}}
-\toprule
- & \multicolumn{4}{c}{\HVp} & \multicolumn{4}{c}{HV} \\
-\cmidrule(lr){2-5}\cmidrule(l){6-9}
-Método & ML princ. & ML novo & Zvuk & Zvuk alt. & ML princ. & ML novo & Zvuk & Zvuk alt. \\
-\midrule
-\tabela{robustez}
-\bottomrule
-\end{tabular}
-\end{table*}
-
-Os resultados centrais foram obtidos em uma única amostra de 99 instâncias e
-em um único recomendador. A Tabela~\ref{tab:robustez} repete as comparações em
-três cenários. No \textbf{conjunto novo} de instâncias do MovieLens, todas as
-conclusões se mantêm: o SMS-EMOA é o melhor nas explicações pequenas (supera o
-NSGA-II em \val{rd.pair.nsga2.smsemoa.le.losses} de 99), o NSGA-II supera o
-guloso em \val{rd.pair.greedy.nsga2.le.losses} e o AG escalarizado em
-\val{rd.pair.nsga2.scalar-ga.le.wins}, o MOEA/D perde para o AG escalarizado
-no \HVp{} em \val{rd.pair.moead.scalar-ga.le.losses}, e o NSGA-II semeado é o
-melhor no HV (supera o guloso em \val{rd.pair.nsga2-seeded.greedy.all.wins})
-com a mesma pequena perda no \HVp{} (diferença
-\val{rd.pair.nsga2-seeded.nsga2.le.diff}, IC
-\val{rd.pair.nsga2-seeded.nsga2.le.ci}).
-
-No \textbf{Zvuk}, com um modelo e um domínio diferentes, o padrão se repete:
-o SMS-EMOA é o melhor no \HVp{} (supera o NSGA-II em
-\val{zv.pair.nsga2.smsemoa.le.losses} de 45), o NSGA-II supera o guloso em
-\val{zv.pair.greedy.nsga2.le.losses} e o AG escalarizado em
-\val{zv.pair.nsga2.scalar-ga.le.wins}, e o NSGA-II semeado tem o maior HV
-(supera o guloso em \val{zv.pair.nsga2-seeded.greedy.all.wins} de 45). No Zvuk
-o guloso não supera o NSGA-II no HV, provavelmente porque nesse conjunto o
-último item concentra a maior parte do sinal (Apêndice~\ref{ap:treino}). Com o
-\textbf{segundo melhor modelo} da busca de hiperparâmetros, em 15 instâncias, o
-melhor método de cada região é o mesmo (o SMS-EMOA no \HVp{}, o NSGA-II semeado
-no HV) e os algoritmos baseados em dominância continuam acima do guloso, do AG
-escalarizado e do ranking por ablação nas explicações pequenas; a ordem do meio
-da tabela muda, e 15 instâncias não bastam para resolvê-la.
+Nos históricos reais a frente verdadeira é desconhecida (todo usuário do
+MovieLens-20M tem ao menos 19 itens antes do de teste). Para medir o quanto as
+buscas se aproximam dela, usamos como histórico os 16 itens mais recentes de
+\val{exact.instances} usuários, com os mesmos candidatos e fundos, e
+enumeramos as \val{exact.masks} máscaras de cada instância
+(Tabela~\ref{tab:exata}). Com 2\,500 máscaras (4\% do espaço), os quatro
+algoritmos multiobjetivo atingem de \val{exact.moead.2500.hv}\% a
+\val{exact.smsemoa.2500.hv}\% do hipervolume exato e encontram de
+\val{exact.moead.2500.found}\% a \val{exact.smsemoa.2500.found}\% das
+máscaras da frente; a busca aleatória encontra só
+\val{exact.random.2500.found}\%, e o guloso, determinístico, estaciona em
+\val{exact.greedy.2500.found}\%. Nada garante o mesmo com $n$ até 128.
 
 \subsection{Um exemplo}
 
@@ -420,17 +308,14 @@ tabela.}
 \label{fig:exemplo}
 \end{figure}
 
-A Tabela~\ref{tab:exemplo} mostra uma explicação da frente do NSGA-II.
-Substituir esses quatro filmes tira \emph{Full Metal Jacket} do top-10 em
-\val{ex.pnpct}\% dos fundos, e mantê-los sozinhos o sustenta em
-\val{ex.pspct}\%. A melhor explicação de um único item (o filme mais recente,
-\emph{Reservoir Dogs}) é necessária em \val{ex.single.pnpct}\% dos fundos, mas
+Substituir os quatro filmes da Tabela~\ref{tab:exemplo} tira \emph{Full Metal
+Jacket} do top-10 em \val{ex.pnpct}\% dos fundos, e mantê-los sozinhos o
+sustenta em \val{ex.pspct}\%. A melhor explicação de um único item (o filme
+mais recente) é necessária em \val{ex.single.pnpct}\% dos fundos, mas
 suficiente em apenas \val{ex.single.pspct}\%. A Figura~\ref{fig:exemplo}
-mostra o que uma resposta única esconderia. Os dois pontos claros no alto, à
-direita, são máscaras de uma e de duas posições que derrubam a recomendação em
-média ($\hat N<0$) mas têm $\hat S>0$, isto é, não a sustentam sozinhas. À
-medida que a máscara cresce (pontos mais escuros), as soluções descem e vão
-para a esquerda, avançando nos dois objetivos ao mesmo tempo; a explicação da
-Tabela~\ref{tab:exemplo} está no meio desse caminho, com apenas quatro
-posições. Uma frente oferece essas alternativas lado a lado; não avaliamos com
-usuários se isso ajuda quem lê a explicação.
+mostra o que uma resposta única esconderia: máscaras de uma e duas posições
+derrubam a recomendação em média ($\hat N<0$) mas não a sustentam sozinhas
+($\hat S>0$); à medida que a máscara cresce (pontos mais escuros), as soluções
+avançam nos dois objetivos, e a explicação da tabela fica no meio desse
+caminho. Não avaliamos com usuários se ver essas alternativas lado a lado
+ajuda quem lê a explicação.

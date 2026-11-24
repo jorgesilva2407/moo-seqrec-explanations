@@ -50,18 +50,18 @@
 
 \begin{abstract}
 Explicamos uma recomendação sequencial por conjuntos de posições do histórico
-que são necessários (trocá-los tira o item da lista), suficientes (mantê-los
-basta) e pequenos, e buscamos a frente de Pareto desses três objetivos com
-algoritmos evolutivos multiobjetivo, estimando necessidade e suficiência por
-Monte Carlo. No MovieLens-20M, sob o mesmo orçamento de consultas a um SASRec,
-os algoritmos baseados em dominância de Pareto (NSGA-II, NSGA-III, SMS-EMOA)
-são os melhores para explicações de até 10 itens, à frente do MOEA/D, de um
-algoritmo genético escalarizado, de um guloso, de valores de Shapley e do GECE;
-em todos os tamanhos, o guloso e o Shapley superam o NSGA-II, a menos que ele
-seja semeado com um ranking por ablação. A comparação dos métodos centrais se
-repete em 99 instâncias novas e em um segundo conjunto de dados (Zvuk), onde o
-NSGA-II também supera o guloso em todos os tamanhos. Incluir a suficiência como
-objetivo não piora as explicações em necessidade e tamanho.
+necessários (trocá-los tira o item da lista), suficientes (mantê-los
+basta) e pequenos, tratados como objetivos separados de um problema
+multiobjetivo resolvido por algoritmos evolutivos que só consultam
+os escores de um SASRec. No MovieLens-20M, necessidade e suficiência
+concordam apenas moderadamente entre explicações pequenas; sob o mesmo
+orçamento de consultas, os algoritmos baseados em dominância de Pareto
+(NSGA-II, NSGA-III, SMS-EMOA) encontram explicações de até 10 itens melhores que a busca escalarizada, um
+guloso, valores de Shapley e o GECE; e manter a suficiência como objetivo não
+piora, em média, necessidade e tamanho. Com explicações de todos os tamanhos, o guloso
+supera o NSGA-II no MovieLens, a menos que este seja semeado com um ranking por ablação. Parte
+das comparações foi decidida após os primeiros resultados; as dos métodos
+centrais se repetem em 99 instâncias novas e no Zvuk.
 \end{abstract}
 
 \maketitle

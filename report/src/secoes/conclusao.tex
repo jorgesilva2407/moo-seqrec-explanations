@@ -1,74 +1,39 @@
 %% ---- 7. Discussão e Conclusão -----------------------------------------------
-\section{Discussão e Limitações}
+\section{Discussão e Conclusão}
 
-\paragraph{O que a hipótese previa e o que ocorreu.}
-A proposta previa que uma busca multiobjetivo cobriria uma frente mais ampla
-que o mesmo orçamento gasto em buscas escalarizadas. Entre explicações
-pequenas isso se confirmou contra todas as linhas de base e nos três cenários
-da Seção~\ref{sec:robustez},
-e o MOEA/D indica que a vantagem vem da seleção por dominância, não só de usar
-uma população com o orçamento inteiro, embora esse isolamento seja parcial. Em
-todos os tamanhos, no MovieLens, os algoritmos evolutivos, que concentram a
-busca nas máscaras pequenas, perdem para métodos que percorrem todos os
-tamanhos; só a variante semeada, posterior à comparação principal, vence ali.
-No Zvuk, cujo sinal está concentrado no último item, o NSGA-II já vence o
-guloso também em todos os tamanhos. O risco apontado na proposta, de $N$ e $S$ serem quase
-redundantes, se confirmou nas máscaras grandes e é o que torna os métodos
-simples tão fortes ali; nas pequenas, o conflito resistiu a dez vezes mais
-fundos.
+Formulamos a explicação contrafactual de uma recomendação sequencial como a
+busca de conjuntos de posições do histórico sob três objetivos (necessidade,
+suficiência e tamanho), estimados por intervenções com fundos fixos, e a
+resolvemos com algoritmos evolutivos multiobjetivo sobre máscaras binárias. A
+proposta previa que uma busca multiobjetivo cobriria uma frente melhor que o
+mesmo orçamento gasto em buscas escalarizadas, e apontava como risco que $N$ e
+$S$ fossem quase redundantes. As duas coisas ocorreram, em regiões diferentes.
+Nas explicações pequenas, $N$ e $S$ concordam só moderadamente, os algoritmos
+baseados em dominância de Pareto são os melhores métodos, contra a busca
+escalarizada, o guloso, o Shapley e o GECE, e manter $S$ como objetivo não
+custa, em média, nada em necessidade e tamanho. Nas máscaras grandes, $N$ e
+$S$ quase coincidem, e métodos que percorrem todos os tamanhos vencem o NSGA-II
+original no MovieLens; só a variante semeada, posterior à comparação
+planejada, vence ali. As conclusões dos métodos centrais se repetem em
+instâncias novas e no Zvuk.
 
 \paragraph{Limitações.}
 (i)~Não há avaliação com usuários: mostramos que as frentes contêm explicações
-pequenas, necessárias e às vezes suficientes, mas não que uma frente seja mais
-útil a quem a lê do que uma resposta única. (ii)~Dois recomendadores, ambos
-SASRec; a concentração das explicações nos itens recentes é uma propriedade
-desses modelos e pode não se repetir em outras arquiteturas. (iii)~A
-distribuição de fundo define o que ``suficiente'' significa; a ablação com
-\emph{padding} mostra que a escolha muda as explicações, e explicações
-pequenas que sejam suficientes nesse sentido são raras. (iv)~O hipervolume é normalizado pelos
-extremos das frentes comparadas em cada instância, de modo que valores de
-tabelas diferentes não são comparáveis entre si; o IGD+ e os testes pareados
-ordenam os métodos da mesma forma. (v)~A comparação com a frente exata usa
-históricos truncados em 16 itens; nos históricos reais só a enumeração de
-$|X|\le2$ é exata. (vi)~Vários experimentos foram decididos depois da
-comparação principal (marcados com $\dagger$ na Tabela~\ref{tab:metodos});
-todos os seus parâmetros foram escolhidos nos usuários de ajuste, e as
-conclusões se repetem em instâncias e dados que não existiam quando foram
-decididos, mas não deixam de ser escolhas feitas com conhecimento dos
-resultados. (vii)~Ao mapear o GECE para posições, descartamos os itens que ele
-inseriu, que são parte da sua resposta. (viii)~No Zvuk, os números do
-recomendador não são comparáveis aos publicados, que usam outro protocolo
-(Apêndice~\ref{ap:treino}). (ix)~O esforço de ajuste foi desigual: 12
-configurações para o NSGA-II e de duas a quatro para os demais algoritmos. Isso
-desfavorece os outros algoritmos, mas, como os três melhores diferem por menos
-de $0{,}01$ de \HVp{}, o ajuste poderia mudar a ordem entre eles. O MOEA/D só
-foi testado com pesos uniformes, e a robustez em outras instâncias e no Zvuk
-cobre apenas os métodos centrais (NSGA-III, Shapley e GECE não foram
-repetidos).
+pequenas, necessárias e às vezes suficientes, não que uma frente seja mais útil
+a quem a lê do que uma resposta única. (ii)~Vários experimentos foram decididos
+depois da comparação planejada ($\dagger$); a confirmação em dados novos cobre
+os métodos centrais, mas não o NSGA-III, o Shapley e a variante só $(N,C)$, de
+que depende o terceiro resultado. (iii)~A distribuição de fundo define o que
+``suficiente'' significa, e trocá-la muda as explicações
+(Apêndice~\ref{sec:ablacao}). (iv)~O ajuste foi desigual (12 configurações
+para o NSGA-II, menos para os demais) e o MOEA/D só foi testado com pesos
+uniformes; como os três algoritmos baseados em dominância diferem por menos de
+$0{,}01$ de \HVp{}, mais ajuste poderia mudar a ordem entre eles. Outras
+limitações estão no Apêndice~\ref{ap:limitacoes}.
 
-\section{Conclusão}
-
-Formulamos a explicação contrafactual de uma recomendação sequencial como a
-busca de conjuntos de posições do histórico sob três objetivos, com
-necessidade e suficiência estimadas por intervenções com fundos fixos, e a
-resolvemos com algoritmos evolutivos multiobjetivo sobre máscaras binárias.
-Sob o mesmo orçamento de consultas ao modelo, os algoritmos baseados em
-dominância de Pareto são os melhores para explicações de até 10 itens, à frente
-de uma decomposição em subproblemas escalares, de um algoritmo genético de
-objetivo único com os mesmos operadores, de um guloso, de valores de Shapley e
-do GECE; a inicialização esparsa e o cruzamento são os operadores que mais
-pesam nessa região. Para máscaras de qualquer tamanho, métodos que percorrem
-todos os tamanhos são melhores que o NSGA-II original no MovieLens, e semear a população
-inicial com um ranking por ablação torna o NSGA-II o melhor também ali, com uma
-perda pequena nas explicações pequenas. Os dois objetivos de efeito conflitam
-nas explicações pequenas, onde uma explicação necessária é fácil de achar e uma
-suficiente é rara, e incluir a suficiência como objetivo não custa nada em
-necessidade e tamanho. A comparação dos métodos centrais se repete em
-instâncias novas e em um segundo conjunto de dados.
-
-Como trabalho futuro, o mais direto é uma semeadura que não custe nada nas
-explicações pequenas (por exemplo, semear só com máscaras pequenas ou manter
-duas subpopulações), operadores que usem a estrutura do problema (mutação
+\paragraph{Trabalho futuro.}
+Uma semeadura que não custe nada nas explicações pequenas (por exemplo, só
+com máscaras pequenas), operadores que usem a estrutura do problema (mutação
 enviesada para os itens recentes), outras arquiteturas de recomendador e uma
 avaliação com usuários.
 

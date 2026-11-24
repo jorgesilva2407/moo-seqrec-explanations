@@ -17,40 +17,54 @@ um único número e devolvem uma única
 resposta~\cite{scarcelli2025gece,kim2026trace}; quem escolhe o compromisso é o
 peso da soma, fixado antes da busca.
 
-Neste trabalho tratamos o problema como multiobjetivo. A busca é sobre uma
-máscara binária das posições do histórico, o modelo é consultado apenas por
-seus escores, e a saída é uma frente de Pareto de (necessidade, suficiência,
-tamanho), aproximada por algoritmos evolutivos multiobjetivo, a começar pelo
-NSGA-II~\cite{deb2002nsga2}. Os recomendadores explicados são dois
-SASRec~\cite{kang2018sasrec}, treinados no MovieLens-20M e no Zvuk (música);
-eles são o objeto da explicação, não a contribuição, e seu treino está no
-Apêndice~\ref{ap:treino}.
-
-As contribuições são:
+Defendemos que vale tratar o problema como multiobjetivo, com necessidade,
+suficiência e tamanho como três objetivos. A busca é sobre uma máscara binária
+das posições do histórico, o modelo é consultado apenas por seus escores, e a
+saída é uma frente de Pareto, aproximada por algoritmos evolutivos
+multiobjetivo, a começar pelo NSGA-II~\cite{deb2002nsga2}. Os recomendadores
+explicados são dois SASRec~\cite{kang2018sasrec}, treinados no MovieLens-20M e
+no Zvuk (música); eles são o objeto da explicação, não a contribuição
+(Apêndice~\ref{ap:treino}). As contribuições são:
 \begin{itemize}
   \item uma formulação com necessidade e suficiência separadas, estimadas por
-        intervenções repetidas com fundos fixos, o que torna a aptidão
-        determinística (Seções~\ref{sec:formulacao} e~\ref{sec:mc});
-  \item uma comparação sob o mesmo orçamento de consultas ao modelo entre
-        quatro algoritmos multiobjetivo (NSGA-II, NSGA-III, SMS-EMOA e MOEA/D),
-        um algoritmo genético de objetivo único com os mesmos operadores, um
-        guloso, valores de Shapley, quatro heurísticas, a enumeração exata de
-        conjuntos pequenos e o GECE (Seção~\ref{sec:resultados});
-  \item estudos de operadores, de uma população inicial semeada, do valor do
-        objetivo de suficiência e da distribuição de fundo, uma verificação
-        contra a frente exata e a replicação em um segundo conjunto de
-        instâncias e em um segundo conjunto de dados.
+        intervenções com fundos fixos (aptidão determinística), e a evidência
+        de que as duas de fato conflitam nas explicações pequenas
+        (Seções~\ref{sec:formulacao} e~\ref{sec:conflito});
+  \item uma comparação sob o mesmo orçamento de consultas em que os
+        algoritmos baseados em dominância de Pareto (NSGA-II, NSGA-III e
+        SMS-EMOA) encontram explicações
+        pequenas melhores que a busca escalarizada (um algoritmo genético com
+        os mesmos operadores e o MOEA/D), um guloso, valores de Shapley e o
+        GECE (Seções~\ref{sec:planejada} e~\ref{sec:posteriores});
+  \item a separação entre a comparação planejada e os experimentos decididos
+        depois dela, com as conclusões dos métodos centrais repetidas em 99
+        instâncias novas e em um segundo conjunto de dados
+        (Seção~\ref{sec:robustez}).
 \end{itemize}
 
-O resultado tem três partes. Entre explicações de até 10 posições, os
-algoritmos baseados em dominância de Pareto (NSGA-II, NSGA-III e SMS-EMOA) são
-os melhores métodos no MovieLens-20M; o MOEA/D, que decompõe o problema em
-subproblemas escalares, e o algoritmo genético escalarizado ficam muito atrás.
-Quando máscaras de qualquer tamanho contam, o guloso e os valores de Shapley,
-que percorrem todos os tamanhos, superam o NSGA-II no MovieLens (no Zvuk, não),
-e semear a população inicial com um ranking por ablação faz o NSGA-II vencer
-também ali, ao custo de uma perda pequena nas explicações pequenas. Por fim,
-necessidade e suficiência não são redundantes: buscar só por necessidade e
-tamanho perde as máscaras suficientes sem ganhar nada nos outros dois
-objetivos. A comparação dos métodos centrais se repete em 99 instâncias novas e
-no Zvuk.
+Resumidamente (Figura~\ref{fig:principal}): necessidade e suficiência
+concordam só moderadamente entre máscaras pequenas; nessa região os algoritmos
+baseados em dominância são os melhores métodos; e manter a suficiência como
+objetivo não piora, em média, as explicações em necessidade e tamanho. Há um
+resultado secundário que limita o primeiro: quando máscaras de qualquer
+tamanho contam, o guloso e os valores de Shapley superam o NSGA-II no
+MovieLens, e só uma variante semeada com um ranking por ablação o corrige.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{principal}
+\caption{O resultado em uma figura. (a)~Correlação de Spearman entre $\hat N$ e
+$\hat S$ entre máscaras do mesmo tamanho, por faixa de tamanho relativo
+(máscaras aleatórias e enumeradas, média sobre as 99 instâncias): os dois
+objetivos só concordam moderadamente nas máscaras pequenas. (b)~Diferença
+pareada de \HVp{} entre o melhor método (SMS-EMOA, nos três cenários) e cada
+outro método (valores positivos: o SMS-EMOA é melhor), com intervalo de 95\% por \emph{bootstrap}, no conjunto
+principal, no conjunto novo e no Zvuk; métodos sem marcador num cenário não
+foram rodados nele. Azul: baseados em dominância de Pareto; verde:
+escalarizados; laranja: guloso e atribuição; amarelo: GECE. Escala linear até
+$0{,}05$ e logarítmica depois. (c)~NSGA-II com os três objetivos e só com
+$(N,C)$: \HVp{} médio nas 99 instâncias na projeção $(N,C)$ e com os três
+objetivos, sem teste pareado; os dois grupos têm normalizações diferentes e
+não são comparáveis entre si, e o eixo começa em $0{,}8$.}
+\label{fig:principal}
+\end{figure*}

@@ -21,11 +21,9 @@ como linha de base (Seção~\ref{sec:base}). Os dois editam a sequência, isto �
 escolhem também \emph{qual item} colocar em cada posição; nós buscamos apenas
 \emph{quais posições} importam e sorteamos os itens substitutos.
 
-A Tabela~\ref{tab:related} resume a posição deste trabalho. O CountER, com
-acesso ao gradiente, e o GECE, de caixa-preta, agregam os critérios em um
-escalar e devolvem uma única resposta; este trabalho mantém o acesso apenas a
-escores, como o GECE, mas trata os critérios como um vetor e devolve uma
-frente de Pareto.
+A Tabela~\ref{tab:related} resume a posição deste trabalho: acesso apenas a
+escores, como o GECE, mas critérios tratados como um vetor e uma frente de
+Pareto como saída.
 
 \paragraph{Algoritmos evolutivos multiobjetivo.}
 O NSGA-II~\cite{deb2002nsga2} seleciona por ordenação não dominada e
@@ -36,7 +34,7 @@ decompõe o problema em subproblemas escalares (somas ponderadas ou
 Tchebycheff), cada um com um vizinho na população. Os três primeiros selecionam
 por dominância de Pareto; o MOEA/D, por escalarização com uma população
 compartilhada. Usamos os quatro para separar o efeito de ser multiobjetivo do
-efeito de escalarizar (Seção~\ref{sec:moea}).
+efeito de escalarizar (Seção~\ref{sec:posteriores}).
 
 \paragraph{Necessidade, suficiência e frentes de Pareto.}
 As probabilidades de necessidade e de suficiência vêm de

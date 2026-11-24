@@ -38,51 +38,55 @@ de 200 fundos (Spearman de \val{bench.ml.n} em $\hat N$ e \val{bench.ml.s} em
 $\hat S$ no MovieLens, \val{bench.zv.n} e \val{bench.zv.s} no Zvuk).
 
 \paragraph{Métricas.}
-A métrica principal é o hipervolume~\cite{zitzler1999spea} da frente
-reavaliada. Em cada instância, os três objetivos são normalizados para
-$[0,1]$ pelos menores e maiores valores entre todas as frentes comparadas
-naquela instância, e o ponto de referência é $1{,}1$ em cada objetivo, de modo
-que o hipervolume vai de 0 a $1{,}1^3\approx1{,}33$. Reportamos o hipervolume
-de todas as máscaras (HV) e o das máscaras com no máximo 10 posições (\HVp),
-a região de explicações que uma pessoa leria; no \HVp, também os limites da
-normalização vêm só dessas máscaras. Como a normalização depende do conjunto de
-frentes comparadas, valores de tabelas diferentes não são comparáveis entre si.
-Reportamos também o IGD+~\cite{ishibuchi2015igdplus} das máscaras de até 10
-posições, medido contra a frente não dominada da união de todos os métodos na
-instância (menor é melhor), o tamanho da frente, a maior $\widehat{\PN}$ e a
-maior $\widehat{\PS}$ entre máscaras de até 10 posições, e a posição relativa
-média dos itens escolhidos ($0$ = mais antigo, $1$ = mais recente). Duas
-ressalvas sobre as métricas: o SMS-EMOA seleciona pela contribuição ao
-hipervolume, a mesma grandeza usada para avaliá-lo (mas seu HV de todas as
-máscaras fica abaixo do do NSGA-II, de modo que a vantagem não é automática), e
-o IGD+, medido contra a união das frentes, favorece os métodos que mais
-contribuem para essa união.
+A métrica principal é o hipervolume~\cite{zitzler1999spea} das máscaras com no
+máximo 10 posições (\HVp), a região de explicações que uma pessoa leria; a
+secundária é o hipervolume de todas as máscaras (HV). A proposta do projeto
+previa só o HV; o \HVp{} entrou na análise antes dos relatórios da comparação
+principal, e reportamos sempre os dois. Em cada instância, os três
+objetivos da frente reavaliada são normalizados para $[0,1]$ pelos menores e
+maiores valores entre todas as frentes comparadas naquela instância (no \HVp,
+só entre as máscaras pequenas), com ponto de referência $1{,}1$ em cada
+objetivo; o hipervolume vai, então, de 0 a $1{,}1^3\approx1{,}33$. Como a
+normalização depende do conjunto de frentes comparadas, valores de relatórios
+diferentes não são comparáveis entre si. O IGD+~\cite{ishibuchi2015igdplus}, a
+maior $\widehat{\PN}$ e a maior $\widehat{\PS}$ de cada frente ficam no
+Apêndice~\ref{ap:metricas}: o IGD+ ordena os métodos como o \HVp{}, e as duas
+probabilidades quase não distinguem os métodos de busca. O SMS-EMOA seleciona
+pela contribuição ao hipervolume, a mesma grandeza usada para avaliá-lo; seu
+HV de todas as máscaras, porém, fica abaixo do do NSGA-II, de modo que a
+vantagem não é automática.
 
 \paragraph{Protocolo estatístico.}
 Métodos estocásticos rodam com 5 sementes no conjunto principal e 3 nos
 demais. A unidade de análise é a instância: fazemos a média das sementes dentro
 de cada instância e comparamos métodos pelo teste de Wilcoxon pareado
-bilateral. Há duas famílias de comparações, cada uma com correção de Holm: a do
-melhor método contra cada um dos demais, e a de pares escolhidos
-para responder a perguntas específicas, definidos depois das execuções
-(Tabela~\ref{tab:pares}). Para cada par
-reportamos também a diferença média com intervalo de 95\% por
-\emph{bootstrap} sobre instâncias e a correlação bisserial de postos pareada,
-que vai de $-1$ a $+1$.
+bilateral, com correção de Holm em duas famílias: o melhor método contra cada
+um dos demais, e um conjunto de pares definidos depois das execuções para
+responder a perguntas específicas (Tabela~\ref{tab:pares}). Para cada par
+reportamos a diferença média com intervalo de 95\% por \emph{bootstrap} sobre
+instâncias e a correlação bisserial de postos pareada ($-1$ a $+1$).
 
-\paragraph{Experimentos posteriores à comparação principal.}
-Parte dos experimentos foi decidida depois dos primeiros resultados, em
-resposta a eles ou a uma revisão externa: o NSGA-II semeado, os outros três
-algoritmos multiobjetivo, o NSGA-II só $(N,C)$, o Shapley, as configurações
-ajustadas do AG escalarizado, o conjunto novo de instâncias e o Zvuk. Estão
-marcados com $\dagger$ na Tabela~\ref{tab:metodos}. Todos usam os mesmos
-fundos, instâncias e orçamento da comparação principal, e cada parâmetro novo
-foi escolhido nos usuários de ajuste.
+\paragraph{Comparação planejada e experimentos posteriores.}
+\label{sec:posthoc}
+A \textbf{comparação planejada}, definida na proposta do projeto, opõe o
+NSGA-II ao AG escalarizado, ao guloso, ao ranking por ablação, ao GECE e às
+heurísticas (Seção~\ref{sec:planejada}). Os demais experimentos foram
+decididos depois dos primeiros resultados, em resposta a eles ou a uma revisão
+externa, e estão marcados com $\dagger$: os outros três algoritmos
+multiobjetivo, o NSGA-II semeado, o NSGA-II só $(N,C)$, o Shapley e as
+configurações ajustadas do AG escalarizado (Seção~\ref{sec:posteriores}).
+Todos usam os mesmos fundos, instâncias e orçamento, e cada parâmetro novo foi
+escolhido nos usuários de ajuste. Também o conjunto novo do MovieLens e o Zvuk
+foram acrescentados depois dos primeiros resultados, para verificar que as
+conclusões não dependem da amostra nem do modelo (Seção~\ref{sec:robustez}).
+Nenhuma decisão de método ou parâmetro usou esses dados. O NSGA-II semeado e as
+conclusões da comparação planejada foram obtidos antes deles; os outros três
+algoritmos multiobjetivo rodaram na mesma leva que eles, de modo que, para
+esses, os dados novos são uma replicação simultânea, e não uma confirmação
+posterior.
 
 \paragraph{Execução.}
 Um escalonador avança muitas execuções em paralelo e envia as máscaras de
-todas elas em um único lote à GPU, o que rende até \val{bench.ml.speed}
-passadas por segundo em uma RTX~A4000 no MovieLens e \val{bench.zv.speed} no
-Zvuk, cujo catálogo é maior. Todos os experimentos, incluindo o treino dos
-recomendadores, custaram menos de seis dólares em GPUs alugadas; o código, os resultados e as instruções para
-reproduzi-los estão no repositório do projeto.
+todas elas em um único lote à GPU (até \val{bench.ml.speed} passadas por
+segundo em uma RTX~A4000 no MovieLens). Todos os experimentos, incluindo o
+treino dos recomendadores, custaram menos de seis dólares em GPUs alugadas.

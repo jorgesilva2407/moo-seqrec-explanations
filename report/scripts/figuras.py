@@ -349,85 +349,169 @@ def example_front() -> None:
     save(fig, "exemplo-frente.pdf")
 
 
-def correlation() -> None:
-    data = load("final-ml20m-method.json")["objective_correlation"]
+FAMILY = {  # colour of each method in the key figure, by how it searches
+    "smsemoa": "#2a78d6", "nsga3": "#2a78d6", "nsga2": "#2a78d6", "nsga2_seeded": "#2a78d6", "nsga2_nc": "#2a78d6",
+    "moead": "#1baf7a", "scalar_ga": "#1baf7a",
+    "greedy": "#eb6834", "shapley": "#eb6834", "ablation": "#eb6834",
+    "gece_restarts": "#eda100",
+}
+SCENARIOS = (("ml", "ML-20M principal", "o"), ("rd", "ML-20M novo", "s"), ("zv", "Zvuk", "^"))
+
+
+def key_figure() -> None:
+    """The main story at a glance: (a) N and S agree only moderately on small masks; (b) paired HV<=10 gap of
+    every method to the best one (SMS-EMOA in the three scenarios) with its bootstrap CI; (c) NSGA-II with and
+    without S in the (N, C) projection and in the full HV<=10."""
+    ml = load("final-ml20m-method.json")
+    fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.05), gridspec_kw={"width_ratios": [1.0, 1.75, 1.0]})
+
+    ax = axes[0]
     labels = ["0–10", "10–25", "25–50", "50–75", "75–100"]
-    values = list(data["by_size"].values())
-    fig, ax = plt.subplots(figsize=(COLUMN, 1.6))
-    bars = ax.bar(labels, values, width=0.6, color="#2a78d6")
-    ax.bar_label(bars, labels=[f"{v:.2f}".replace(".", ",") for v in values], fontsize=6.5, color=INK, padding=1)
+    values = list(ml["objective_correlation"]["by_size"].values())
+    bars = ax.bar(labels, values, width=0.6, color=["#2a78d6"] + ["#b7d3f6"] * 4)
+    ax.bar_label(bars, labels=[f"{v:.2f}".replace(".", ",") for v in values], fontsize=6, color=INK, padding=1)
     ax.set_ylim(0, 1)
     ax.set_xlabel("tamanho da máscara (% de $n$)")
     ax.set_ylabel(r"Spearman entre $\hat N$ e $\hat S$")
+    ax.set_title("(a) conflito nas máscaras pequenas", fontsize=7)
+    ax.tick_params(axis="x", labelsize=6, rotation=30)
     ax.grid(axis="x", visible=False)
     ax.set_axisbelow(True)
-    save(fig, "correlacao.pdf")
+
+    ax = axes[1]
+    reports = {tag: load(REPORTS[tag]) for tag, _, _ in SCENARIOS}
+    reference = reports["ml"]["wilcoxon_small"]["best"]
+    assert all(r["wilcoxon_small"]["best"] == reference for r in reports.values())
+    methods = ("nsga3", "nsga2", "nsga2_seeded", "nsga2_nc", "greedy", "shapley", "ablation", "scalar_ga",
+               "gece_restarts", "moead")
+    for row, method in enumerate(methods):
+        for offset, (tag, label, marker) in zip((-0.22, 0.0, 0.22), SCENARIOS):
+            t = reports[tag]["wilcoxon_small"]["against"].get(method)
+            if t is None:
+                continue
+            y = row + offset
+            ax.plot(t["ci95"], [y, y], color=FAMILY[method], linewidth=1.0)
+            ax.plot(t["mean_diff"], y, marker=marker, color=FAMILY[method], markersize=3.2, linestyle="none",
+                    markeredgecolor="white", markeredgewidth=0.3)
+    ax.axvline(0, color=MUTED, linewidth=0.6)
+    ax.set_yticks(range(len(methods)), [SHORT.get(m, NAMES[m]).replace(POST_HOC, "") for m in methods])
+    ax.invert_yaxis()
+    ax.set_xscale("symlog", linthresh=0.05, linscale=1.0)
+    ax.set_xticks([0, 0.02, 0.05, 0.2, 0.5], ["0", "0,02", "0,05", "0,2", "0,5"])
+    ax.set_xlabel(rf"HV$_{{\leq 10}}$({SHORT[reference]}) $-$ HV$_{{\leq 10}}$(método)")
+    ax.set_title(f"(b) distância ao melhor método ({SHORT[reference]}), IC 95%", fontsize=7)
+    ax.grid(axis="y", visible=False)
+    handles = [plt.Line2D([], [], marker=m, color=MUTED, linestyle="none", markersize=3.2) for _, _, m in SCENARIOS]
+    ax.legend(handles, [label for _, label, _ in SCENARIOS], loc="upper center", bbox_to_anchor=(0.5, -0.34), ncol=3, handletextpad=0.2)
+
+    ax = axes[2]
+    summary = ml["summary"]
+    groups = (("hv_le10_nc_mean", r"proj. $(N,C)$"), ("hv_le10_mean", r"$(N,S,C)$"))
+    for i, (field, _) in enumerate(groups):
+        for j, (method, colour) in enumerate((("nsga2", "#2a78d6"), ("nsga2_nc", "#b7d3f6"))):
+            v = summary[method][field]
+            b = ax.bar(i + (j - 0.5) * 0.42, v, width=0.4, color=colour,
+                       label=SHORT.get(method, NAMES[method]).replace(POST_HOC, "") if i == 0 else None)
+            ax.bar_label(b, labels=[num(v, 3).replace("{,}", ",")], fontsize=5, color=INK, padding=1)
+    ax.set_xticks(range(len(groups)), [label for _, label in groups])
+    ax.set_ylim(0.8, 1.04)
+    ax.set_ylabel(r"HV$_{\leq 10}$")
+    ax.set_title("(c) com e sem $S$", fontsize=7)
+    ax.grid(axis="x", visible=False)
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=1, handlelength=1.0)
+    fig.tight_layout(w_pad=0.8)
+    save(fig, "principal.pdf")
 
 
 # ---------------------------------------------------------------- tables
 
 
 def methods_table() -> None:
+    """Table 3 split in two: the methods of the pre-planned comparison and the follow-up experiments (marked
+    with a dagger), both from the same report and so with the same per-instance normalisation; NSGA-II is
+    repeated as the reference row of the second. IGD+, PN and PS of every method go to an appendix table."""
     data = load("final-ml20m-method.json")
     summary, quality = data["summary"], data["quality"]
+    replicated = {tag: load(REPORTS[tag])["summary"] for tag in ("rd", "zv")}
     order = sorted(summary, key=lambda m: -summary[m]["hv_le10_mean"])
-    best = {f: max(summary[m][f] for m in order) for f in ("hv_mean", "hv_le10_mean")}
+    follow_up = [m for m in order if NAMES[m].endswith(POST_HOC)]
+    planned = [m for m in order if m not in follow_up]
+
+    def rows(methods: list[str], extra) -> list[list[str]]:
+        best = {f: max(summary[m][f] for m in methods) for f in ("hv_mean", "hv_le10_mean")}
+        cell = lambda m, f: rf"\textbf{{{num(summary[m][f])}}}" if summary[m][f] == best[f] else num(summary[m][f])  # noqa: E731
+        return [[NAMES[m], cell(m, "hv_le10_mean"), cell(m, "hv_mean"), num(summary[m]["front_size"], 1),
+                 thousands(summary[m]["passes"])] + extra(m) for m in methods]
+
+    write_table("metodos-plan.tex", rows(planned, lambda m: []))
+    where = lambda m: [", ".join(label for tag, label in (("rd", "ML novo"), ("zv", "Zvuk")) if m in replicated[tag]) or "--"]  # noqa: E731
+    write_table("metodos-pos.tex", rows(["nsga2"] + follow_up, where))
     best_igd = min(summary[m]["igd_plus_le10_mean"] for m in order)
-    cell = lambda m, f: rf"\textbf{{{num(summary[m][f])}}}" if summary[m][f] == best[f] else num(summary[m][f])  # noqa: E731
     igd = lambda m: rf"\textbf{{{num(summary[m]['igd_plus_le10_mean'])}}}" if summary[m]["igd_plus_le10_mean"] == best_igd else num(summary[m]["igd_plus_le10_mean"])  # noqa: E731
-    write_table("metodos.tex", [
-        [NAMES[m], cell(m, "hv_le10_mean"), cell(m, "hv_mean"), igd(m), num(summary[m]["front_size"], 1),
-         thousands(summary[m]["passes"]), num(quality[m]["best_pn"], 2), num(quality[m]["best_ps"], 2)]
+    write_table("metodos-extra.tex", [
+        [NAMES[m], igd(m), num(quality[m]["best_pn"], 2), num(quality[m]["best_ps"], 2), num(quality[m]["recency"], 2)]
         for m in order
     ])
 
 
-PAIRS = [  # (a, b, region): a is better than b in that region (as reported)
+PLANNED_PAIRS = [  # (a, b, region): a is better than b in that region (as reported); methods of the planned comparison
+    ("nsga2", "scalar_ga", "le"), ("nsga2", "greedy", "le"), ("greedy", "nsga2", "all"),
+]
+FOLLOW_UP_PAIRS = [  # pairs with at least one follow-up method
     ("smsemoa", "nsga2", "le"), ("nsga3", "nsga2", "le"), ("nsga2", "moead", "le"), ("moead", "nsga2", "all"),
-    ("nsga2", "scalar_ga", "le"), ("moead", "scalar_ga", "all"), ("scalar_ga", "moead", "le"),
-    ("nsga2", "nsga2_nc", "all"), ("nsga2", "nsga2_nc", "le"),
-    ("greedy", "nsga2", "all"), ("nsga2", "greedy", "le"),
+    ("moead", "scalar_ga", "all"), ("scalar_ga", "moead", "le"),
+    ("nsga2", "shapley", "le"), ("shapley", "nsga2", "all"),
+    ("nsga2", "nsga2_nc", "le"), ("nsga2", "nsga2_nc", "all"),
     ("nsga2_seeded", "greedy", "all"), ("nsga2", "nsga2_seeded", "le"),
-    ("shapley", "nsga2", "all"), ("nsga2", "shapley", "le"),
 ]
 
 
 def pairs_table() -> None:
     pairs = load("final-ml20m-method.json")["pairs"]
-    rows = []
-    for a, b, region in PAIRS:
-        t, flip = pairs.get(f"{a},{b}"), False
-        if t is None:
-            t, flip = pairs[f"{b},{a}"], True
-        t = t["hv" if region == "all" else "hv_le10"]
-        wins, diff, lo, hi, r = t["wins"], t["mean_diff"], t["ci95"][0], t["ci95"][1], t["rank_biserial"]
-        if flip:
-            wins, diff, lo, hi, r = t["losses"], -diff, -hi, -lo, -r
-        rows.append([f"{SHORT.get(a, NAMES[a].replace(POST_HOC, ''))} $>$ {SHORT.get(b, NAMES[b].replace(POST_HOC, ''))}",
-                     r"\HVp" if region == "le" else "HV", f"{wins}/{t['instances']}",
-                     f"{signed(diff)} [{signed(lo)}; {signed(hi)}]", signed(r, 2), pvalue(t["p_holm"])])
-    write_table("pares.tex", rows)
+    label = lambda m: SHORT.get(m, NAMES[m].replace(POST_HOC, "")) + (POST_HOC if NAMES[m].endswith(POST_HOC) else "")  # noqa: E731
+    for name, chosen in (("pares-plan.tex", PLANNED_PAIRS), ("pares-pos.tex", FOLLOW_UP_PAIRS)):
+        rows = []
+        for a, b, region in chosen:
+            t, flip = pairs.get(f"{a},{b}"), False
+            if t is None:
+                t, flip = pairs[f"{b},{a}"], True
+            t = t["hv" if region == "all" else "hv_le10"]
+            wins, diff, lo, hi, r = t["wins"], t["mean_diff"], t["ci95"][0], t["ci95"][1], t["rank_biserial"]
+            if flip:
+                wins, diff, lo, hi, r = t["losses"], -diff, -hi, -lo, -r
+            rows.append([f"{label(a)} $>$ {label(b)}", r"\HVp" if region == "le" else "HV", f"{wins}/{t['instances']}",
+                         f"{signed(diff)} [{signed(lo)}; {signed(hi)}]", signed(r, 2), pvalue(t["p_holm"])])
+        write_table(name, rows)
 
 
 ROBUST_METHODS = ("nsga2", "nsga2_seeded", "smsemoa", "moead", "greedy", "ablation", "scalar_ga")
 
 
 def robustness_table() -> None:
+    """Core methods in the main set, the new set and Zvuk (main text); Zvuk with the second-best model (appendix)."""
     data = {tag: load(file)["summary"] for tag, file in REPORTS.items()}
-    rows = []
-    for method in ROBUST_METHODS:
-        row = [SHORT.get(method, NAMES[method].replace(POST_HOC, ""))]
-        for field in ("hv_le10_mean", "hv_mean"):
-            for tag in ("ml", "rd", "zv", "za"):
-                summary = data[tag]
-                if method not in summary:
-                    row.append("--")
-                    continue
-                v = summary[method][field]
-                top = max(summary[m][field] for m in ROBUST_METHODS if m in summary)
-                row.append(rf"\textbf{{{num(v)}}}" if v == top else num(v))
-        rows.append(row)
-    write_table("robustez.tex", rows)
+
+    def rows(tags: tuple[str, ...]) -> list[list[str]]:
+        out = []
+        for method in ROBUST_METHODS:
+            if not any(method in data[tag] for tag in tags):
+                continue
+            row = [SHORT.get(method, NAMES[method].replace(POST_HOC, ""))]
+            for field in ("hv_le10_mean", "hv_mean"):
+                for tag in tags:
+                    summary = data[tag]
+                    if method not in summary:
+                        row.append("--")
+                        continue
+                    v = summary[method][field]
+                    top = max(summary[m][field] for m in ROBUST_METHODS if m in summary)
+                    row.append(rf"\textbf{{{num(v)}}}" if v == top else num(v))
+            out.append(row)
+        return out
+
+    write_table("robustez.tex", rows(("ml", "rd", "zv")))
+    write_table("robustez-alt.tex", rows(("zv", "za")))
 
 
 def exact_front_table() -> None:
@@ -553,7 +637,7 @@ def main() -> None:
     example_table()
     convergence()
     example_front()
-    correlation()
+    key_figure()
     methods_table()
     pairs_table()
     robustness_table()
