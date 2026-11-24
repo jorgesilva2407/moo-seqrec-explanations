@@ -302,6 +302,11 @@ explain-run *args:
 explain-gece *args:
     {{seqrec}} explain-gece {{paths_flags}} {{args}}
 
+# Re-score more candidates of finished searches on the evaluation backgrounds: just explain-rescore --stage main-nc-rescore --top-k 1 4
+[group('remote')]
+explain-rescore *args:
+    {{seqrec}} explain-rescore {{paths_flags}} {{args}}
+
 # Exact-front check (enumerates every mask of short histories; GPU): just exact-front --length 16
 [group('remote')]
 exact-front *args:

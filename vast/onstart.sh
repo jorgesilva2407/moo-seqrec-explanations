@@ -69,7 +69,7 @@ PY
         echo "[job] step $(date -u +%FT%TZ): $step"
         # shellcheck disable=SC2086
         case "$step" in  # only the explanation commands take --results-repo
-            explain-run*|explain-gece*|exact-front*) just $step --results-repo "$RESULTS_REPO" ;;
+            explain-run*|explain-gece*|explain-rescore*|exact-front*) just $step --results-repo "$RESULTS_REPO" ;;
             *) just $step ;;
         esac || { echo "[job] FAILED $step"; return 1; }
     done
