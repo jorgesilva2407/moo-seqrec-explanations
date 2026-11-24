@@ -136,6 +136,7 @@ def report_values() -> None:
             k = f"{tag}.{key(method)}"
             val(f"{k}.hv", num(row["hv_mean"]))
             val(f"{k}.hvle", num(row["hv_le10_mean"]))
+            val(f"{k}.hvle5", num(row["hv_le10_mean"], 5))
             val(f"{k}.front", num(row["front_size"], 1))
             val(f"{k}.passes", thousands(row["passes"]))
             for field, short in (("igd_plus_mean", "igd"), ("igd_plus_le10_mean", "igdle"), ("hv_le10_nc_mean", "hvlenc")):
@@ -146,6 +147,8 @@ def report_values() -> None:
                 for stat in ("best_pn", "best_ps", "recency", "valid"):
                     val(f"{k}.{stat.replace('best_', '')}", num(q[stat], 2))
         val(f"{tag}.instances", str(next(iter(data["summary"].values()))["instances"]))
+        dominance = [data["summary"][m]["hv_le10_mean"] for m in ("nsga2", "nsga3", "smsemoa") if m in data["summary"]]
+        val(f"{tag}.gap.dominance", num(max(dominance) - min(dominance), 3))
         for region, short in (("wilcoxon_hv", "all"), ("wilcoxon_small", "le")):
             best = data[region]["best"]
             val(f"{tag}.best.{short}", key(best))
@@ -178,9 +181,9 @@ def stage_values() -> None:
             for other, t in data[region]["against"].items():
                 test_values(f"{tag}.vs.{short}.{best}.{other}", t)
         values = sorted(row["hv_le10_mean"] for row in data["summary"].values())
-        val(f"{tag}.hvle.min", num(values[0], 2))
-        val(f"{tag}.hvle.second", num(values[1], 2))
-        val(f"{tag}.hvle.max", num(values[-1], 2))
+        val(f"{tag}.hvle.min", num(values[0], 3))
+        val(f"{tag}.hvle.second", num(values[1], 3))
+        val(f"{tag}.hvle.max", num(values[-1], 3))
 
 
 def test_values(prefix: str, t: dict) -> None:
@@ -190,6 +193,7 @@ def test_values(prefix: str, t: dict) -> None:
     val(f"{prefix}.p", pvalue(t.get("p_holm", t["p"])))
     if "mean_diff" in t:
         val(f"{prefix}.diff", signed(t["mean_diff"]))
+        val(f"{prefix}.diff4", signed(t["mean_diff"], 4))
         val(f"{prefix}.ci", f"[{signed(t['ci95'][0])}; {signed(t['ci95'][1])}]")
         val(f"{prefix}.r", signed(t["rank_biserial"], 2))
 
@@ -390,14 +394,16 @@ def key_figure() -> None:
             if t is None:
                 continue
             y = row + offset
+            assert t["ci95"][0] > 0, (tag, method)  # the log axis needs every interval above zero
             ax.plot(t["ci95"], [y, y], color=FAMILY[method], linewidth=1.0)
             ax.plot(t["mean_diff"], y, marker=marker, color=FAMILY[method], markersize=3.2, linestyle="none",
                     markeredgecolor="white", markeredgewidth=0.3)
     ax.axvline(0, color=MUTED, linewidth=0.6)
     ax.set_yticks(range(len(methods)), [SHORT.get(m, NAMES[m]).replace(POST_HOC, "") for m in methods])
     ax.invert_yaxis()
-    ax.set_xscale("symlog", linthresh=0.05, linscale=1.0)
-    ax.set_xticks([0, 0.02, 0.05, 0.2, 0.5], ["0", "0,02", "0,05", "0,2", "0,5"])
+    ax.set_xscale("log")
+    ax.set_xticks([0.001, 0.01, 0.1, 0.5], ["0,001", "0,01", "0,1", "0,5"])
+    ax.set_xticks([], minor=True)
     ax.set_xlabel(rf"HV$_{{\leq 10}}$({SHORT[reference]}) $-$ HV$_{{\leq 10}}$(método)")
     ax.set_title(f"(b) distância ao melhor método ({SHORT[reference]}), IC 95%", fontsize=7)
     ax.grid(axis="y", visible=False)
@@ -406,19 +412,22 @@ def key_figure() -> None:
 
     ax = axes[2]
     summary = ml["summary"]
-    groups = (("hv_le10_nc_mean", r"proj. $(N,C)$"), ("hv_le10_mean", r"$(N,S,C)$"))
-    for i, (field, _) in enumerate(groups):
-        for j, (method, colour) in enumerate((("nsga2", "#2a78d6"), ("nsga2_nc", "#b7d3f6"))):
-            v = summary[method][field]
-            b = ax.bar(i + (j - 0.5) * 0.42, v, width=0.4, color=colour,
-                       label=SHORT.get(method, NAMES[method]).replace(POST_HOC, "") if i == 0 else None)
-            ax.bar_label(b, labels=[num(v, 3).replace("{,}", ",")], fontsize=5, color=INK, padding=1)
+    groups = (("hv_le10_nc_mean", r"$(N,C)$"), ("hv_le10_mean", r"$(N,S,C)$"))
+    for j, (method, colour, marker) in enumerate((("nsga2", "#2a78d6", "o"), ("nsga2_nc", "#e87ba4", "s"))):
+        xs = [i + (j - 0.5) * 0.24 for i in range(len(groups))]
+        ys = [summary[method][field] for field, _ in groups]
+        ax.plot(xs, ys, marker=marker, color=colour, linestyle="none", markersize=4.5,
+                label=SHORT.get(method, NAMES[method]).replace(POST_HOC, ""))
+        for x, y in zip(xs, ys):  # labels outside the pair: NSGA-II to the left, (N,C) to the right
+            ax.annotate(num(y, 3).replace("{,}", ","), (x, y), xytext=(-4 if j == 0 else 4, 0),
+                        textcoords="offset points", ha="right" if j == 0 else "left", va="center",
+                        fontsize=5.5, color=INK)
     ax.set_xticks(range(len(groups)), [label for _, label in groups])
-    ax.set_ylim(0.8, 1.04)
+    ax.set_xlim(-0.65, len(groups) - 0.35)
+    ax.set_ylim(0.85, 1.03)
     ax.set_ylabel(r"HV$_{\leq 10}$")
     ax.set_title("(c) com e sem $S$", fontsize=7)
     ax.grid(axis="x", visible=False)
-    ax.set_axisbelow(True)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=1, handlelength=1.0)
     fig.tight_layout(w_pad=0.8)
     save(fig, "principal.pdf")
@@ -569,7 +578,6 @@ def operators_table() -> None:
     for k, _ in labels:
         val(f"op.{k}.hvle", num(summary[k]["hv_le10_mean"]))
         val(f"op.{k}.hv", num(summary[k]["hv_mean"]))
-    val("op.nocross.drop", num(summary["tune-p25-m10"]["hv_le10_mean"] - summary["op-no-crossover"]["hv_le10_mean"], 2))
 
 
 def ablation_table() -> None:

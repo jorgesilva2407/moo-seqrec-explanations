@@ -33,7 +33,9 @@ independentes. A correlação passa de \val{m100.size1.m10} para
 \val{m100.size1.m100} (uma posição) e de \val{m100.size2.m10} para
 \val{m100.size2.m100} (duas); no Zvuk, de \val{m100zv.size1.m10} para
 \val{m100zv.size1.m100} e de \val{m100zv.size2.m10} para
-\val{m100zv.size2.m100}. Com dez vezes mais fundos ela muda pouco e fica longe
+\val{m100zv.size2.m100}. (Com 10 fundos, o valor de duas posições aqui difere
+do de \val{corr.size2} acima porque as máscaras são outra amostra: 300 sorteadas,
+e não todas as enumeradas.) Com dez vezes mais fundos ela muda pouco e fica longe
 da das máscaras médias. É uma concordância moderada, não uma oposição: os dois
 objetivos ordenam as máscaras pequenas de formas diferentes, mas não
 contrárias. A evidência mais direta de que vale manter os dois está na
@@ -83,14 +85,14 @@ nas máscaras pequenas. Como $\hat N$ e $\hat S$ concordam nas máscaras grandes
 ali uma ordenação das posições já basta.
 
 \begin{table*}[t]
-\caption{Comparações pareadas (99 instâncias do conjunto principal). Acima, pares
+\caption{Comparações pareadas (99 instâncias do conjunto principal). Acima, os métodos
 da comparação planejada; abaixo, pares com experimentos posteriores
-($\dagger$). ``A $>$ B'': A é melhor que B na métrica indicada; Vitórias: em
+($\dagger$). Em ambos os blocos, os pares foram escolhidos depois das
+execuções. ``A $>$ B'': A é melhor que B na métrica indicada; Vitórias: em
 quantas instâncias; Diferença: média de A $-$ B com intervalo de 95\% por
 \emph{bootstrap} sobre instâncias; $r$: correlação bisserial de postos
 pareada; $p$: teste de Wilcoxon com correção de Holm, por métrica, sobre todos
-os pares da família (inclusive alguns não mostrados). Os pares foram definidos
-depois das execuções.}
+os pares da família (inclusive alguns não mostrados).}
 \label{tab:pares}
 \footnotesize
 \begin{tabular}{@{}llrlrr@{}}
@@ -229,7 +231,17 @@ no \HVp{} em \val{rd.pair.moead.scalar-ga.le.losses}, e o NSGA-II semeado é o
 melhor no HV (supera o guloso em \val{rd.pair.nsga2-seeded.greedy.all.wins})
 com a mesma pequena perda no \HVp{} (diferença
 \val{rd.pair.nsga2-seeded.nsga2.le.diff}) e de novo sem se distinguir do
-guloso nessa região ($p=\val{rd.pair.nsga2-seeded.greedy.le.p}$).
+guloso nessa região ($p=\val{rd.pair.nsga2-seeded.greedy.le.p}$). Várias
+médias do conjunto novo coincidem com as do principal na terceira casa
+decimal, por acaso: as instâncias são de outros usuários e as execuções são
+outras, e com mais casas os valores diferem (\HVp{} do NSGA-II
+\val{ml.nsga2.hvle5} contra \val{rd.nsga2.hvle5}; do semeado
+\val{ml.nsga2-seeded.hvle5} contra \val{rd.nsga2-seeded.hvle5}; custo da
+semeadura \val{ml.pair.nsga2-seeded.nsga2.le.diff4} contra
+\val{rd.pair.nsga2-seeded.nsga2.le.diff4}; o SMS-EMOA vence o NSGA-II em
+\val{rd.pair.nsga2.smsemoa.le.losses} instâncias nos dois conjuntos, mas
+perde em \val{ml.pair.nsga2.smsemoa.le.wins} e
+\val{rd.pair.nsga2.smsemoa.le.wins}).
 
 No \textbf{Zvuk}, com outro modelo e outro domínio, o padrão nas explicações
 pequenas se repete: o SMS-EMOA é o melhor no \HVp{} (supera o NSGA-II em

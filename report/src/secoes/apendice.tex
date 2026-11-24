@@ -219,8 +219,8 @@ A Tabela~\ref{tab:operadores} muda um elemento por vez da configuração
 ajustada. A inicialização esparsa é a escolha que mais importa: com
 inicialização uniforme (metade dos bits ligados), o \HVp{} cai de
 \val{op.tune-p25-m10.hvle} para \val{op.op-init-uniform.hvle}, porque a busca
-gasta o orçamento descendo de máscaras grandes. Retirar o cruzamento custa
-\val{op.nocross.drop} de \HVp{} e quase nada de HV. A taxa de mutação é um
+gasta o orçamento descendo de máscaras grandes. Sem cruzamento, o \HVp{} cai para
+\val{op.op-no-crossover.hvle}, e o HV quase não muda. A taxa de mutação é um
 compromisso: $0{,}5/n$ ganha um pouco nas máscaras pequenas (melhor em
 \val{op.vs.le.op-mut0.5.tune-p25-m10.wins} de 30 usuários,
 $p=\val{op.vs.le.op-mut0.5.tune-p25-m10.p}$) e perde no HV (pior em

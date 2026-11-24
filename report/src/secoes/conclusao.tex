@@ -17,6 +17,17 @@ original no MovieLens; só a variante semeada, posterior à comparação
 planejada, vence ali. As conclusões dos métodos centrais se repetem em
 instâncias novas e no Zvuk.
 
+\paragraph{A métrica do resultado principal.}
+O resultado principal se apoia no \HVp{}, uma métrica acrescentada depois da
+proposta (embora antes dos relatórios da comparação principal). Na métrica que
+a proposta previa, o HV de todas as máscaras, a comparação planejada favorece o
+guloso, que supera o NSGA-II em \val{ml.pair.greedy.nsga2.all.wins} das 99
+instâncias. Defendemos o \HVp{} como métrica principal porque as explicações
+pequenas são as que uma pessoa leria: uma máscara com dezenas de posições
+satisfaz necessidade e suficiência, mas não explica a recomendação. Quem
+discordar dessa escolha deve ler o resultado de todos os tamanhos como o
+principal, e nele, no MovieLens, o NSGA-II só vence com a semeadura.
+
 \paragraph{Limitações.}
 (i)~Não há avaliação com usuários: mostramos que as frentes contêm explicações
 pequenas, necessárias e às vezes suficientes, não que uma frente seja mais útil
@@ -27,8 +38,10 @@ que depende o terceiro resultado. (iii)~A distribuição de fundo define o que
 ``suficiente'' significa, e trocá-la muda as explicações
 (Apêndice~\ref{sec:ablacao}). (iv)~O ajuste foi desigual (12 configurações
 para o NSGA-II, menos para os demais) e o MOEA/D só foi testado com pesos
-uniformes; como os três algoritmos baseados em dominância diferem por menos de
-$0{,}01$ de \HVp{}, mais ajuste poderia mudar a ordem entre eles. Outras
+uniformes; como os três algoritmos baseados em dominância diferem por no
+máximo \val{ml.gap.dominance} de \HVp{} em média (\val{ml.smsemoa.hvle} e
+\val{ml.nsga2.hvle} nas tabelas são valores arredondados), mais ajuste poderia
+mudar a ordem entre eles. Outras
 limitações estão no Apêndice~\ref{ap:limitacoes}.
 
 \paragraph{Trabalho futuro.}
