@@ -10,8 +10,11 @@ mesmo orçamento gasto em buscas escalarizadas, e apontava como risco que $N$ e
 $S$ fossem quase redundantes. As duas coisas ocorreram, em regiões diferentes.
 Nas explicações pequenas, $N$ e $S$ concordam só moderadamente, os algoritmos
 baseados em dominância de Pareto são os melhores métodos, contra a busca
-escalarizada, o guloso, o Shapley e o GECE, e manter $S$ como objetivo não
-custa, em média, nada em necessidade e tamanho. Nas máscaras grandes, $N$ e
+escalarizada, o guloso, o Shapley e o GECE. Manter $S$ como objetivo também se
+justifica: retirá-lo dobra as máscaras que a busca avalia, mas rende só um
+ganho marginal em necessidade e tamanho nos fundos da busca, que não resiste a
+fundos independentes; a frente ganha as máscaras suficientes sem perder nas
+outras duas direções. Nas máscaras grandes, $N$ e
 $S$ quase coincidem, e métodos que percorrem todos os tamanhos vencem o NSGA-II
 original no MovieLens; só a variante semeada, posterior à comparação
 planejada, vence ali. As conclusões dos métodos centrais se repetem em
@@ -39,9 +42,8 @@ que depende o terceiro resultado. (iii)~A distribuição de fundo define o que
 (Apêndice~\ref{sec:ablacao}). (iv)~O ajuste foi desigual (12 configurações
 para o NSGA-II, menos para os demais) e o MOEA/D só foi testado com pesos
 uniformes; como os três algoritmos baseados em dominância diferem por no
-máximo \val{ml.gap.dominance} de \HVp{} em média (\val{ml.smsemoa.hvle} e
-\val{ml.nsga2.hvle} nas tabelas são valores arredondados), mais ajuste poderia
-mudar a ordem entre eles. Outras
+máximo \val{ml.gap.dominance} de \HVp{} em média, mais ajuste poderia mudar a
+ordem entre eles. Outras
 limitações estão no Apêndice~\ref{ap:limitacoes}.
 
 \paragraph{Trabalho futuro.}

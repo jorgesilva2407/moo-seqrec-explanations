@@ -5,11 +5,10 @@
 \label{sec:resultados}
 
 Salvo indicação, os resultados são do MovieLens-20M, nas 99 instâncias do
-conjunto principal. A Figura~\ref{fig:principal}, na página~\pageref{fig:principal}, resume as três partes da
+conjunto principal. A Figura~\ref{fig:principal} resume as três partes da
 tese: o conflito entre necessidade e suficiência (a), a vantagem dos
 algoritmos baseados em dominância nas explicações pequenas e sua repetição em
-outros dados (b) e o custo nulo, em média, de manter a suficiência como
-objetivo (c).
+outros dados (b) e o custo pequeno de manter a suficiência como objetivo (c).
 
 
 \subsection{Necessidade e suficiência conflitam nas explicações pequenas}
@@ -113,8 +112,9 @@ Comparação & Métrica & Vitórias & Diferença [IC 95\%] & $r$ & $p$ (Holm) \\
 \caption{Experimentos posteriores à comparação planejada ($\dagger$), nas
 mesmas 99 instâncias e com a mesma normalização da
 Tabela~\ref{tab:planejada}; o NSGA-II é repetido como referência. Repetido em:
-cenários da Seção~\ref{sec:robustez} em que o método também rodou. Em negrito,
-o melhor valor desta tabela.}
+cenários da Seção~\ref{sec:robustez} em que o método também rodou. O NSGA-II só
+$(N,C)$ não estima $\hat S$ e avalia 10\,000 máscaras com as mesmas passadas. Em
+negrito, o melhor valor desta tabela.}
 \label{tab:posteriores}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -130,8 +130,9 @@ Método & \HVp & HV & Frente & Passadas & Repetido em \\
 \paragraph{Outros algoritmos multiobjetivo.}
 Os três algoritmos baseados em dominância são os melhores nas explicações
 pequenas (Tabela~\ref{tab:posteriores}): o SMS-EMOA (\val{ml.smsemoa.hvle})
-supera o NSGA-II em \val{ml.pair.nsga2.smsemoa.le.losses} das 99 instâncias, e
-o NSGA-III (\val{ml.nsga3.hvle}) em \val{ml.pair.nsga2.nsga3.le.losses}, com
+supera o NSGA-II (\val{ml.nsga2.hvle}) em \val{ml.pair.nsga2.smsemoa.le.losses}
+das 99 instâncias, e o NSGA-III (\val{ml.nsga3.hvle}) em
+\val{ml.pair.nsga2.nsga3.le.losses}, com
 diferenças pequenas mas consistentes. O MOEA/D, que escalariza, perde para o
 NSGA-II no \HVp{} em \val{ml.pair.nsga2.moead.le.wins} das 99.
 
@@ -162,17 +163,30 @@ que a busca acha.
 
 \paragraph{O que o objetivo de suficiência acrescenta.}
 \label{sec:valor-s}
-O NSGA-II com os três objetivos supera a variante que vê só $(N,C)$ em
-\val{ml.pair.nsga2.nsga2-nc.all.wins} das 99 instâncias no HV e em
-\val{ml.pair.nsga2.nsga2-nc.le.wins} no \HVp{}, o que era esperado, porque o
-hipervolume conta $S$. A pergunta relevante é se incluir $S$ custa algo nos
-outros dois objetivos: na projeção $(N,C)$ das máscaras de até 10 posições, o
-hipervolume médio das duas variantes é praticamente igual
-(\val{ml.nsga2.hvlenc} contra \val{ml.nsga2-nc.hvlenc};
-Figura~\ref{fig:principal}c). O terceiro objetivo acrescenta as máscaras
-suficientes sem piorar, em média, necessidade e tamanho. Essa igualdade é uma
-comparação de médias, sem teste pareado, e a variante só $(N,C)$ não foi
-repetida nos outros cenários.
+Retirar $S$ tem uma vantagem óbvia: sem estimar $\hat S$, a variante só
+$(N,C)$ avalia o dobro de máscaras com as mesmas passadas. A pergunta é quanto
+isso rende nos dois objetivos que ela vê (Figura~\ref{fig:principal}c). Nos
+fundos de busca, ela de fato encontra explicações um pouco melhores em $(N,C)$:
+\HVp{} na projeção $(N,C)$ de \val{ncbudget.nsga2-nc.hv} contra
+\val{ncbudget.nsga2.hv} do NSGA-II com três objetivos, melhor em
+\val{ncbudget.nsga2-nc.wins} das 99 instâncias. Mas quase todo esse ganho já
+está nas suas primeiras 5\,000 máscaras (\val{ncbudget.nsga2-nc-same-masks.hv}):
+a segunda metade do orçamento acrescenta só \val{ncbudget.doubling.diff4}.
+Dobrar o orçamento, portanto, rende pouco. E o ganho não resiste à
+reavaliação: nos fundos independentes, o NSGA-II com três objetivos é melhor
+na projeção $(N,C)$ (\val{ml.nsga2.hvlenc} contra \val{ml.nsga2-nc.hvlenc},
+em \val{ml.pair.nsga2.nsga2-nc.lenc.wins} das 99 instâncias; diferença
+\val{ml.pair.nsga2.nsga2-nc.lenc.diff}, IC
+\val{ml.pair.nsga2.nsga2-nc.lenc.ci}). A explicação provável é o viés de
+seleção já visto na $\widehat{\PS}$: a frente só $(N,C)$ guarda cerca de uma
+máscara por tamanho (\val{ml.nsga2-nc.front} em média, contra
+\val{ml.nsga2.front}), escolhida pelos mesmos 10 fundos que a medem, enquanto
+a frente com três objetivos guarda várias, e algumas resistem a fundos novos.
+Manter $S$, assim, acrescenta uma direção à frente (as máscaras suficientes:
+\HVp{} de \val{ml.nsga2.hvle} contra \val{ml.nsga2-nc.hvle} com os três
+objetivos) sem custo relevante nas outras duas. A variante só $(N,C)$ não foi
+repetida nos outros cenários, e uma versão que reavaliasse mais candidatos por
+tamanho poderia reduzir a diferença; não a testamos.
 
 \paragraph{NSGA-II semeado.}
 \label{sec:semeado}
@@ -231,17 +245,15 @@ no \HVp{} em \val{rd.pair.moead.scalar-ga.le.losses}, e o NSGA-II semeado é o
 melhor no HV (supera o guloso em \val{rd.pair.nsga2-seeded.greedy.all.wins})
 com a mesma pequena perda no \HVp{} (diferença
 \val{rd.pair.nsga2-seeded.nsga2.le.diff}) e de novo sem se distinguir do
-guloso nessa região ($p=\val{rd.pair.nsga2-seeded.greedy.le.p}$). Várias
-médias do conjunto novo coincidem com as do principal na terceira casa
-decimal, por acaso: as instâncias são de outros usuários e as execuções são
-outras, e com mais casas os valores diferem (\HVp{} do NSGA-II
-\val{ml.nsga2.hvle5} contra \val{rd.nsga2.hvle5}; do semeado
-\val{ml.nsga2-seeded.hvle5} contra \val{rd.nsga2-seeded.hvle5}; custo da
-semeadura \val{ml.pair.nsga2-seeded.nsga2.le.diff4} contra
-\val{rd.pair.nsga2-seeded.nsga2.le.diff4}; o SMS-EMOA vence o NSGA-II em
-\val{rd.pair.nsga2.smsemoa.le.losses} instâncias nos dois conjuntos, mas
-perde em \val{ml.pair.nsga2.smsemoa.le.wins} e
-\val{rd.pair.nsga2.smsemoa.le.wins}).
+guloso nessa região ($p=\val{rd.pair.nsga2-seeded.greedy.le.p}$). Duas
+estatísticas coincidem com as do conjunto principal depois do arredondamento,
+por acaso, já que as instâncias são de outros usuários e as execuções são
+outras: o SMS-EMOA vence o NSGA-II em \val{rd.pair.nsga2.smsemoa.le.losses}
+instâncias nos dois conjuntos (e perde em \val{ml.pair.nsga2.smsemoa.le.wins}
+e \val{rd.pair.nsga2.smsemoa.le.wins}), e o custo da semeadura é
+\val{rd.pair.nsga2-seeded.nsga2.le.diff} nos dois
+(\val{ml.pair.nsga2-seeded.nsga2.le.diff4} e
+\val{rd.pair.nsga2-seeded.nsga2.le.diff4} com mais casas).
 
 No \textbf{Zvuk}, com outro modelo e outro domínio, o padrão nas explicações
 pequenas se repete: o SMS-EMOA é o melhor no \HVp{} (supera o NSGA-II em

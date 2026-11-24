@@ -31,7 +31,8 @@ usamos 45 instâncias (15 por estrato).
 
 \paragraph{Orçamento.}
 Cada execução de cada método recebe $10^5$ passadas do SASRec. Com $M=10$,
-isso são 5\,000 máscaras; máscaras repetidas não são cobradas. A reavaliação
+isso são 5\,000 máscaras (10\,000 para o NSGA-II só $(N,C)$, que não estima
+$\hat S$); máscaras repetidas não são cobradas. A reavaliação
 com $M'=100$ fundos fica fora do orçamento. Para o GECE, o custo é o número de
 sequências que ele consulta. Com $M=10$ a ordenação das máscaras concorda com a
 de 200 fundos (Spearman de \val{bench.ml.n} em $\hat N$ e \val{bench.ml.s} em
@@ -71,8 +72,8 @@ instâncias e a correlação bisserial de postos pareada ($-1$ a $+1$).
 A \textbf{comparação planejada}, definida na proposta do projeto, opõe o
 NSGA-II ao AG escalarizado, ao guloso, ao ranking por ablação, ao GECE e às
 heurísticas (Seção~\ref{sec:planejada}). Os demais experimentos foram
-decididos depois dos primeiros resultados, em resposta a eles ou a uma revisão
-externa, e estão marcados com $\dagger$: os outros três algoritmos
+decididos depois dos primeiros resultados, em resposta a eles, e estão
+marcados com $\dagger$: os outros três algoritmos
 multiobjetivo, o NSGA-II semeado, o NSGA-II só $(N,C)$, o Shapley e as
 configurações ajustadas do AG escalarizado (Seção~\ref{sec:posteriores}).
 Todos usam os mesmos fundos, instâncias e orçamento, e cada parâmetro novo foi

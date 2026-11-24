@@ -45,7 +45,9 @@ no Zvuk (música); eles são o objeto da explicação, não a contribuição
 Resumidamente (Figura~\ref{fig:principal}): necessidade e suficiência
 concordam só moderadamente entre máscaras pequenas; nessa região os algoritmos
 baseados em dominância são os melhores métodos; e manter a suficiência como
-objetivo não piora, em média, as explicações em necessidade e tamanho. Há um
+objetivo vale a pena: retirá-la dobra as máscaras que a busca avalia, mas o
+ganho em necessidade e tamanho é marginal e não resiste a fundos
+independentes. Há um
 resultado secundário que limita o primeiro: quando máscaras de qualquer
 tamanho contam, o guloso e os valores de Shapley superam o NSGA-II no
 MovieLens, e só uma variante semeada com um ranking por ablação o corrige.
@@ -62,10 +64,12 @@ outro método (valores positivos: o SMS-EMOA é melhor), com intervalo de 95\% p
 principal, no conjunto novo e no Zvuk; métodos sem marcador num cenário não
 foram rodados nele. Azul: baseados em dominância de Pareto; verde:
 escalarizados; laranja: guloso e atribuição; amarelo: GECE. Escala logarítmica;
-todos os intervalos ficam acima de zero. (c)~NSGA-II com os três objetivos e só com
-$(N,C)$: \HVp{} médio nas 99 instâncias na projeção $(N,C)$ e com os três
-objetivos, sem teste pareado; os dois
-grupos têm normalizações diferentes e
-não são comparáveis entre si.}
+todos os intervalos ficam acima de zero. (c)~Custo de manter $S$: \HVp{} na
+projeção $(N,C)$, média nas 99 instâncias. Busca: nos fundos de busca, o
+NSGA-II com os três objetivos (5 mil máscaras) e o NSGA-II só $(N,C)$ depois
+de 5 mil e de 10 mil máscaras (normalização entre os três, em cada
+instância). Avaliação: as frentes reavaliadas nos fundos independentes
+(normalização do relatório principal). Os dois grupos não são comparáveis
+entre si.}
 \label{fig:principal}
 \end{figure*}

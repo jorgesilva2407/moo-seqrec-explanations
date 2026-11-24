@@ -15,9 +15,9 @@ normalised per instance over the methods being compared, so they can only be com
 table. "HV ≤10" counts only explanations of up to 10 items.
 
 - **Small explanations: Pareto-based MOEAs win.** On 99 MovieLens-20M instances, HV ≤10 is 0.925
-  for SMS-EMOA, 0.921 for NSGA-III and 0.915 for NSGA-II. Next come greedy (0.905), Shapley values
-  (0.876), the scalarised GA in its default configuration (0.813), GECE with restarts (0.777) and
-  MOEA/D (0.680). The lead over greedy is small but consistent: NSGA-II beats it on 70 of 99 instances. GECE edits items rather
+  for SMS-EMOA, 0.922 for NSGA-III and 0.916 for NSGA-II. Next come greedy (0.905), Shapley values
+  (0.877), the scalarised GA in its default configuration (0.813), GECE with restarts (0.777) and
+  MOEA/D (0.681). The lead over greedy is small but consistent: NSGA-II beats it on 70 of 99 instances. GECE edits items rather
   than masking positions, so it answers a different question, and that comparison is only
   illustrative.
 - **Across all sizes, the simple baselines beat plain NSGA-II on MovieLens.** In HV over all mask
@@ -31,10 +31,13 @@ table. "HV ≤10" counts only explanations of up to 10 items.
   too (63/99 and 35/45), and seeded NSGA-II has the best HV over all sizes. With the second-best Zvuk model (15 instances),
   the best method in each region is unchanged, but the order in the middle of the table moves.
   Shapley, NSGA-III and GECE were not re-run in these settings, and MOEA/D was not run on Zvuk.
-- **Keeping sufficiency as an objective costs nothing in necessity or size.** On the
-  (necessity, size) projection of masks of up to 10 items, three-objective NSGA-II and an NSGA-II
-  that optimises only those two objectives reach the same HV (0.998 vs 0.997). The three-objective
-  front also keeps the sufficient masks.
+- **Keeping sufficiency as an objective is worth it.** An NSGA-II that optimises only
+  (necessity, size) does not estimate sufficiency, so the same budget buys it twice the masks
+  (10,000). On the backgrounds it searches with, it finds slightly better (necessity, size)
+  explanations of up to 10 items (HV of that projection 0.842 vs 0.827, better on 95/99), but
+  almost all of it comes in its first 5,000 masks (0.841): doubling the budget adds 0.0011. On
+  independent backgrounds the gain disappears: three-objective NSGA-II is better on that projection
+  (0.999 vs 0.979, 77/99), and its front also keeps the sufficient masks.
 - **Engineering.** A scheduler runs many searches at once and batches their queries into shared GPU
   calls. On an RTX A4000 the benchmark measures about 20,000 SASRec passes/s on MovieLens-20M
   (13,000 on Zvuk). Every step is a `just` recipe, and the GPU stages run in a Docker image on rented vast.ai GPUs.
@@ -61,7 +64,8 @@ averaged over sampled backgrounds, and the final fronts are re-scored on 100 ind
 backgrounds. NSGA-II, NSGA-III, SMS-EMOA, MOEA/D, a scalarised GA and the baselines (greedy,
 ablation ranking, Shapley sampling, recency, similarity, random, enumeration and GECE) all run
 behind one ask/tell protocol with the same pass budget, and the fronts are compared by hypervolume
-and IGD+. Definitions, tuning, statistical tests and limitations are in the
+and IGD+. A search that ignores sufficiency (NSGA-II on (N, C) only) pays only for the necessity
+interventions, M passes per mask instead of 2M, so it evaluates twice as many masks. Definitions, tuning, statistical tests and limitations are in the
 [full article (in Portuguese)](report/build/artigo.pdf). The PDF is tracked in the repository, and
 `just report` rebuilds it.
 
@@ -391,7 +395,7 @@ hashes in them are specific to that day and account: search fresh offers and cre
 | Stage(s) | What |
 |---|---|
 | `tune-moead-{tch,pbi}-p{5,6}`, `tune-nsga3-p{5,6}`, `tune-smsemoa-p{25,50}` | held-out tuning of the new MOEAs (selection by total HV): MOEA/D Tchebicheff 5 partitions, NSGA-III 6, SMS-EMOA population 50 |
-| `main` (methods `nsga2_nc`, `shapley`, `moead`, `nsga3`, `smsemoa`) | the new methods on the 99 main instances, 5 seeds |
+| `main` (methods `nsga2_nc`, `shapley`, `moead`, `nsga3`, `smsemoa`) | the new methods on the 99 main instances, 5 seeds. `nsga2_nc` was later re-run (image `sha-c6858ed`, `just explain-run --stage main --methods nsga2_nc --pop-size 25`, one RTX A4000) after it stopped paying for S-hat: it now evaluates 10,000 masks per job; the earlier archives (5,000 masks, S-hat estimated but unused) are at dataset revision `45d0175` |
 | `redraw` | `--instance-set redraw`: 99 new instances disjoint from main and tuning users; nsga2, nsga2_seeded, greedy, ablation, scalar_ga, 3 seeds |
 | `redraw-moea` | SMS-EMOA and MOEA/D on the redrawn set |
 | `exact-front/exact-front-n16.json` | `just exact-front --length 16 --methods nsga2 random greedy moead nsga3 smsemoa` (GPU) |
@@ -433,6 +437,7 @@ datasets' `explanations`, `<data>` = processed data directories):
 | `ps-rescored.json` | `uv run --group explain python report/scripts/ps_reavaliado.py <ml> --processed <data>/processed --device mps` |
 | `bench-ml20m.json`, `bench-zvuk.json` | copies of `bench/` from the two datasets (written by `explain-bench`) |
 | `search-size-profile.json` | `uv run --group explain python report/scripts/diagnostico_moead.py <ml>` (where each search spends its budget by mask size) |
+| `nc-budget.json` | `uv run --group explain python report/scripts/orcamento_nc.py <ml>` (what NSGA-II gains on the search backgrounds by dropping S-hat: 5,000 vs 10,000 masks) |
 | `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
 
 ## References and credits

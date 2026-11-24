@@ -100,8 +100,11 @@ usual.
 \paragraph{Variante só com $(N,C)$.}
 Para medir o que o objetivo de suficiência acrescenta, a variante
 \textbf{NSGA-II só $(N,C)$} usa os mesmos operadores, mas a seleção vê apenas
-$\hat N$ e $C$. Sua frente continua sendo tirada das três quantidades de tudo o
-que ela avaliou, e por isso é comparável às demais.
+$\hat N$ e $C$. Como não usa $\hat S$, ela não o estima durante a busca: cada
+máscara custa $M$ passadas em vez de $2M$, e o mesmo orçamento compra o dobro de
+máscaras. Sua frente são as máscaras não dominadas em $(\hat N, C)$,
+reavaliadas nos três objetivos com os fundos independentes, como as dos demais
+métodos.
 
 \subsection{Outros algoritmos multiobjetivo}
 \label{sec:outros-moea}
@@ -136,8 +139,9 @@ frente é o conjunto não dominado de tudo o que avaliaram.
         mesmos operadores do NSGA-II. A aptidão é a soma ponderada dos três
         objetivos, cada um dividido pelo seu valor na máscara cheia ($N$, $S$)
         ou por $n$ ($C$). O orçamento é dividido igualmente entre 10 vetores de
-        pesos (reticulado do simplex), uma execução por vetor, com população
-        20. Ele controla os operadores, mas não só a escalarização: também
+        pesos, um por execução, com população 20; os vetores são todas as
+        combinações de pesos múltiplos de $1/3$ que somam 1, como
+        $(1,0,0)$, $(\tfrac23,\tfrac13,0)$ e $(\tfrac13,\tfrac13,\tfrac13)$. Ele controla os operadores, mas não só a escalarização: também
         divide o orçamento em execuções curtas; o MOEA/D, que escalariza com
         uma população compartilhada e o orçamento inteiro, separa os dois
         efeitos.

@@ -127,6 +127,9 @@ def save(fig, name: str) -> None:
 # ---------------------------------------------------------------- numbers quoted in the prose
 
 
+PAIR_FIELDS = {"hv": "all", "hv_le10": "le", "hv_le10_nc": "lenc"}  # paired-test field -> key suffix
+
+
 def report_values() -> None:
     """Per report (ml, rd, zv, za): every method's summary, every paired test against the best label
     and every extra pair; keys like ml.nsga2.hvle, ml.pair.smsemoa.nsga2.le.wins."""
@@ -157,7 +160,7 @@ def report_values() -> None:
         for pair, fields in data.get("pairs", {}).items():
             a, b = pair.split(",")
             for field, t in fields.items():
-                test_values(f"{tag}.pair.{key(a)}.{key(b)}.{'all' if field == 'hv' else 'le'}", t)
+                test_values(f"{tag}.pair.{key(a)}.{key(b)}.{PAIR_FIELDS[field]}", t)
         popularity = data.get("small_hv_by_target_popularity", {}).get("nsga2")
         if popularity:
             for band, v in zip(("low", "mid", "high"), popularity):
@@ -241,6 +244,14 @@ def other_values() -> None:
         for size in (1, 2):
             for m in (10, 100):
                 val(f"m100zv.size{size}.m{m}", num(zc[f"size_{size}"][f"M={m}"]["mean"], 2))
+    budget = load("nc-budget.json")
+    for name, row in budget["hv_nc_search"].items():
+        k = f"ncbudget.{key(name)}"
+        val(f"{k}.hv", num(row["mean"]))
+        if "wins" in row:
+            test_values(k, row)
+    test_values("ncbudget.doubling", budget["doubling"])
+    val("ncbudget.doubling.diff4", signed(budget["doubling"]["mean_diff"], 4))
     for method, row in load("search-size-profile.json").items():
         val(f"size.{key(method)}.le10", num(100 * row["share_evaluated_le10"], 0))
         val(f"size.{key(method)}.median", num(100 * row["median_relative_size_evaluated"], 0))
@@ -411,24 +422,30 @@ def key_figure() -> None:
     ax.legend(handles, [label for _, label, _ in SCENARIOS], loc="upper center", bbox_to_anchor=(0.5, -0.34), ncol=3, handletextpad=0.2)
 
     ax = axes[2]
+    search = load("nc-budget.json")["hv_nc_search"]
     summary = ml["summary"]
-    groups = (("hv_le10_nc_mean", r"$(N,C)$"), ("hv_le10_mean", r"$(N,S,C)$"))
-    for j, (method, colour, marker) in enumerate((("nsga2", "#2a78d6", "o"), ("nsga2_nc", "#e87ba4", "s"))):
-        xs = [i + (j - 0.5) * 0.24 for i in range(len(groups))]
-        ys = [summary[method][field] for field, _ in groups]
-        ax.plot(xs, ys, marker=marker, color=colour, linestyle="none", markersize=4.5,
-                label=SHORT.get(method, NAMES[method]).replace(POST_HOC, ""))
-        for x, y in zip(xs, ys):  # labels outside the pair: NSGA-II to the left, (N,C) to the right
-            ax.annotate(num(y, 3).replace("{,}", ","), (x, y), xytext=(-4 if j == 0 else 4, 0),
-                        textcoords="offset points", ha="right" if j == 0 else "left", va="center",
-                        fontsize=5.5, color=INK)
-    ax.set_xticks(range(len(groups)), [label for _, label in groups])
-    ax.set_xlim(-0.65, len(groups) - 0.35)
-    ax.set_ylim(0.85, 1.03)
-    ax.set_ylabel(r"HV$_{\leq 10}$")
-    ax.set_title("(c) com e sem $S$", fontsize=7)
+    full, nc = ("#2a78d6", "o"), ("#e87ba4", "s")
+    points = [  # (x, value, style, hollow): search backgrounds, then the fronts re-scored on independent ones
+        (-0.25, search["nsga2"]["mean"], full, False), (0.0, search["nsga2_nc_same_masks"]["mean"], nc, True),
+        (0.25, search["nsga2_nc"]["mean"], nc, False),
+        (0.85, summary["nsga2"]["hv_le10_nc_mean"], full, False), (1.15, summary["nsga2_nc"]["hv_le10_nc_mean"], nc, False),
+    ]
+    for x, y, (colour, marker), hollow in points:
+        ax.plot(x, y, marker=marker, linestyle="none", markersize=4.5, color=colour,
+                markerfacecolor="white" if hollow else colour)
+        ax.annotate(num(y, 3).replace("{,}", ","), (x, y), xytext=(0, -9 if hollow else 5), textcoords="offset points",
+                    ha="center", fontsize=5.5, color=INK)  # the hollow point's label below, clear of its neighbours
+    ax.set_xticks([0, 1], ["busca", "avaliação"])
+    ax.set_xlim(-0.55, 1.45)
+    ax.set_ylim(0.8, 1.03)
+    ax.set_ylabel(r"HV$_{\leq 10}$ em $(N,C)$")
+    ax.set_title("(c) custo de manter $S$", fontsize=7)
     ax.grid(axis="x", visible=False)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=1, handlelength=1.0)
+    handles = [plt.Line2D([], [], marker=full[1], color=full[0], linestyle="none", markersize=4.5),
+               plt.Line2D([], [], marker=nc[1], color=nc[0], linestyle="none", markersize=4.5, markerfacecolor="white"),
+               plt.Line2D([], [], marker=nc[1], color=nc[0], linestyle="none", markersize=4.5)]
+    ax.legend(handles, ["NSGA-II (5 mil máscaras)", "só (N,C), 5 mil", "só (N,C), 10 mil"],
+              loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=1, handlelength=1.0)
     fig.tight_layout(w_pad=0.8)
     save(fig, "principal.pdf")
 
