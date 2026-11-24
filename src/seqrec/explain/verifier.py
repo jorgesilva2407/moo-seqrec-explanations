@@ -7,7 +7,8 @@ For an instance with history ``s`` (n items), target ``v`` and backgrounds ``r^(
 * sufficiency: ``r^(m)`` with the positions in ``X`` replaced by ``s`` (keep only the explanation).
 
 Both are substitutions at the same positions: nothing is deleted or shifted. Each intervened
-sequence costs one SASRec pass and gives the margin ``f_v - f_(K)``, where ``f_(K)`` is the K-th
+sequence costs one SASRec pass (so a mask costs 2M passes, or M when only necessity is asked for)
+and gives the margin ``f_v - f_(K)``, where ``f_(K)`` is the K-th
 highest score among the other candidates (the catalog without the user's items and without ``v``),
 so ``margin >= 0`` iff ``v`` is in the top-K.
 
@@ -33,11 +34,15 @@ DEFAULT_CHUNK = 2048
 
 @dataclass(frozen=True)
 class Evaluation:
-    """Per-draw margins of R masks. ``nec`` / ``suf`` float [R, M], ``size`` long [R] (= |X|)."""
+    """Per-draw margins of R masks. ``nec`` / ``suf`` float [R, M], ``size`` long [R] (= |X|).
+    ``suf`` is None when only necessity was scored; S-hat and PS are then NaN."""
 
     nec: torch.Tensor
-    suf: torch.Tensor
+    suf: torch.Tensor | None
     size: torch.Tensor
+
+    def _missing(self) -> torch.Tensor:
+        return torch.full((self.nec.shape[0],), float("nan"), dtype=self.nec.dtype, device=self.nec.device)
 
     @property
     def necessity(self) -> torch.Tensor:
@@ -47,7 +52,7 @@ class Evaluation:
     @property
     def sufficiency(self) -> torch.Tensor:
         """S-hat [R]: minus the mean margin keeping only X (lower = more sufficient)."""
-        return -self.suf.mean(dim=1)
+        return self._missing() if self.suf is None else -self.suf.mean(dim=1)
 
     @property
     def pn(self) -> torch.Tensor:
@@ -57,7 +62,7 @@ class Evaluation:
     @property
     def ps(self) -> torch.Tensor:
         """Fraction of draws where X alone keeps v in the top-K."""
-        return (self.suf >= 0).float().mean(dim=1)
+        return self._missing() if self.suf is None else (self.suf >= 0).float().mean(dim=1)
 
     @property
     def objectives(self) -> torch.Tensor:
@@ -115,21 +120,23 @@ class Verifier:
         return self.valid.clone()
 
     @torch.inference_mode()
-    def evaluate(self, index: torch.Tensor, masks: torch.Tensor) -> Evaluation:
-        """Score ``masks`` bool [R, L]; row r belongs to instance ``index[r]``. Costs 2*M*R passes."""
+    def evaluate(self, index: torch.Tensor, masks: torch.Tensor, sufficiency: bool = True) -> Evaluation:
+        """Score ``masks`` bool [R, L]; row r belongs to instance ``index[r]``. Costs 2*M*R passes, or
+        M*R with ``sufficiency=False`` (only the necessity interventions are run)."""
         device = self.scorer.device
         index = torch.as_tensor(index, device=device, dtype=torch.long)
         masks = torch.as_tensor(masks, device=device, dtype=torch.bool)
         if masks.shape != (index.shape[0], self.length):
             raise ValueError(f"masks must be [{index.shape[0]}, {self.length}], got {tuple(masks.shape)}")
         masks = masks & self.valid[index]
-        per_mask = 2 * self.m
+        per_mask = (2 if sufficiency else 1) * self.m
         rows = max(1, self.chunk // max(per_mask, 1))
         margins = []
         for idx, z in zip(index.split(rows), masks.split(rows)):
             z = z.unsqueeze(1)
             hist, fills = self.hist[idx].unsqueeze(1), self.bg[idx]
-            seqs = torch.cat([torch.where(z, fills, hist), torch.where(z, hist, fills)], dim=1)
+            erased = torch.where(z, fills, hist)
+            seqs = torch.cat([erased, torch.where(z, hist, fills)], dim=1) if sufficiency else erased
             logits = self.scorer.logits(seqs.reshape(-1, self.length), max_batch=self.chunk)
             target = self.target0[idx].repeat_interleave(per_mask).unsqueeze(1)
             score = logits.gather(1, target).squeeze(1)
@@ -138,4 +145,4 @@ class Verifier:
             margins.append((score - kth).view(-1, per_mask))
         delta = torch.cat(margins) if margins else torch.zeros(0, per_mask, device=device)
         self.passes += delta.numel()
-        return Evaluation(nec=delta[:, : self.m], suf=delta[:, self.m :], size=masks.sum(dim=1))
+        return Evaluation(nec=delta[:, : self.m], suf=delta[:, self.m :] if sufficiency else None, size=masks.sum(dim=1))

@@ -1,16 +1,19 @@
 """Run many (instance, method, seed) jobs in lockstep on one verifier.
 
 Every round asks each active job for masks, scores all of them in one batch and hands the
-objectives back. The budget is enforced here, in mask evaluations (one evaluation = 2 * M SASRec
-passes): a mask already scored by the same job is answered from the job's cache and costs
-nothing. Jobs are independent of each other, so results do not depend on ``concurrency``.
+objectives back. The budget is enforced here, in mask evaluations: one evaluation costs 2 * M
+SASRec passes, or M for a method that does not need S-hat (``Method.needs_sufficiency``), which
+therefore gets twice as many evaluations for the same passes. A mask already scored by the same
+job is answered from the job's cache and costs nothing. Jobs are independent of each other, so results do not depend on ``concurrency``.
 
 Result file of a job (``save_job`` / ``load_job``), E = evaluated masks, n = history length:
 
 * ``masks``     uint8 [E, ceil(n / 8)]  ``np.packbits`` of the masks, in evaluation order
-* ``objectives`` float32 [E, 3]         (N-hat, S-hat, |X|) on the search backgrounds
-* ``pn``, ``ps`` float32 [E]            sign fractions on the search backgrounds
-* ``front``     int64 [F]               rows of the non-dominated masks
+* ``objectives`` float32 [E, 3]         (N-hat, S-hat, |X|) on the search backgrounds (S-hat NaN
+  when the method did not need it)
+* ``pn``, ``ps`` float32 [E]            sign fractions on the search backgrounds (``ps`` likewise)
+* ``front``     int64 [F]               rows of the masks non-dominated in the objectives the
+  method saw
 * ``front_objectives`` / ``front_pn`` / ``front_ps``  the front re-scored on the independent
   evaluation backgrounds (absent when no evaluation verifier was given)
 * ``meta``      JSON string
@@ -49,6 +52,8 @@ class Job:
     method: Method
     n: int
     budget: int
+    columns: tuple = (0, 1, 2)  # objectives that define the front: those the method was scored on
+    passes_per_mask: int = 0
     cache: dict = field(default_factory=dict)
     masks: list = field(default_factory=list)
     rows: list = field(default_factory=list)  # (N, S, C, PN, PS) per evaluated mask
@@ -60,16 +65,21 @@ class Job:
         return self.budget - len(self.masks)
 
     @property
+    def passes(self) -> int:
+        """SASRec passes the job paid for."""
+        return len(self.masks) * self.passes_per_mask
+
+    @property
     def objectives(self) -> np.ndarray:
         return np.asarray(self.rows, dtype=np.float64).reshape(-1, 5)[:, :3]
 
     def front(self) -> np.ndarray:
-        """Rows of the non-dominated evaluated masks. The empty mask (scored by methods that need a
-        baseline value) is not an explanation and never enters the front."""
+        """Rows of the evaluated masks non-dominated in ``columns``. The empty mask (scored by methods
+        that need a baseline value) is not an explanation and never enters the front."""
         candidates = np.flatnonzero(self.objectives[:, 2] > 0) if self.rows else np.zeros(0, dtype=np.int64)
         if not len(candidates):
             return np.zeros(0, dtype=np.int64)
-        kept = NonDominatedSorting().do(self.objectives[candidates], only_non_dominated_front=True)
+        kept = NonDominatedSorting().do(self.objectives[candidates][:, list(self.columns)], only_non_dominated_front=True)
         return np.sort(candidates[kept])
 
 
@@ -84,7 +94,7 @@ def job_specs(instances: Sequence[int], methods: Sequence[str], seeds: Sequence[
 
 
 def _scores(evaluation) -> np.ndarray:
-    """float64 [R, 5]: N, S, C, PN, PS."""
+    """float64 [R, 5]: N, S, C, PN, PS (S and PS NaN when only necessity was scored)."""
     columns = [evaluation.necessity, evaluation.sufficiency, evaluation.size.float(), evaluation.pn, evaluation.ps]
     return torch.stack(columns, dim=1).cpu().numpy().astype(np.float64)
 
@@ -109,7 +119,8 @@ def run_jobs(
     """Run ``specs`` to completion, ``concurrency`` jobs at a time.
 
     ``contexts[i]`` belongs to instance ``i`` of ``verifier``. Finished jobs are re-scored on
-    ``eval_verifier`` (their front only, not charged to the budget) and passed to ``on_finish``.
+    ``eval_verifier`` (their front only, on N and S, not charged to the budget) and passed to
+    ``on_finish``.
     """
     pending = list(reversed(specs))
     active: list[Job] = []
@@ -118,10 +129,14 @@ def run_jobs(
         while pending and len(active) < concurrency:
             spec = pending.pop()
             ctx = contexts[spec.instance]
-            budget = sys.maxsize if spec.method in UNBUDGETED else ctx.budget
-            active.append(Job(spec, METHODS[spec.method](ctx, job_rng(spec)), ctx.n, budget))
+            method = METHODS[spec.method](ctx, job_rng(spec))
+            full = method.needs_sufficiency
+            budget = sys.maxsize if spec.method in UNBUDGETED else ctx.budget * (1 if full else 2)
+            active.append(Job(spec, method, ctx.n, budget, columns=(0, 1, 2) if full else (0, 2),
+                              passes_per_mask=(2 if full else 1) * verifier.m))
 
-        asked, index, batch = [], [], []
+        # one batch of masks scored on N and S, one of masks scored on N only
+        asked, index, batch = [], {True: [], False: []}, {True: [], False: []}
         for job in active:
             masks = np.zeros((0, job.n), dtype=bool) if job.method.done else np.asarray(job.method.ask(job.remaining))
             keys = [row.tobytes() for row in masks]
@@ -135,20 +150,25 @@ def run_jobs(
                     break
                 fresh[key] = row
             asked.append((masks, keys, fresh, cut))
-            index += [job.spec.instance] * len(fresh)
-            batch.append(_padded(masks[list(fresh.values())].reshape(-1, job.n), verifier.length))
+            full = job.method.needs_sufficiency
+            index[full] += [job.spec.instance] * len(fresh)
+            batch[full].append(_padded(masks[list(fresh.values())].reshape(-1, job.n), verifier.length))
 
-        scores = np.zeros((0, 5))
-        if index:
-            scores = _scores(verifier.evaluate(torch.tensor(index), torch.from_numpy(np.concatenate(batch))))
+        scores = {full: np.zeros((0, 5)) for full in (True, False)}
+        for full in (True, False):
+            if index[full]:
+                evaluation = verifier.evaluate(torch.tensor(index[full]), torch.from_numpy(np.concatenate(batch[full])),
+                                               sufficiency=full)
+                scores[full] = _scores(evaluation)
 
-        closing, offset = [], 0
+        closing, offset = [], {True: 0, False: 0}
         for job, (masks, keys, fresh, cut) in zip(active, asked):
+            full = job.method.needs_sufficiency
             for key, row in fresh.items():
                 job.cache[key] = len(job.masks)
                 job.masks.append(masks[row])
-                job.rows.append(scores[offset])
-                offset += 1
+                job.rows.append(scores[full][offset[full]])
+                offset[full] += 1
             job.stalls = 0 if fresh else job.stalls + 1
             if cut or job.remaining <= 0 or job.method.done or job.stalls >= STALL_LIMIT:
                 closing.append(job)

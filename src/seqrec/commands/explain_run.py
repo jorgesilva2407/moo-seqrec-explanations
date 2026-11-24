@@ -184,7 +184,7 @@ def run(args: argparse.Namespace) -> int:
         save_job(job_path(stage_dir, inst, job.spec), job, {
             "method": job.spec.method, "seed": job.spec.seed, "user_index": inst.user_index, "target": inst.target,
             "m": args.m, "m_eval": args.m_eval, "fill": args.fill, "eval_fill": args.eval_fill or args.fill, "k": args.k, "budget_passes": args.budget,
-            "checkpoint_id": scorer.checkpoint_id,
+            "passes": job.passes, "checkpoint_id": scorer.checkpoint_id,
         })
 
     def on_round(finished: int, total: int) -> None:

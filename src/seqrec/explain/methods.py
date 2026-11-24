@@ -2,7 +2,8 @@
 
 A method never calls the model. ``ask(remaining)`` returns the masks it wants scored (bool [R, n],
 one bit per history position) and ``tell(F)`` receives their objectives (float [R, 3] =
-(N-hat, S-hat, |X|), all minimised) in the same order. The scheduler owns the budget: it may stop
+(N-hat, S-hat, |X|), all minimised) in the same order. A method with ``needs_sufficiency = False``
+is never charged for S-hat, which it receives as NaN. The scheduler owns the budget: it may stop
 a method at any round, so a method keeps no result of its own; everything it had scored is the
 job's archive.
 
@@ -55,15 +56,16 @@ class Context:
         n: number of positions (mask length).
         scale: float [3], divides (N, S, C) before a weighted sum.
         similarity: float [n], cosine similarity of each history item to the target.
-        budget: mask evaluations available to the job.
+        budget: mask evaluations available to the job when each mask is scored on N and S (2M
+            passes); a method that does not need S pays M passes per mask and gets twice as many.
         pop_size: population of NSGA-II (and batch size of the random baseline).
         scalar_pop_size: population of each scalarised GA run.
         weights: float [W, 3], weight vectors of the scalarised GA.
         init: ``sparse`` (about ``SPARSE_BITS`` bits on) or ``uniform`` (each bit on with 1/2).
         crossover: apply uniform crossover (False: offspring are mutated copies of the parents).
         mutation_scale: the per-bit flip rate is ``mutation_scale / n``.
-        objectives: which of (N, S, C) the multi-objective searches see (indices; the archive
-            always stores all three).
+        objectives: which of (N, S, C) the multi-objective searches see (indices); without S (1),
+            S-hat is not estimated during the search.
         partitions: Das-Dennis partitions of the reference directions of MOEA/D and NSGA-III
             (3 objectives: 5 -> 21 directions, 6 -> 28); also their population size.
         decomposition: ``tchebicheff`` or ``pbi`` (MOEA/D).
@@ -92,9 +94,11 @@ def scalarise(objectives: np.ndarray, weights: np.ndarray, scale: np.ndarray) ->
 
 
 class Method:
-    """Base class: ``done`` turns True when the method has nothing more to ask."""
+    """Base class: ``done`` turns True when the method has nothing more to ask; ``needs_sufficiency``
+    says whether its masks must be scored on S-hat (otherwise S-hat is not estimated nor charged)."""
 
     done = False
+    needs_sufficiency = True
 
     def __init__(self, ctx: Context, rng: np.random.Generator) -> None:
         self.ctx, self.rng = ctx, rng
@@ -181,6 +185,7 @@ class _MultiObjective(Method):
     def __init__(self, ctx: Context, rng: np.random.Generator) -> None:
         super().__init__(ctx, rng)
         self.columns = list(ctx.objectives)
+        self.needs_sufficiency = 1 in self.columns
         self.evolution = self.build(ctx, rng, len(self.columns))
 
     def build(self, ctx: Context, rng: np.random.Generator, n_obj: int) -> _Evolution:

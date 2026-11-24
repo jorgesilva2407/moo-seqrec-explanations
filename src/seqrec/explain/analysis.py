@@ -57,13 +57,15 @@ def load_jobs(stage_dir: Path, source: str = "front_objectives") -> list[dict]:
                 "n": meta["n"],
                 "m": meta["m"],
                 "evaluations": meta["evaluations"],
-                # model queries the method itself paid for (GECE queries sequences, not masks)
-                "passes": meta.get("queries", meta["evaluations"] * 2 * meta["m"]),
+                # model queries the method itself paid for (GECE queries sequences, not masks; archives
+                # written before "passes" was recorded scored every mask on N and S: 2M passes each)
+                "passes": meta.get("queries", meta.get("passes", meta["evaluations"] * 2 * meta["m"])),
                 "target_popularity": popularity.get(instance),
                 "front": (job["front_objectives"] if evaluated else job["objectives"][rows]).astype(np.float64),
                 "front_pn": job["front_pn"] if evaluated else job["pn"][rows],
                 "front_ps": job["front_ps"] if evaluated else job["ps"][rows],
                 "front_masks": job["masks"][rows],
+                "searched_s": bool(np.isfinite(job["objectives"][:, 1]).all()),
             }
         )
     return records
@@ -227,10 +229,12 @@ def convergence(records: Sequence[dict], checkpoints: Sequence[int], max_size: i
 
     Uses the search objectives of every evaluated mask, in evaluation order, scaled inside each
     instance by the bounds of the final fronts. A job that stopped before a checkpoint keeps its
-    final value.
+    final value. Jobs that did not estimate S-hat during the search (NaN in the archive) are left
+    out: their search curve is not in the same three objectives.
     """
     curves = defaultdict(lambda: defaultdict(list))
     for group in _by_instance(records).values():
+        group = [record for record in group if record["searched_s"]]
         archives = [_restrict(load_job(record["path"])["objectives"].astype(np.float64), None) for record in group]
         finals = [_restrict(non_dominated(archive), max_size) for archive in archives]
         if not any(len(front) for front in finals):

@@ -85,3 +85,20 @@ def test_batches_of_several_instances_are_deterministic_and_chunk_independent():
     full = verifier.evaluate(torch.arange(2), verifier.full_masks())
     assert full.size.tolist() == [6, 3]
     assert torch.all(full.suf == full.suf[:, :1])
+
+
+def test_necessity_only_scoring_costs_half_and_matches_the_full_scoring():
+    scorer = LinearScorer()
+    rng = np.random.default_rng(1)
+    instances = [make_instance([1, 2, 3, 4, 5], 10), make_instance([4, 6, 7], 11)]
+    fills = [rng.integers(1, NUM_ITEMS + 1, size=(4, inst.n)) for inst in instances]
+    verifier = Verifier(scorer, instances, fills, k=3)
+    index = torch.tensor([0, 0, 1, 1])
+    masks = torch.from_numpy(rng.random((4, scorer.max_length)) < 0.5) & verifier.valid[index]
+    full = verifier.evaluate(index, masks)
+    passes = verifier.passes
+    necessity = verifier.evaluate(index, masks, sufficiency=False)
+    assert verifier.passes - passes == passes // 2 == 4 * 4
+    torch.testing.assert_close(necessity.necessity, full.necessity)
+    torch.testing.assert_close(necessity.pn, full.pn)
+    assert torch.isnan(necessity.sufficiency).all() and torch.isnan(necessity.ps).all()

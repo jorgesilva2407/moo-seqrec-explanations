@@ -38,23 +38,26 @@ def run(methods, seeds=(0, 1), concurrency=64, budget=BUDGET, with_eval=False):
 def test_every_method_respects_the_budget_and_stores_true_objectives(name):
     jobs, verifier = run([name])
     assert len(jobs) == 2 * (1 if name in DETERMINISTIC else 2)
-    total = 0
+    paid = 0
     for job in jobs:
         masks = np.asarray(job.masks)
-        total += len(masks)
+        full = job.method.needs_sufficiency
+        paid += job.passes
+        assert job.passes == len(masks) * (2 if full else 1) * verifier.m
         assert len(masks) and len({m.tobytes() for m in masks}) == len(masks)  # no mask is paid for twice
         if name == "enumeration":
             assert len(masks) == job.n + job.n * (job.n - 1) // 2
         else:
-            assert len(masks) <= BUDGET
+            assert len(masks) <= BUDGET * (1 if full else 2)  # same passes: twice the masks without S
         padded = np.zeros((len(masks), verifier.length), dtype=bool)
         padded[:, verifier.length - job.n :] = masks
-        direct = verifier.evaluate(torch.full((len(masks),), job.spec.instance), torch.from_numpy(padded))
+        direct = verifier.evaluate(torch.full((len(masks),), job.spec.instance), torch.from_numpy(padded), sufficiency=full)
         np.testing.assert_allclose(job.objectives, direct.objectives.numpy(), rtol=1e-5, atol=1e-6)
-        front = job.objectives[job.front()]
-        for row in job.objectives:  # nothing evaluated dominates a front member
+        seen = job.objectives[:, list(job.columns)]
+        front = seen[job.front()]
+        for row in seen:  # nothing evaluated dominates a front member, in the objectives the method saw
             assert not np.any(np.all(row <= front, axis=1) & np.any(row < front, axis=1))
-    assert total * 2 * verifier.m == verifier.passes - total * 2 * verifier.m  # search + the direct re-check
+    assert paid == verifier.passes - paid  # search + the direct re-check
 
 
 def test_results_do_not_depend_on_concurrency():
@@ -181,3 +184,17 @@ def test_decomposition_and_indicator_searches_ask_whole_generations():
         first = method.ask(10**6)
         method.tell(np.random.default_rng(1).random((len(first), 3)))
         assert len(first) == size and 0 < len(method.ask(10**6)) <= size, name
+
+
+def test_a_search_without_sufficiency_pays_m_per_mask_and_is_rescored_on_both():
+    jobs, verifier = run(["nsga2_nc", "nsga2"], seeds=(0,), budget=10, with_eval=True)
+    for instance in (0, 1):
+        nc, full = (next(j for j in jobs if j.spec.instance == instance and j.spec.method == m) for m in ("nsga2_nc", "nsga2"))
+        assert not nc.method.needs_sufficiency and full.method.needs_sufficiency
+        assert len(nc.masks) == 2 * len(full.masks) == 20  # the same passes buy twice the masks
+        assert nc.passes == full.passes == 10 * 2 * verifier.m
+        assert np.isnan(nc.objectives[:, 1]).all() and np.isfinite(full.objectives).all()
+        assert nc.columns == (0, 2)
+        # the front is re-scored on N and S, outside the budget
+        assert np.isfinite(nc.front_scores).all()
+        np.testing.assert_array_equal(nc.front_scores[:, 2], nc.objectives[nc.front(), 2])

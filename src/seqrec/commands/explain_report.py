@@ -137,8 +137,8 @@ def run(args: argparse.Namespace) -> int:
         report["pairs"] = {}
         for pair in args.pairs:
             first, second = pair.split(",")
-            report["pairs"][pair] = {field: pair_test(records, first, second, field) for field in ("hv", small)}
-        for field in ("hv", small):
+            report["pairs"][pair] = {field: pair_test(records, first, second, field) for field in ("hv", small, f"{small}_nc")}
+        for field in ("hv", small, f"{small}_nc"):
             tests = [report["pairs"][pair][field] for pair in args.pairs]
             for test, adjusted in zip(tests, analysis.holm([t["p"] for t in tests])):
                 test["p_holm"] = adjusted
@@ -171,7 +171,8 @@ def run(args: argparse.Namespace) -> int:
     out_dir = root / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
     if args.full:
-        checkpoints = [c for c in CHECKPOINTS if c <= max(r["evaluations"] for r in records)]
+        searched = [r for r in records if r["searched_s"]]  # the curves leave out jobs without S-hat
+        checkpoints = [c for c in CHECKPOINTS if c <= max(r["evaluations"] for r in searched)]
         for limit, tag in ((None, "all"), (args.max_size, f"le{args.max_size}")):
             curves = analysis.convergence(records, checkpoints, limit)
             report[f"convergence_{tag}"] = {"checkpoints": checkpoints, "curves": curves}
