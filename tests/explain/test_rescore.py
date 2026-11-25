@@ -36,3 +36,13 @@ def test_rescoring_reproduces_the_stored_front_and_writes_a_readable_variant(tmp
     assert not record["searched_s"]  # left out of the convergence curves
     np.testing.assert_allclose(record["front"], scores[:, :3], rtol=1e-6)
     np.testing.assert_array_equal(record["front_masks"], stored["masks"][rows])
+
+
+def test_best_signs_use_only_small_front_masks():
+    from seqrec.explain.analysis import add_best_signs
+    front = np.array([[0.1, 0.2, 3], [0.0, 0.1, 12], [0.2, 0.3, 10]])
+    record = {"front": front, "front_pn": np.array([0.4, 0.9, 0.6]), "front_ps": np.array([0.2, 0.8, 0.5])}
+    empty = {"front": front[1:2], "front_pn": np.array([0.9]), "front_ps": np.array([0.8])}
+    add_best_signs([record, empty], 10)
+    assert (record["best_pn_le10"], record["best_ps_le10"]) == (0.6, 0.5)  # the 12-position mask is ignored
+    assert (empty["best_pn_le10"], empty["best_ps_le10"]) == (0.0, 0.0)

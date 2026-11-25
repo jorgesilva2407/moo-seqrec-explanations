@@ -201,6 +201,16 @@ def holm(p_values: Sequence[float]) -> list[float]:
     return adjusted.tolist()
 
 
+def add_best_signs(records: Iterable[dict], max_size: int) -> None:
+    """Set ``record["best_pn_le<max_size>"]`` and ``record["best_ps_le<max_size>"]``: the highest PN and PS
+    among the front masks with at most ``max_size`` positions (0 when there is none), so they can be
+    averaged and tested per instance like the hypervolumes."""
+    for record in records:
+        small = record["front"][:, 2] <= max_size
+        for stat, values in (("pn", record["front_pn"]), ("ps", record["front_ps"])):
+            record[f"best_{stat}_le{max_size}"] = float(values[small].max()) if small.any() else 0.0
+
+
 def explanation_quality(records: Iterable[dict], max_size: int, key: str = "label") -> dict:
     """Per value of ``key``, over the front masks with at most ``max_size`` positions:
 

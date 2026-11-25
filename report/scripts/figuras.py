@@ -134,7 +134,8 @@ def save(fig, name: str) -> None:
 # ---------------------------------------------------------------- numbers quoted in the prose
 
 
-PAIR_FIELDS = {"hv": "all", "hv_le10": "le", "hv_le10_nc": "lenc"}  # paired-test field -> key suffix
+PAIR_FIELDS = {"hv": "all", "hv_le10": "le", "hv_le10_nc": "lenc",  # paired-test field -> key suffix
+               "best_pn_le10": "bpn", "best_ps_le10": "bps"}  # highest PN / PS among small front masks
 
 
 def report_values() -> None:
@@ -149,7 +150,8 @@ def report_values() -> None:
             val(f"{k}.hvle5", num(row["hv_le10_mean"], 5))
             val(f"{k}.front", num(row["front_size"], 1))
             val(f"{k}.passes", thousands(row["passes"]))
-            for field, short in (("igd_plus_mean", "igd"), ("igd_plus_le10_mean", "igdle"), ("hv_le10_nc_mean", "hvlenc")):
+            for field, short in (("igd_plus_mean", "igd"), ("igd_plus_le10_mean", "igdle"), ("hv_le10_nc_mean", "hvlenc"),
+                                 ("best_pn_le10_mean", "bestpn"), ("best_ps_le10_mean", "bestps")):
                 if field in row:
                     val(f"{k}.{short}", num(row[field], 3))
             q = data["quality"].get(method)
@@ -576,6 +578,15 @@ def rescore_table() -> None:
                      num(summary[method]["hv_le10_mean"]), f"{t['wins']}/{t['losses']}",
                      f"{signed(t['mean_diff'])} [{signed(t['ci95'][0])}; {signed(t['ci95'][1])}]", pvalue(t["p_holm"])])
     write_table("reescore.tex", rows)
+    # the gain from keeping S measured directly: highest PS and PN among masks with at most 10 positions
+    rows = []
+    for field, label in (("best_ps_le10", r"Melhor $\widehat{\PS}$"), ("best_pn_le10", r"Melhor $\widehat{\PN}$")):
+        for method, k in (("nsga2_nc_le10_top1", 1), ("nsga2_nc_le10_top4", 4)):
+            t = pairs[f"nsga2,{method}"][field]
+            rows.append([label, str(k), num(summary["nsga2"][f"{field}_mean"]), num(summary[method][f"{field}_mean"]),
+                         f"{t['wins']}/{t['losses']}", f"{signed(t['mean_diff'])} [{signed(t['ci95'][0])}; {signed(t['ci95'][1])}]",
+                         signed(t["rank_biserial"], 2), pvalue(t["p_holm"])])
+    write_table("reescore-sinais.tex", rows)
 
 
 def exact_front_table() -> None:

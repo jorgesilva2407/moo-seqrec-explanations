@@ -419,7 +419,12 @@ da frente com até 10 posições). \HVp{} em $(N,C)$ e com os três objetivos, n
 frentes desta tabela. As três últimas colunas comparam o NSGA-II com cada
 linha na projeção $(N,C)$: vitórias/derrotas do NSGA-II, diferença média
 (NSGA-II $-$ linha) com IC de 95\% e $p$ de Wilcoxon com correção de Holm
-sobre os pares desta tabela.}
+sobre os pares desta tabela. Abaixo, o ganho de manter $S$ medido diretamente:
+média por instância da melhor $\widehat{\PS}$ e da melhor $\widehat{\PN}$ entre
+as máscaras de até 10 posições, no NSGA-II e nas candidatas só $(N,C)$ com
+$k=1$ (na prática, a frente original) e $k=4$; V/D: instâncias em que o NSGA-II
+é melhor/pior (as demais empatam); $r$: correlação bisserial de postos
+pareada; mesmo protocolo e família de Holm, por medida.}
 \label{tab:reescore}
 \footnotesize
 \begin{tabular}{@{}lcccccccc@{}}
@@ -427,6 +432,15 @@ sobre os pares desta tabela.}
  & $k$ & Tamanhos & Candidatas & \HVp{} $(N,C)$ & \HVp & V/D & Diferença [IC 95\%] & $p$ (Holm) \\
 \midrule
 \tabela{reescore}
+\bottomrule
+\end{tabular}
+
+\medskip
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Medida & $k$ & NSGA-II & Só $(N,C)$ & V/D & Diferença [IC 95\%] & $r$ & $p$ (Holm) \\
+\midrule
+\tabela{reescore-sinais}
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -455,7 +469,12 @@ na prática, a própria frente só $(N,C)$, e os valores coincidem. A partir de
 $k=4$ a vantagem do NSGA-II na projeção $(N,C)$ desaparece e, com mais
 candidatas, passa à variante só $(N,C)$; o \HVp{} com os três objetivos
 continua favorecendo o NSGA-II, como esperado, porque as candidatas não são
-escolhidas por $S$. O mesmo vale para o HV de todos os tamanhos: com 5 máscaras
+escolhidas por $S$. Sem o hipervolume, a diferença aparece na própria
+suficiência: com $k=4$, a melhor $\widehat{\PS}$ entre as máscaras de até 10
+posições é maior no NSGA-II em
+\val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.wins} das 99 instâncias, e a melhor
+$\widehat{\PN}$ em \val{nr.pair.nsga2.nsga2-nc-le10-top4.bpn.wins}, com a
+maioria das demais empatada (parte inferior da Tabela~\ref{tab:reescore}). O mesmo vale para o HV de todos os tamanhos: com 5 máscaras
 por tamanho em todos os tamanhos, o NSGA-II vence em
 \val{nr.pair.nsga2.nsga2-nc-all-top5.all.wins} das 99 instâncias (diferença
 \val{nr.pair.nsga2.nsga2-nc-all-top5.all.diff}), contra

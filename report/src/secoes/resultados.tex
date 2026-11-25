@@ -192,19 +192,23 @@ média \val{nr.pair.nsga2.nsga2-nc-le10-top4.lenc.diff} (IC
 \val{nr.pair.nsga2.nsga2-nc-le10-top4.lenc.ci}), e a variante só $(N,C)$ é
 melhor em \val{nr.pair.nsga2.nsga2-nc-le10-top4.lenc.losses} das 99 instâncias
 ($p=\val{nr.pair.nsga2.nsga2-nc-le10-top4.lenc.p}$,
-$r=\val{nr.pair.nsga2.nsga2-nc-le10-top4.lenc.r}$). Com $k$ maiores, a
+$r =$~\val{nr.pair.nsga2.nsga2-nc-le10-top4.lenc.r}). Os sinais diferem porque
+medem coisas diferentes: a diferença média favorece levemente o NSGA-II, que
+ganha por margens maiores nas instâncias em que vence, enquanto a variante só
+$(N,C)$ vence mais instâncias, mas por margens pequenas. Com $k$ maiores, a
 diferença passa a favorecê-la. Com a normalização do relatório principal, a
-diferença média continua nula, mas essa vantagem por instância deixa de ser
+diferença média continua não significativa, e essa vantagem por instância deixa de ser
 significativa ($p=\val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.p}$).
 
-Manter $S$, assim, acrescenta à frente as máscaras suficientes a um custo
-pequeno em necessidade e tamanho: nulo em média, embora a variante sem $S$
-vença em mais instâncias. O \HVp{} com os três objetivos ainda favorece o
-NSGA-II (melhor em \val{nr.pair.nsga2.nsga2-nc-le10-top4.le.wins} das 99
-instâncias com $k=4$, contra \val{nr.pair.nsga2.nsga2-nc.le.wins} com a frente
-original), mas por construção, porque as candidatas só $(N,C)$ não são
-escolhidas por $S$. A variante só $(N,C)$ não foi repetida nos outros
-cenários.
+Manter $S$, assim, custa pouco em necessidade e tamanho (diferença média não significativa, embora
+a variante sem $S$ vença em mais instâncias) e rende explicações pequenas mais
+suficientes. Medido diretamente, sem o hipervolume, o ganho é claro: a melhor
+$\widehat{\PS}$ entre as máscaras de até 10 posições é \val{nr.nsga2.bestps} na
+frente do NSGA-II contra \val{nr.nsga2-nc-le10-top4.bestps} nas candidatas só
+$(N,C)$ com $k=4$, maior em \val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.wins} e menor em
+\val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.losses} das 99 instâncias (diferença \val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.diff}, IC
+\val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.ci}; $p=\val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.p}$; Tabela~\ref{tab:reescore}). A
+variante só $(N,C)$ não foi repetida nos outros cenários.
 
 \paragraph{NSGA-II semeado.}
 \label{sec:semeado}
@@ -359,5 +363,4 @@ mostra o que uma resposta única esconderia: máscaras de uma e duas posições
 derrubam a recomendação em média ($\hat N<0$) mas não a sustentam sozinhas
 ($\hat S>0$); à medida que a máscara cresce (pontos mais escuros), as soluções
 avançam nos dois objetivos, e a explicação da tabela fica no meio desse
-caminho. Não avaliamos com usuários se ver essas alternativas lado a lado
-ajuda quem lê a explicação.
+caminho.

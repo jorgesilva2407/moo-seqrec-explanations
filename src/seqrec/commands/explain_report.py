@@ -111,7 +111,9 @@ def run(args: argparse.Namespace) -> int:
     analysis.add_hypervolume(records, args.max_size, f"{small}_nc", columns=(0, 2))  # the (N, C) projection
     analysis.add_igd_plus(records)
     analysis.add_igd_plus(records, args.max_size, f"igd_plus_le{args.max_size}")
-    summary = analysis.summarise(records, fields=("hv", small, f"{small}_nc", "igd_plus", f"igd_plus_le{args.max_size}"))
+    analysis.add_best_signs(records, args.max_size)
+    signs = (f"best_pn_le{args.max_size}", f"best_ps_le{args.max_size}")  # highest PN / PS among small front masks
+    summary = analysis.summarise(records, fields=("hv", small, f"{small}_nc", "igd_plus", f"igd_plus_le{args.max_size}", *signs))
     quality = analysis.explanation_quality(records, args.max_size)
     order = sorted(summary, key=lambda name: -summary[name]["hv_mean"])
     small_order = sorted(summary, key=lambda name: -summary[name][f"{small}_mean"])
@@ -137,8 +139,8 @@ def run(args: argparse.Namespace) -> int:
         report["pairs"] = {}
         for pair in args.pairs:
             first, second = pair.split(",")
-            report["pairs"][pair] = {field: pair_test(records, first, second, field) for field in ("hv", small, f"{small}_nc")}
-        for field in ("hv", small, f"{small}_nc"):
+            report["pairs"][pair] = {field: pair_test(records, first, second, field) for field in ("hv", small, f"{small}_nc", *signs)}
+        for field in ("hv", small, f"{small}_nc", *signs):
             tests = [report["pairs"][pair][field] for pair in args.pairs]
             for test, adjusted in zip(tests, analysis.holm([t["p"] for t in tests])):
                 test["p_holm"] = adjusted
