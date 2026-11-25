@@ -31,13 +31,16 @@ table. "HV ≤10" counts only explanations of up to 10 items.
   too (63/99 and 35/45), and seeded NSGA-II has the best HV over all sizes. With the second-best Zvuk model (15 instances),
   the best method in each region is unchanged, but the order in the middle of the table moves.
   Shapley, NSGA-III and GECE were not re-run in these settings, and MOEA/D was not run on Zvuk.
-- **Keeping sufficiency as an objective is worth it.** An NSGA-II that optimises only
+- **Keeping sufficiency as an objective costs little.** An NSGA-II that optimises only
   (necessity, size) does not estimate sufficiency, so the same budget buys it twice the masks
   (10,000). On the backgrounds it searches with, it finds slightly better (necessity, size)
   explanations of up to 10 items (HV of that projection 0.842 vs 0.827, better on 95/99), but
-  almost all of it comes in its first 5,000 masks (0.841): doubling the budget adds 0.0011. On
-  independent backgrounds the gain disappears: three-objective NSGA-II is better on that projection
-  (0.999 vs 0.979, 77/99), and its front also keeps the sufficient masks.
+  almost all of it comes in its first 5,000 masks (0.841): doubling the budget adds 0.0011. Its
+  returned front keeps about one mask per size and loses on independent backgrounds (77/99), but
+  that is front size: re-scoring its 4 best masks per size (40 candidates, close to the 42.8 of
+  NSGA-II's front) removes the gap (mean difference +0.001, 95% CI [−0.007, 0.011]; the (N, C)
+  variant is better on 65/99, Holm p = 0.027). So sufficiency adds the sufficient masks at a small
+  cost in necessity and size: zero on average, though the variant without it wins more often.
 - **Engineering.** A scheduler runs many searches at once and batches their queries into shared GPU
   calls. On an RTX A4000 the benchmark measures about 20,000 SASRec passes/s on MovieLens-20M
   (13,000 on Zvuk). Every step is a `just` recipe, and the GPU stages run in a Docker image on rented vast.ai GPUs.
@@ -437,7 +440,10 @@ datasets' `explanations`, `<data>` = processed data directories):
 | `ps-rescored.json` | `uv run --group explain python report/scripts/ps_reavaliado.py <ml> --processed <data>/processed --device mps` |
 | `bench-ml20m.json`, `bench-zvuk.json` | copies of `bench/` from the two datasets (written by `explain-bench`) |
 | `search-size-profile.json` | `uv run --group explain python report/scripts/diagnostico_moead.py <ml>` (where each search spends its budget by mask size) |
-| `nc-budget.json` | `uv run --group explain python report/scripts/orcamento_nc.py <ml>` (what NSGA-II gains on the search backgrounds by dropping S-hat: 5,000 vs 10,000 masks) |
+| `nc-budget.json` | `uv run --group explain python report/scripts/orcamento_nc.py <ml>` (what NSGA-II gains on the search backgrounds by dropping S-hat: 5,000 vs 10,000 masks; front sizes with at most 10 positions) |
+| stage `main-nc-rescore`, `nc-rescore-check.json` | `just explain-rescore --stage main-nc-rescore --top-k 1 4 5 10 --top-k-all 5 6 --check nsga2:0 nsga2_nc` (image `sha-cae141a`, one RTX A4000): the k masks with the lowest N-hat of every size from each `nsga2_nc` archive, re-scored on the evaluation backgrounds; `check.json` re-scores stored fronts (NSGA-II seed 0 reproduced exactly, `nsga2_nc` within 5e-7) |
+| `nc-rescore-method.json` | `just explain-report --stages main main-nc-rescore --by method --methods nsga2 nsga2_nc nsga2_nc_le10_top1 nsga2_nc_le10_top4 nsga2_nc_le10_top5 nsga2_nc_le10_top10 nsga2_nc_all_top5 nsga2_nc_all_top6 --name nc-rescore R --pairs nsga2,nsga2_nc nsga2,nsga2_nc_le10_top1 nsga2,nsga2_nc_le10_top4 nsga2,nsga2_nc_le10_top5 nsga2,nsga2_nc_le10_top10 nsga2,nsga2_nc_all_top5 nsga2,nsga2_nc_all_top6` (the article's comparison, normalised among these fronts) |
+| `final-ml20m-with-rescore-method.json` | the `final-ml20m` command with `main-nc-rescore` added to `--stages` and the pairs `nsga2,<variant>@main-nc-rescore` (robustness of that comparison to the normalisation) |
 | `model-checks.json` | `uv run --group explain python report/scripts/sanidade_modelo.py --name zvuk --processed <data>/processed_zvuk --hub-repo AbyssWanderer/sasrec-zvuk --hub-file final/zvuk-h256-l3-d0.1/best.pt --device mps`, and the same with `--name ml-20m --processed <data>/processed --hub-repo AbyssWanderer/sasrec-ml20m --hub-file fp32/best.pt` (30,000 random test users) |
 
 ## References and credits

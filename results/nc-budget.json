@@ -5,6 +5,10 @@
     "nsga2": 5000,
     "nsga2_nc": 10000
   },
+  "front_le_max_size_mean": {
+    "nsga2": 42.75555555555555,
+    "nsga2_nc": 9.933333333333334
+  },
   "hv_nc_search": {
     "nsga2": {
       "mean": 0.8269532423103049

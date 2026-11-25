@@ -61,7 +61,14 @@ STYLE = {
 INK, MUTED, GRID = "#1a1a19", "#6b6a63", "#e4e3dd"
 COLUMN = 3.33  # width of one acmart sigconf column, in inches
 REPORTS = {"ml": "final-ml20m-method.json", "rd": "final-redraw-method.json", "zv": "final-zvuk-method.json",
-           "za": "final-zvuk-alt-method.json"}
+           "za": "final-zvuk-alt-method.json",
+           # NSGA-II, NSGA-II on (N, C) and the (N, C) candidate sets re-scored by explain-rescore (normalised among
+           # themselves), and the same variants pooled with every method (robustness of the normalisation)
+           "nr": "nc-rescore-method.json", "mr": "final-ml20m-with-rescore-method.json"}
+RESCORED = (  # (N, C) candidate sets re-scored on the evaluation backgrounds: label, top-k per size, sizes
+    ("nsga2_nc_le10_top1", 1, r"$\le 10$"), ("nsga2_nc_le10_top4", 4, r"$\le 10$"), ("nsga2_nc_le10_top5", 5, r"$\le 10$"),
+    ("nsga2_nc_le10_top10", 10, r"$\le 10$"), ("nsga2_nc_all_top5", 5, "todos"), ("nsga2_nc_all_top6", 6, "todos"),
+)
 
 plt.rcParams.update({
     "font.family": "serif", "font.size": 7.5, "axes.labelsize": 7.5, "legend.fontsize": 6.5,
@@ -105,7 +112,7 @@ def pvalue(p: float) -> str:
 
 def key(name: str) -> str:
     """Method ids as macro keys (no underscores or @)."""
-    return name.replace("scalar_ga@main-sga-", "sga-").replace("_", "-")
+    return name.replace("scalar_ga@main-sga-", "sga-").replace("@main-nc-rescore", "").replace("_", "-")
 
 
 def val(name: str, text: str) -> None:
@@ -251,6 +258,14 @@ def other_values() -> None:
         if "wins" in row:
             test_values(k, row)
     test_values("ncbudget.doubling", budget["doubling"])
+    check = load("nc-rescore-check.json")  # explain-rescore re-scoring the stored fronts again
+    for spec, row in check.items():
+        k = f"rescore.check.{key(spec.split(':')[0])}"
+        val(f"{k}.jobs", str(row["jobs"]))
+        val(f"{k}.obj", pvalue(row["max_abs_diff"]["objectives"]) if row["max_abs_diff"]["objectives"] else "0")
+        val(f"{k}.signs", "0" if row["max_abs_diff"]["pn"] == row["max_abs_diff"]["ps"] == 0 else num(max(row["max_abs_diff"]["pn"], row["max_abs_diff"]["ps"]), 2))
+    for name, v in budget["front_le_max_size_mean"].items():
+        val(f"ncbudget.{key(name)}.frontle", num(v, 1))
     val("ncbudget.doubling.diff4", signed(budget["doubling"]["mean_diff"], 4))
     for method, row in load("search-size-profile.json").items():
         val(f"size.{key(method)}.le10", num(100 * row["share_evaluated_le10"], 0))
@@ -387,7 +402,7 @@ def key_figure() -> None:
     ax.bar_label(bars, labels=[f"{v:.2f}".replace(".", ",") for v in values], fontsize=6, color=INK, padding=1)
     ax.set_ylim(0, 1)
     ax.set_xlabel("tamanho da máscara (% de $n$)")
-    ax.set_ylabel(r"Spearman entre $\hat N$ e $\hat S$")
+    ax.set_ylabel(r"Spearman($\hat N$, $\hat S$)")
     ax.set_title("(a) conflito nas máscaras pequenas", fontsize=7)
     ax.tick_params(axis="x", labelsize=6, rotation=30)
     ax.grid(axis="x", visible=False)
@@ -397,8 +412,8 @@ def key_figure() -> None:
     reports = {tag: load(REPORTS[tag]) for tag, _, _ in SCENARIOS}
     reference = reports["ml"]["wilcoxon_small"]["best"]
     assert all(r["wilcoxon_small"]["best"] == reference for r in reports.values())
-    methods = ("nsga3", "nsga2", "nsga2_seeded", "nsga2_nc", "greedy", "shapley", "ablation", "scalar_ga",
-               "gece_restarts", "moead")
+    # NSGA-II on (N, C) is left out: three-objective HV counts the S it does not optimise (Section 6.3)
+    methods = ("nsga3", "nsga2", "nsga2_seeded", "greedy", "shapley", "ablation", "scalar_ga", "gece_restarts", "moead")
     for row, method in enumerate(methods):
         for offset, (tag, label, marker) in zip((-0.22, 0.0, 0.22), SCENARIOS):
             t = reports[tag]["wilcoxon_small"]["against"].get(method)
@@ -419,33 +434,36 @@ def key_figure() -> None:
     ax.set_title(f"(b) distância ao melhor método ({SHORT[reference]}), IC 95%", fontsize=7)
     ax.grid(axis="y", visible=False)
     handles = [plt.Line2D([], [], marker=m, color=MUTED, linestyle="none", markersize=3.2) for _, _, m in SCENARIOS]
-    ax.legend(handles, [label for _, label, _ in SCENARIOS], loc="upper center", bbox_to_anchor=(0.5, -0.34), ncol=3, handletextpad=0.2)
+    ax.legend(handles, [label for _, label, _ in SCENARIOS], loc="upper center", bbox_to_anchor=(0.5, -0.42), ncol=3, handletextpad=0.2)
 
     ax = axes[2]
     search = load("nc-budget.json")["hv_nc_search"]
-    summary = ml["summary"]
-    full, nc = ("#2a78d6", "o"), ("#e87ba4", "s")
-    points = [  # (x, value, style, hollow): search backgrounds, then the fronts re-scored on independent ones
-        (-0.25, search["nsga2"]["mean"], full, False), (0.0, search["nsga2_nc_same_masks"]["mean"], nc, True),
-        (0.25, search["nsga2_nc"]["mean"], nc, False),
-        (0.85, summary["nsga2"]["hv_le10_nc_mean"], full, False), (1.15, summary["nsga2_nc"]["hv_le10_nc_mean"], nc, False),
+    rescored = load("nc-rescore-method.json")["summary"]
+    full, nc, wide = ("#2a78d6", "o"), ("#e87ba4", "s"), ("#e87ba4", "D")
+    points = [  # (x, value, style, hollow, label below): search backgrounds, then fronts re-scored on independent ones
+        (-0.25, search["nsga2"]["mean"], full, False, False), (0.0, search["nsga2_nc_same_masks"]["mean"], nc, True, True),
+        (0.25, search["nsga2_nc"]["mean"], nc, False, False),
+        (0.75, rescored["nsga2"]["hv_le10_nc_mean"], full, False, False),
+        (1.0, rescored["nsga2_nc"]["hv_le10_nc_mean"], nc, False, True),
+        (1.25, rescored["nsga2_nc_le10_top4"]["hv_le10_nc_mean"], wide, False, False),
     ]
-    for x, y, (colour, marker), hollow in points:
+    for x, y, (colour, marker), hollow, below in points:  # middle labels below, clear of their neighbours
         ax.plot(x, y, marker=marker, linestyle="none", markersize=4.5, color=colour,
                 markerfacecolor="white" if hollow else colour)
-        ax.annotate(num(y, 3).replace("{,}", ","), (x, y), xytext=(0, -9 if hollow else 5), textcoords="offset points",
-                    ha="center", fontsize=5.5, color=INK)  # the hollow point's label below, clear of its neighbours
+        ax.annotate(num(y, 3).replace("{,}", ","), (x, y), xytext=(0, -9 if below else 5), textcoords="offset points",
+                    ha="center", fontsize=5.5, color=INK)
     ax.set_xticks([0, 1], ["busca", "avaliação"])
-    ax.set_xlim(-0.55, 1.45)
-    ax.set_ylim(0.8, 1.03)
+    ax.set_xlim(-0.55, 1.55)
+    ax.set_ylim(0.8, 1.04)
     ax.set_ylabel(r"HV$_{\leq 10}$ em $(N,C)$")
     ax.set_title("(c) custo de manter $S$", fontsize=7)
     ax.grid(axis="x", visible=False)
     handles = [plt.Line2D([], [], marker=full[1], color=full[0], linestyle="none", markersize=4.5),
                plt.Line2D([], [], marker=nc[1], color=nc[0], linestyle="none", markersize=4.5, markerfacecolor="white"),
-               plt.Line2D([], [], marker=nc[1], color=nc[0], linestyle="none", markersize=4.5)]
-    ax.legend(handles, ["NSGA-II (5 mil máscaras)", "só (N,C), 5 mil", "só (N,C), 10 mil"],
-              loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=1, handlelength=1.0)
+               plt.Line2D([], [], marker=nc[1], color=nc[0], linestyle="none", markersize=4.5),
+               plt.Line2D([], [], marker=wide[1], color=wide[0], linestyle="none", markersize=4.5)]
+    ax.legend(handles, ["NSGA-II", "só (N,C) 5 mil", "só (N,C) 10 mil", "4 por tamanho"], loc="upper center",
+              bbox_to_anchor=(0.5, -0.17), ncol=2, handlelength=0.8, columnspacing=0.6, handletextpad=0.3)
     fig.tight_layout(w_pad=0.8)
     save(fig, "principal.pdf")
 
@@ -506,7 +524,8 @@ def pairs_table() -> None:
             wins, diff, lo, hi, r = t["wins"], t["mean_diff"], t["ci95"][0], t["ci95"][1], t["rank_biserial"]
             if flip:
                 wins, diff, lo, hi, r = t["losses"], -diff, -hi, -lo, -r
-            rows.append([f"{label(a)} $>$ {label(b)}", r"\HVp" if region == "le" else "HV", f"{wins}/{t['instances']}",
+            mark = r"$^\ast$" if "nsga2_nc" in (a, b) else ""  # see the caption: S counts, by construction
+            rows.append([f"{label(a)} $>$ {label(b)}{mark}", r"\HVp" if region == "le" else "HV", f"{wins}/{t['instances']}",
                          f"{signed(diff)} [{signed(lo)}; {signed(hi)}]", signed(r, 2), pvalue(t["p_holm"])])
         write_table(name, rows)
 
@@ -538,6 +557,25 @@ def robustness_table() -> None:
 
     write_table("robustez.tex", rows(("ml", "rd", "zv")))
     write_table("robustez-alt.tex", rows(("zv", "za")))
+
+
+def rescore_table() -> None:
+    """The (N, C) candidate sets re-scored on the evaluation backgrounds, against three-objective NSGA-II
+    (nc-rescore-method.json): candidates, HV<=10 of the (N, C) projection and of the three objectives, and
+    the paired test of NSGA-II against each set on the (N, C) projection."""
+    data = load("nc-rescore-method.json")
+    summary, pairs = data["summary"], data["pairs"]
+    small = load("nc-budget.json")["front_le_max_size_mean"]  # front masks with |X| <= 10, as the candidate sets
+    rows = [["NSGA-II (três objetivos)", "--", "frente", num(small["nsga2"], 1),
+             num(summary["nsga2"]["hv_le10_nc_mean"]), num(summary["nsga2"]["hv_le10_mean"]), "--", "--", "--"]]
+    for method, k, sizes in (("nsga2_nc", "--", "frente"),) + RESCORED:
+        t = pairs[f"nsga2,{method}"]["hv_le10_nc"]
+        rows.append([r"Só $(N,C)$" + ("" if method == "nsga2_nc" else POST_HOC), str(k), sizes,
+                     num(small[method] if method == "nsga2_nc" else summary[method]["front_size"], 1),
+                     num(summary[method]["hv_le10_nc_mean"]),
+                     num(summary[method]["hv_le10_mean"]), f"{t['wins']}/{t['losses']}",
+                     f"{signed(t['mean_diff'])} [{signed(t['ci95'][0])}; {signed(t['ci95'][1])}]", pvalue(t["p_holm"])])
+    write_table("reescore.tex", rows)
 
 
 def exact_front_table() -> None:
@@ -666,6 +704,7 @@ def main() -> None:
     methods_table()
     pairs_table()
     robustness_table()
+    rescore_table()
     moea_tuning_table()
     pops, ms = [(p, str(p)) for p in (25, 50, 100, 200)], [(m, str(m)) for m in (5, 10, 20)]
     grid_table("ajuste.tex", "tuning-stage.json", pops, ms, lambda p, m: f"tune-p{p}-m{m}")

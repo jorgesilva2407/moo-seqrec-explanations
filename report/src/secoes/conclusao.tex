@@ -11,10 +11,11 @@ $S$ fossem quase redundantes. As duas coisas ocorreram, em regiões diferentes.
 Nas explicações pequenas, $N$ e $S$ concordam só moderadamente, os algoritmos
 baseados em dominância de Pareto são os melhores métodos, contra a busca
 escalarizada, o guloso, o Shapley e o GECE. Manter $S$ como objetivo também se
-justifica: retirá-lo dobra as máscaras que a busca avalia, mas rende só um
-ganho marginal em necessidade e tamanho nos fundos da busca, que não resiste a
-fundos independentes; a frente ganha as máscaras suficientes sem perder nas
-outras duas direções. Nas máscaras grandes, $N$ e
+justifica, embora não de graça: retirá-lo dobra as máscaras que a busca avalia,
+mas o ganho em necessidade e tamanho é marginal, e, com um número comparável de
+máscaras reavaliadas, a diferença nesses dois objetivos é nula em média (a
+variante sem $S$ vence em mais instâncias); em troca, a frente ganha as
+máscaras suficientes. Nas máscaras grandes, $N$ e
 $S$ quase coincidem, e métodos que percorrem todos os tamanhos vencem o NSGA-II
 original no MovieLens; só a variante semeada, posterior à comparação
 planejada, vence ali. As conclusões dos métodos centrais se repetem em
@@ -53,6 +54,5 @@ enviesada para os itens recentes), outras arquiteturas de recomendador e uma
 avaliação com usuários.
 
 \paragraph{Reprodutibilidade.}
-O código, os arquivos de resultados usados nas tabelas e figuras, os roteiros
-que as geram e os comandos de cada execução estão no repositório do projeto
-(\url{https://github.com/jorgesilva2407/moo-seqrec-explanations}).
+Código, resultados, roteiros e comandos:
+\url{https://github.com/jorgesilva2407/moo-seqrec-explanations}.

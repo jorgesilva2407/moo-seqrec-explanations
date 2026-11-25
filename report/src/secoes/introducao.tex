@@ -45,9 +45,9 @@ no Zvuk (música); eles são o objeto da explicação, não a contribuição
 Resumidamente (Figura~\ref{fig:principal}): necessidade e suficiência
 concordam só moderadamente entre máscaras pequenas; nessa região os algoritmos
 baseados em dominância são os melhores métodos; e manter a suficiência como
-objetivo vale a pena: retirá-la dobra as máscaras que a busca avalia, mas o
-ganho em necessidade e tamanho é marginal e não resiste a fundos
-independentes. Há um
+objetivo custa pouco: retirá-la dobra as máscaras que a busca avalia, mas o
+ganho em necessidade e tamanho é marginal, e mantê-la acrescenta as máscaras
+suficientes. Há um
 resultado secundário que limita o primeiro: quando máscaras de qualquer
 tamanho contam, o guloso e os valores de Shapley superam o NSGA-II no
 MovieLens, e só uma variante semeada com um ranking por ablação o corrige.
@@ -68,8 +68,10 @@ todos os intervalos ficam acima de zero. (c)~Custo de manter $S$: \HVp{} na
 projeção $(N,C)$, média nas 99 instâncias. Busca: nos fundos de busca, o
 NSGA-II com os três objetivos (5 mil máscaras) e o NSGA-II só $(N,C)$ depois
 de 5 mil e de 10 mil máscaras (normalização entre os três, em cada
-instância). Avaliação: as frentes reavaliadas nos fundos independentes
-(normalização do relatório principal). Os dois grupos não são comparáveis
-entre si.}
+instância). Avaliação: nos fundos independentes, as frentes do NSGA-II e do
+NSGA-II só $(N,C)$ e, desta, as 4 máscaras de menor $\hat N$ de cada tamanho até
+10$^\dagger$, um número de candidatas comparável ao da frente do NSGA-II
+(normalização do Apêndice~\ref{ap:reescore}). Os dois grupos não são
+comparáveis entre si.}
 \label{fig:principal}
 \end{figure*}

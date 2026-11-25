@@ -1,0 +1,18 @@
+{
+  "nsga2:0": {
+    "jobs": 99,
+    "max_abs_diff": {
+      "objectives": 0.0,
+      "pn": 0.0,
+      "ps": 0.0
+    }
+  },
+  "nsga2_nc": {
+    "jobs": 495,
+    "max_abs_diff": {
+      "objectives": 4.76837158203125e-07,
+      "pn": 0.0,
+      "ps": 0.0
+    }
+  }
+}

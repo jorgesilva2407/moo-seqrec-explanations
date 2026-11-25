@@ -404,6 +404,72 @@ baseados em dominância continuam acima do guloso, do AG escalarizado e do
 ranking por ablação nas explicações pequenas; a ordem do meio da tabela muda,
 e 15 instâncias não bastam para resolvê-la.
 
+%% ---- Apêndice: reavaliação de mais candidatas do NSGA-II só (N,C) ---------------
+\section{Reavaliação de mais candidatas do NSGA-II só $(N,C)^\dagger$}
+\label{ap:reescore}
+
+\begin{table*}[t]
+\caption{Candidatas do NSGA-II só $(N,C)$ reavaliadas nos fundos independentes
+($\dagger$, verificação posterior; 99 instâncias, 5 sementes). $k$: máscaras de
+menor $\hat N$ (fundos de busca) por tamanho; Tamanhos: até 10 posições ou
+todos os que a busca avaliou; Candidatas: média de máscaras reavaliadas por
+execução, todas com até 10 posições, salvo nas duas linhas de todos os
+tamanhos, que contam todas (para o NSGA-II e a frente só $(N,C)$, as máscaras
+da frente com até 10 posições). \HVp{} em $(N,C)$ e com os três objetivos, normalizados entre as
+frentes desta tabela. As três últimas colunas comparam o NSGA-II com cada
+linha na projeção $(N,C)$: vitórias/derrotas do NSGA-II, diferença média
+(NSGA-II $-$ linha) com IC de 95\% e $p$ de Wilcoxon com correção de Holm
+sobre os pares desta tabela.}
+\label{tab:reescore}
+\footnotesize
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+ & $k$ & Tamanhos & Candidatas & \HVp{} $(N,C)$ & \HVp & V/D & Diferença [IC 95\%] & $p$ (Holm) \\
+\midrule
+\tabela{reescore}
+\bottomrule
+\end{tabular}
+\end{table*}
+
+A busca só $(N,C)$ devolve apenas as máscaras não dominadas em $(\hat N, C)$,
+cerca de uma por tamanho, e só elas são reavaliadas nos fundos independentes.
+Para saber se a desvantagem dessa frente na projeção $(N,C)$ vem da busca ou
+do tamanho da frente, reavaliamos mais candidatas das mesmas execuções, sem
+nova busca e fora do orçamento, como a reavaliação de todos os métodos: de cada
+arquivo da busca só $(N,C)$, as $k$ máscaras de menor $\hat N$ de cada tamanho
+(comando \texttt{explain-rescore}). Com $k=4$ e tamanhos até 10, são
+\val{nr.nsga2-nc-le10-top4.front} candidatas por execução, perto das \val{ncbudget.nsga2.frontle} máscaras com até
+10 posições da frente do NSGA-II; $k=5$ e $k=10$ verificam a sensibilidade, e
+as variantes com todos os tamanhos ($k=5$ e $6$, cujas candidatas cercam as
+\val{ml.nsga2.front} máscaras da frente completa do NSGA-II) servem ao HV de todos os
+tamanhos. Para conferir a reavaliação, reavaliamos também as frentes guardadas:
+as do NSGA-II na semente 0 (\val{rescore.check.nsga2.jobs} execuções) foram
+reproduzidas com diferença máxima de \val{rescore.check.nsga2.obj} nos
+objetivos, e as do NSGA-II só $(N,C)$ (\val{rescore.check.nsga2-nc.jobs}
+execuções) com \val{rescore.check.nsga2-nc.obj}, arredondamento de ponto
+flutuante; as frações de sinal ($\widehat{\PN}$, $\widehat{\PS}$) coincidiram
+em todas.
+
+A Tabela~\ref{tab:reescore} mostra o resultado. Com $k=1$, as candidatas são,
+na prática, a própria frente só $(N,C)$, e os valores coincidem. A partir de
+$k=4$ a vantagem do NSGA-II na projeção $(N,C)$ desaparece e, com mais
+candidatas, passa à variante só $(N,C)$; o \HVp{} com os três objetivos
+continua favorecendo o NSGA-II, como esperado, porque as candidatas não são
+escolhidas por $S$. O mesmo vale para o HV de todos os tamanhos: com 5 máscaras
+por tamanho em todos os tamanhos, o NSGA-II vence em
+\val{nr.pair.nsga2.nsga2-nc-all-top5.all.wins} das 99 instâncias (diferença
+\val{nr.pair.nsga2.nsga2-nc-all-top5.all.diff}), contra
+\val{nr.pair.nsga2.nsga2-nc.all.wins} (\val{nr.pair.nsga2.nsga2-nc.all.diff})
+com a frente só $(N,C)$; parte dessa diferença vem do tamanho da frente, e o
+restante, de $S$ entrar no hipervolume. Com a normalização do relatório principal (todos os
+métodos e as variantes), o NSGA-II vence em
+\val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.wins} e perde em
+\val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.losses} das 99 instâncias com $k=4$
+(diferença \val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.diff}, IC
+\val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.ci};
+$p=\val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.p}$, Holm sobre todos os pares
+desse relatório).
+
 %% ---- Apêndice H: limitações adicionais -----------------------------------------
 \section{Limitações adicionais}
 \label{ap:limitacoes}

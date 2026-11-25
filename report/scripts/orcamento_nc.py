@@ -9,6 +9,9 @@ with at most 10 positions:
 * the (N, C) NSGA-II after its first 5,000 masks (the same number of masks);
 * the (N, C) NSGA-II after all 10,000 masks (the same number of passes);
 
+also the mean number of front masks with at most 10 positions of each (the size explain-rescore's
+top-k candidate sets are matched to);
+
 and the (N, C) NSGA-II at 10,000 against itself at 5,000 masks (what the second half of the budget adds).
 
 Every evaluated mask counts (the non-dominated set in (N, C) of the archive), scaled inside each
@@ -47,12 +50,14 @@ def nc_front(objectives: np.ndarray, masks: int | None = None) -> np.ndarray:
 def main() -> None:
     root = Path(sys.argv[1])
     values = defaultdict(lambda: defaultdict(list))  # variant -> instance -> one value per seed
-    evaluations = {}
+    evaluations, front_small = {}, defaultdict(list)
     for path in sorted(root.glob("main/*/nsga2/*.npz")):
         other = path.parent.parent / "nsga2_nc" / path.name
         full, nc = load_job(path), load_job(other)
         half = full["meta"]["evaluations"]
         evaluations = {"nsga2": half, "nsga2_nc": nc["meta"]["evaluations"]}
+        for name, job in (("nsga2", full), ("nsga2_nc", nc)):  # front masks with at most MAX_SIZE positions
+            front_small[name].append(int((job["objectives"][job["front"], 2] <= MAX_SIZE).sum()))
         fronts = {"nsga2": nc_front(full["objectives"]), "nsga2_nc_same_masks": nc_front(nc["objectives"], half),
                   "nsga2_nc": nc_front(nc["objectives"])}
         union = np.concatenate(list(fronts.values()))
@@ -64,7 +69,8 @@ def main() -> None:
     means = {name: {i: float(np.mean(v)) for i, v in per.items()} for name, per in values.items()}
     instances = sorted(means["nsga2"])
     base = [means["nsga2"][i] for i in instances]
-    out = {"instances": len(instances), "max_size": MAX_SIZE, "evaluations": evaluations, "hv_nc_search": {}}
+    out = {"instances": len(instances), "max_size": MAX_SIZE, "evaluations": evaluations,
+           "front_le_max_size_mean": {name: float(np.mean(v)) for name, v in front_small.items()}, "hv_nc_search": {}}
     for name, per in means.items():
         x = [per[i] for i in instances]
         row = {"mean": float(np.mean(x))}
