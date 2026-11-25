@@ -307,8 +307,9 @@ IGD+~\cite{ishibuchi2015igdplus} ordena os métodos quase como o \HVp{}
 \val{ml.greedy.igdle} para o guloso); medido contra a união das frentes, ele
 favorece os métodos que mais contribuem para essa união. A maior
 $\widehat{\PN}$ fica perto de 1 em todos os métodos de busca, e a maior
-$\widehat{\PS}$ perto de \val{ml.nsga2.ps}, de modo que as duas quase não os
-distinguem.
+$\widehat{\PS}$ perto de \val{ml.nsga2.ps} nos que otimizam $S$, de modo que as
+duas quase não os distinguem; a exceção é o NSGA-II só $(N,C)$, que não otimiza
+$S$ e fica em \val{ml.nsga2-nc.ps}.
 
 \paragraph{Máscaras pequenas e suficientes são raras.}
 Nos fundos de busca, alguma máscara avaliada atinge $\widehat{\PS}\ge0{,}5$ em
@@ -469,18 +470,18 @@ na prática, a própria frente só $(N,C)$, e os valores coincidem. A partir de
 $k=4$ a vantagem do NSGA-II na projeção $(N,C)$ desaparece e, com mais
 candidatas, passa à variante só $(N,C)$; o \HVp{} com os três objetivos
 continua favorecendo o NSGA-II, como esperado, porque as candidatas não são
-escolhidas por $S$. Sem o hipervolume, a diferença aparece na própria
-suficiência: com $k=4$, a melhor $\widehat{\PS}$ entre as máscaras de até 10
-posições é maior no NSGA-II em
-\val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.wins} das 99 instâncias, e a melhor
-$\widehat{\PN}$ em \val{nr.pair.nsga2.nsga2-nc-le10-top4.bpn.wins}, com a
-maioria das demais empatada (parte inferior da Tabela~\ref{tab:reescore}). O mesmo vale para o HV de todos os tamanhos: com 5 máscaras
+escolhidas por $S$. O mesmo vale para o HV de todos os tamanhos: com 5 máscaras
 por tamanho em todos os tamanhos, o NSGA-II vence em
 \val{nr.pair.nsga2.nsga2-nc-all-top5.all.wins} das 99 instâncias (diferença
 \val{nr.pair.nsga2.nsga2-nc-all-top5.all.diff}), contra
 \val{nr.pair.nsga2.nsga2-nc.all.wins} (\val{nr.pair.nsga2.nsga2-nc.all.diff})
 com a frente só $(N,C)$; parte dessa diferença vem do tamanho da frente, e o
-restante, de $S$ entrar no hipervolume. Com a normalização do relatório principal (todos os
+restante, de $S$ entrar no hipervolume. Sem o hipervolume, a diferença aparece na própria
+suficiência: com $k=4$, a melhor $\widehat{\PS}$ entre as máscaras de até 10
+posições é maior no NSGA-II em
+\val{nr.pair.nsga2.nsga2-nc-le10-top4.bps.wins} das 99 instâncias, e a melhor
+$\widehat{\PN}$ em \val{nr.pair.nsga2.nsga2-nc-le10-top4.bpn.wins} (nesta, a maioria das demais
+empata; parte inferior da Tabela~\ref{tab:reescore}). Com a normalização do relatório principal (todos os
 métodos e as variantes), o NSGA-II vence em
 \val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.wins} e perde em
 \val{mr.pair.nsga2.nsga2-nc-le10-top4.lenc.losses} das 99 instâncias com $k=4$

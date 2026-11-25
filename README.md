@@ -39,8 +39,10 @@ table. "HV ≤10" counts only explanations of up to 10 items.
   returned front keeps about one mask per size and loses on independent backgrounds (77/99), but
   that is front size: re-scoring its 4 best masks per size (40 candidates, close to the 42.8 of
   NSGA-II's front) removes the gap (mean difference +0.001, 95% CI [−0.007, 0.011]; the (N, C)
-  variant is better on 65/99, Holm p = 0.027). So sufficiency adds the sufficient masks at a small
-  cost in necessity and size: zero on average, though the variant without it wins more often.
+  variant is better on 65/99, Holm p = 0.027). So keeping sufficiency costs little in necessity and
+  size (the mean difference is not significant, though the variant without it wins more often) and
+  yields more sufficient small explanations: the best PS among masks of up to 10 items is 0.555 vs
+  0.462, higher on 83/99 instances.
 - **Engineering.** A scheduler runs many searches at once and batches their queries into shared GPU
   calls. On an RTX A4000 the benchmark measures about 20,000 SASRec passes/s on MovieLens-20M
   (13,000 on Zvuk). Every step is a `just` recipe, and the GPU stages run in a Docker image on rented vast.ai GPUs.
