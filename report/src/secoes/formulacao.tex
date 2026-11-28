@@ -72,20 +72,13 @@ de necessidade e de suficiência~\cite{pearl2009causality,tan2021counter} são
 \paragraph{Problema.}
 Buscamos as máscaras não dominadas de
 \begin{equation}
-  \min_{z \in \{0,1\}^n} \;\; \big(\, N(z),\; S(z),\; C(z) \,\big)
-  \label{eq:problema}
-\end{equation}
-\begin{equation}
-  N(z) = \E_{R}\big[\,\delta(v \mid s[X \leftarrow R])\,\big]
-  \label{eq:N}
-\end{equation}
-\begin{equation}
-  S(z) = -\,\E_{R}\big[\,\delta(v \mid s[\bar X \leftarrow R])\,\big]
-  \label{eq:S}
-\end{equation}
-\begin{equation}
-  C(z) = |X|
-  \label{eq:C}
+\begin{aligned}
+  &\min_{z \in \{0,1\}^n} \;\; \big(\, N(z),\; S(z),\; C(z) \,\big), \quad \text{com}\\
+  &N(z) = \E_{R}\big[\,\delta(v \mid s[X \leftarrow R])\,\big],\\
+  &S(z) = -\,\E_{R}\big[\,\delta(v \mid s[\bar X \leftarrow R])\,\big],\\
+  &C(z) = |X|.
+\end{aligned}
+\label{eq:problema}
 \end{equation}
 $N$ é a margem esperada de $v$ depois de apagar $X$ (quanto menor, mais
 necessário); $S$ é a margem esperada mantendo só $X$, com sinal trocado (quanto
